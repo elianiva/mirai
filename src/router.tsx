@@ -3,6 +3,7 @@ import { DefaultCatchBoundary } from "./components/DefaultCatchBoundary";
 import { NotFound } from "./components/NotFound";
 import { routeTree } from "./routeTree.gen";
 import { ConvexQueryClient } from "@convex-dev/react-query";
+import { routerWithQueryClient } from "@tanstack/react-router-with-query";
 import { QueryClient } from "@tanstack/react-query";
 
 export function createRouter() {
@@ -24,16 +25,19 @@ export function createRouter() {
 	});
 	convexQueryClient.connect(queryClient);
 
-	const router = createTanStackRouter({
-		routeTree,
-		defaultPreload: "intent",
-		defaultErrorComponent: DefaultCatchBoundary,
-		defaultNotFoundComponent: () => <NotFound />,
-		scrollRestoration: true,
-		context: {
-			queryClient,
-		} as { queryClient: QueryClient },
-	});
+	const router = routerWithQueryClient(
+		createTanStackRouter({
+			routeTree,
+			defaultPreload: "intent",
+			defaultErrorComponent: DefaultCatchBoundary,
+			defaultNotFoundComponent: () => <NotFound />,
+			scrollRestoration: true,
+			context: {
+				queryClient,
+			},
+		}),
+		queryClient,
+	);
 
 	return router;
 }

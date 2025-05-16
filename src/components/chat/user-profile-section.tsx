@@ -3,10 +3,10 @@ import { Button } from "~/components/ui/button";
 import { Settings } from "lucide-react";
 import { useState } from "react";
 import { SettingsDialog } from "~/components/settings-dialog";
-import { Route as HomePageRoute } from "~/routes/index";
+import { useUser } from "~/lib/query/user";
 
 export function UserProfileSection() {
-	const { user } = HomePageRoute.useLoaderData();
+	const { data: user } = useUser();
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
 	return (

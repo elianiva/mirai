@@ -21,13 +21,11 @@ export const authStateFn = createServerFn({ method: "GET" }).handler(
 		const user = userId ? await clerkClient.users.getUser(userId) : null;
 
 		return {
-			user: {
-				id: user?.id,
-				email: user?.emailAddresses[0].emailAddress,
-				firstName: user?.firstName,
-				lastName: user?.lastName,
-				imageUrl: user?.imageUrl,
-			},
+			id: user?.id,
+			email: user?.emailAddresses[0].emailAddress,
+			firstName: user?.firstName,
+			lastName: user?.lastName,
+			imageUrl: user?.imageUrl,
 		};
 	},
 );

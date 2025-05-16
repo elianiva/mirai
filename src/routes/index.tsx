@@ -8,14 +8,18 @@ import {
 import { ChatListPanel } from "~/components/chat/chat-list-panel";
 import { ChatAreaPanel } from "~/components/chat/chat-area-panel";
 import { ModesPanel } from "~/components/chat/modes-panel";
-
+import { userQueryOptions } from "~/lib/query/user";
 export const Route = createFileRoute("/")({
 	component: HomePage,
 	beforeLoad: () => authStateFn(),
 	loader: async ({ context }) => {
-		return {
-			user: context.user,
-		};
+		context.queryClient.setQueryData(userQueryOptions.queryKey, {
+			id: context.id,
+			email: context.email,
+			firstName: context.firstName,
+			lastName: context.lastName,
+			imageUrl: context.imageUrl,
+		});
 	},
 });
 

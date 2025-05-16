@@ -6,6 +6,7 @@ import { AccountSettings } from "./account-settings";
 import { AppearanceSettings } from "./appearance-settings";
 import { AboutSettings } from "./about-settings";
 import { Settings, User, Palette, Info } from "lucide-react";
+import { ModesSettings } from "./modes-settings";
 import type React from "react";
 
 type SettingsDialogProps = {
@@ -40,6 +41,12 @@ const NAV_ITEMS: NavItem[] = [
 		content: <AppearanceSettings />,
 	},
 	{ id: "about", label: "About", icon: Info, content: <AboutSettings /> },
+	{
+		id: "modes",
+		label: "Modes",
+		icon: Settings,
+		content: <ModesSettings />,
+	},
 ];
 
 export function SettingsDialog(props: SettingsDialogProps) {
