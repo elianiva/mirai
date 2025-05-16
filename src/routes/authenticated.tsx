@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
-import { auth } from "../libs/auth";
 import { z } from "zod";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Button } from "~/components/ui/button";
 import {
 	Card,
@@ -10,8 +10,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from "~/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { authClient } from "~/libs/auth-client";
+import { auth } from "../libs/auth";
 
 export const Route = createFileRoute("/authenticated")({
 	beforeLoad: async ({ location }) => {
