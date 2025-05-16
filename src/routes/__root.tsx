@@ -1,17 +1,22 @@
 import {
 	HeadContent,
-	Link,
 	Outlet,
 	Scripts,
-	createRootRoute,
+	createRootRouteWithContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
 import { NotFound } from "~/components/NotFound";
+// @ts-expect-error - this is a valid css file
 import appCss from "~/styles/app.css?url";
 import { seo } from "~/utils/seo";
+import type { QueryClient } from "@tanstack/react-query";
+import { Toaster } from "~/components/ui/sonner";
+import { ClerkProvider } from "@clerk/tanstack-react-start";
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{
+	queryClient: QueryClient;
+}>()({
 	head: () => ({
 		meta: [
 			{
@@ -72,15 +77,18 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en">
-			<head>
-				<HeadContent />
-			</head>
-			<body>
-				{children}
-				<TanStackRouterDevtools position="bottom-right" />
-				<Scripts />
-			</body>
-		</html>
+		<ClerkProvider>
+			<html lang="en" className="h-full w-full">
+				<head>
+					<HeadContent />
+				</head>
+				<body className="h-full w-full">
+					{children}
+					<Toaster />
+					<TanStackRouterDevtools position="bottom-right" />
+					<Scripts />
+				</body>
+			</html>
+		</ClerkProvider>
 	);
 }
