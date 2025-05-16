@@ -1,8 +1,13 @@
 /// <reference types="vinxi/types/client" />
-import { hydrateRoot } from 'react-dom/client'
-import { StartClient } from '@tanstack/react-start'
-import { createRouter } from './router'
+import { hydrateRoot } from "react-dom/client";
+import * as Sentry from "@sentry/react";
+import { StartClient } from "@tanstack/react-start";
+import { createRouter } from "./router";
 
-const router = createRouter()
+Sentry.init({
+	dsn: process.env.VITE_SENTRY_DSN,
+});
 
-hydrateRoot(document, <StartClient router={router} />)
+const router = createRouter();
+
+hydrateRoot(document, <StartClient router={router} />);
