@@ -3,9 +3,8 @@ import { Dialog, DialogContent } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
 import { GeneralSettings } from "./general-settings";
 import { AccountSettings } from "./account-settings";
-import { AppearanceSettings } from "./appearance-settings";
-import { AboutSettings } from "./about-settings";
-import { Settings, User, Palette, Info } from "lucide-react";
+import { ProfileSettings } from "./profile-settings";
+import { Settings, User, Layers, FileCog } from "lucide-react";
 import { ModesSettings } from "./modes-settings";
 import type React from "react";
 
@@ -35,17 +34,16 @@ const NAV_ITEMS: NavItem[] = [
 		content: <AccountSettings />,
 	},
 	{
-		id: "appearance",
-		label: "Appearance",
-		icon: Palette,
-		content: <AppearanceSettings />,
-	},
-	{ id: "about", label: "About", icon: Info, content: <AboutSettings /> },
-	{
 		id: "modes",
 		label: "Modes",
-		icon: Settings,
+		icon: Layers,
 		content: <ModesSettings />,
+	},
+	{
+		id: "profile",
+		label: "Profile Settings",
+		icon: FileCog,
+		content: <ProfileSettings />,
 	},
 ];
 

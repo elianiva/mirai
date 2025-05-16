@@ -5,6 +5,7 @@ import { routeTree } from "./routeTree.gen";
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { routerWithQueryClient } from "@tanstack/react-router-with-query";
 import { QueryClient } from "@tanstack/react-query";
+import { ConvexProvider } from "convex/react";
 
 export function createRouter() {
 	const CONVEX_URL = (
@@ -32,9 +33,12 @@ export function createRouter() {
 			defaultErrorComponent: DefaultCatchBoundary,
 			defaultNotFoundComponent: () => <NotFound />,
 			scrollRestoration: true,
-			context: {
-				queryClient,
-			},
+			context: { queryClient },
+			Wrap: ({ children }) => (
+				<ConvexProvider client={convexQueryClient.convexClient}>
+					{children}
+				</ConvexProvider>
+			),
 		}),
 		queryClient,
 	);

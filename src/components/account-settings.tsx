@@ -2,23 +2,32 @@ import { useForm } from "@tanstack/react-form";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
-import { useUser } from "~/lib/query/user";
 import { Button } from "~/components/ui/button";
-import { useUpdateAccountSettings } from "~/lib/query/account-settings";
+import {
+	useAccountSettings,
+	useUpdateAccountSettings,
+} from "~/lib/query/account-settings";
 import { updateAccountSettingsSchema } from "~/lib/functions/account-settings";
+import { useUser } from "~/lib/query/user";
+import { toast } from "sonner";
 
 export function AccountSettings() {
 	const { data: user } = useUser();
+	const { data: accountSettings } = useAccountSettings();
 	const mutation = useUpdateAccountSettings();
 
 	const form = useForm({
 		defaultValues: {
-			name: user?.firstName ?? "",
-			role: "",
-			behavior: "",
+			name: accountSettings?.name ?? user?.firstName ?? "",
+			role: accountSettings?.role ?? "",
+			behavior: accountSettings?.behavior ?? "",
 		},
 		onSubmit: ({ value }) => {
-			mutation.mutate(value);
+			toast.promise(mutation.mutateAsync(value), {
+				loading: "Saving...",
+				success: "Account settings saved",
+				error: "Failed to save account settings",
+			});
 		},
 		validators: {
 			onChange: updateAccountSettingsSchema,

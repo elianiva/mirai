@@ -1,32 +1,24 @@
-import { useMutation, queryOptions, useQuery } from "@tanstack/react-query";
 import type { z } from "zod";
-import {
-	getAccountSettingsFn,
-	updateAccountSettingsFn,
-} from "../functions/account-settings";
 import type { updateAccountSettingsSchema } from "../functions/account-settings";
-
-export const ACCOUNT_SETTINGS_QUERY_KEYS = {
-	accountSettings: "accountSettings",
-} as const;
-
-export const accountSettingsQueryOptions = queryOptions({
-	queryKey: [ACCOUNT_SETTINGS_QUERY_KEYS.accountSettings],
-	queryFn: getAccountSettingsFn,
-});
-
-export const useAccountSettings = () => {
-	return useQuery(accountSettingsQueryOptions);
-};
+import { accountSettingsApi } from "../functions/account-settings";
+import { useMutation as useConvexMutation } from "convex/react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 
 export type UpdateAccountSettingsVariables = z.infer<
 	typeof updateAccountSettingsSchema
 >;
 
+export function useAccountSettings() {
+	return useQuery(convexQuery(accountSettingsApi.get, {}));
+}
+
 export function useUpdateAccountSettings() {
+	const convexMutation = useConvexMutation(accountSettingsApi.update);
+
 	return useMutation({
-		mutationKey: [ACCOUNT_SETTINGS_QUERY_KEYS.accountSettings],
-		mutationFn: (variables: UpdateAccountSettingsVariables) =>
-			updateAccountSettingsFn({ data: variables }),
+		mutationFn: (variables: UpdateAccountSettingsVariables) => {
+			return convexMutation(variables);
+		},
 	});
 }
