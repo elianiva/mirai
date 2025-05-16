@@ -31,4 +31,4 @@ I just put the code here because idk maybe it can also be useful for someone els
 
 ## License
 
-See [./LICENSE]
+See [LICENSE](./LICENSE)
