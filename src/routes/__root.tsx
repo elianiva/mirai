@@ -3,6 +3,7 @@ import {
 	Outlet,
 	Scripts,
 	createRootRouteWithContext,
+	useRouteContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
@@ -12,10 +13,16 @@ import appCss from "~/styles/app.css?url";
 import { seo } from "~/utils/seo";
 import type { QueryClient } from "@tanstack/react-query";
 import { Toaster } from "~/components/ui/sonner";
-import { ClerkProvider } from "@clerk/tanstack-react-start";
+import type { ConvexReactClient } from "convex/react";
+import type { ConvexQueryClient } from "@convex-dev/react-query";
+import { authStateFn } from "~/lib/functions/auth";
+import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
+	convexClient: ConvexReactClient;
+	convexQueryClient: ConvexQueryClient;
 }>()({
 	head: () => ({
 		meta: [
@@ -56,6 +63,13 @@ export const Route = createRootRouteWithContext<{
 			{ rel: "icon", href: "/favicon.ico" },
 		],
 	}),
+	beforeLoad: async ({ context }) => {
+		const auth = await authStateFn();
+		if (auth.token) {
+			context.convexQueryClient.serverHttpClient?.setAuth(auth.token);
+		}
+		return auth;
+	},
 	errorComponent: (props) => {
 		return (
 			<RootDocument>
@@ -68,27 +82,30 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootComponent() {
+	const context = useRouteContext({ from: Route.id });
 	return (
-		<RootDocument>
-			<Outlet />
-		</RootDocument>
+		<ClerkProvider>
+			<ConvexProviderWithClerk client={context.convexClient} useAuth={useAuth}>
+				<RootDocument>
+					<Outlet />
+				</RootDocument>
+			</ConvexProviderWithClerk>
+		</ClerkProvider>
 	);
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<ClerkProvider>
-			<html lang="en" className="h-full w-full">
-				<head>
-					<HeadContent />
-				</head>
-				<body className="h-full w-full">
-					{children}
-					<Toaster />
-					<TanStackRouterDevtools position="bottom-right" />
-					<Scripts />
-				</body>
-			</html>
-		</ClerkProvider>
+		<html lang="en" className="h-full w-full">
+			<head>
+				<HeadContent />
+			</head>
+			<body className="h-full w-full">
+				{children}
+				<Toaster />
+				<TanStackRouterDevtools position="bottom-right" />
+				<Scripts />
+			</body>
+		</html>
 	);
 }

@@ -6,20 +6,28 @@ import { getWebRequest } from "@tanstack/react-start/server";
 
 export const authStateFn = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const { userId } = await getAuth(getWebRequest() as Request);
+		const auth = await getAuth(getWebRequest() as Request);
+		const token = await auth.getToken();
 
-		if (!userId) {
-			throw redirect({
-				to: "/sign-in",
-			});
+		return {
+			userId: auth.userId,
+			token,
+		};
+	},
+);
+
+export const authUserFn = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const auth = await authStateFn();
+		if (!auth.userId) {
+			throw redirect({ to: "/sign-in" });
 		}
 
 		const clerkClient = createClerkClient({
 			secretKey: process.env.CLERK_SECRET_KEY,
 		});
 
-		const user = userId ? await clerkClient.users.getUser(userId) : null;
-
+		const user = await clerkClient.users.getUser(auth.userId);
 		return {
 			id: user?.id,
 			email: user?.emailAddresses[0].emailAddress,

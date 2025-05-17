@@ -5,15 +5,23 @@ import { routeTree } from "./routeTree.gen";
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { routerWithQueryClient } from "@tanstack/react-router-with-query";
 import { QueryClient } from "@tanstack/react-query";
-import { ConvexProvider } from "convex/react";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
+
+type Env = {
+	env: {
+		VITE_CLERK_PUBLISHABLE_KEY: string;
+		VITE_CONVEX_URL: string;
+	};
+};
 
 export function createRouter() {
-	const CONVEX_URL = (
-		import.meta as unknown as { env: { VITE_CONVEX_URL: string } }
-	).env.VITE_CONVEX_URL;
+	const CONVEX_URL = (import.meta as unknown as Env).env.VITE_CONVEX_URL;
 	if (!CONVEX_URL) {
 		throw new Error("VITE_CONVEX_URL is not set");
 	}
+	const convex = new ConvexReactClient(CONVEX_URL, {
+		unsavedChangesWarning: false,
+	});
 	const convexQueryClient = new ConvexQueryClient(CONVEX_URL);
 
 	const queryClient = new QueryClient({
@@ -33,11 +41,9 @@ export function createRouter() {
 			defaultErrorComponent: DefaultCatchBoundary,
 			defaultNotFoundComponent: () => <NotFound />,
 			scrollRestoration: true,
-			context: { queryClient },
+			context: { queryClient, convexClient: convex, convexQueryClient },
 			Wrap: ({ children }) => (
-				<ConvexProvider client={convexQueryClient.convexClient}>
-					{children}
-				</ConvexProvider>
+				<ConvexProvider client={convex}>{children}</ConvexProvider>
 			),
 		}),
 		queryClient,
@@ -50,5 +56,4 @@ declare module "@tanstack/react-router" {
 	interface Register {
 		router: ReturnType<typeof createRouter>;
 	}
-	interface RouterContext {}
 }
