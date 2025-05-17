@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SignInButton } from "@clerk/tanstack-react-start";
 import { Button } from "~/components/ui/button";
+import { authUserFn } from "~/lib/functions/auth";
 
 export const Route = createFileRoute("/sign-in")({
 	component: SignInComponent,
+	beforeLoad: () => authUserFn(),
 });
 
 function SignInComponent() {
