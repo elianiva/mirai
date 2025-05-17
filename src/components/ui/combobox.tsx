@@ -34,6 +34,23 @@ type ComboboxProps = {
 };
 
 export function Combobox(props: ComboboxProps) {
+	const [searchQuery, setSearchQuery] = React.useState("");
+
+	// Filter options based on search query
+	const filteredOptions = React.useMemo(() => {
+		if (!searchQuery) return props.options;
+
+		return props.options.filter((option) => {
+			const matchesLabel = option.label
+				.toLowerCase()
+				.includes(searchQuery.toLowerCase());
+			const matchesValue = option.value
+				.toLowerCase()
+				.includes(searchQuery.toLowerCase());
+			return matchesLabel || matchesValue;
+		});
+	}, [props.options, searchQuery]);
+
 	return (
 		<Popover open={props.open} onOpenChange={props.setOpen}>
 			<PopoverTrigger asChild>
@@ -42,43 +59,51 @@ export function Combobox(props: ComboboxProps) {
 					// biome-ignore lint/a11y/useSemanticElements: we need this for searchable options
 					role="combobox"
 					aria-expanded={props.open}
-					className="w-full justify-between"
+					className={cn(
+						"w-full justify-between",
+						!props.value && "text-muted-foreground",
+					)}
 				>
 					{props.value
 						? props.options.find((option) => option.value === props.value)
-								?.label
+								?.label || props.value
 						: props.placeholder}
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent className={cn("min-w-full p-0", props.className)}>
-				<Command>
-					<CommandInput placeholder={props.placeholder} />
+			<PopoverContent
+				className={cn("popover-content-full p-0", props.className)}
+			>
+				<Command className="w-full">
+					<CommandInput
+						placeholder={props.placeholder}
+						value={searchQuery}
+						onValueChange={setSearchQuery}
+					/>
 					<CommandList>
 						<CommandEmpty>
 							{props.emptyMessage || "No options found."}
 						</CommandEmpty>
 						<CommandGroup>
-							{props.options.map((option) => (
+							{filteredOptions.map((option) => (
 								<CommandItem
+									className="flex items-center justify-between gap-2"
 									key={option.value}
 									value={option.value}
 									onSelect={(currentValue) => {
-										props.setValue(
-											currentValue === props.value ? "" : currentValue,
-										);
+										// Don't clear the value if it's the same option
+										props.setValue(currentValue);
 										props.setOpen(false);
+										setSearchQuery(""); // Clear search when an option is selected
 									}}
 								>
-									<Check
-										className={cn(
-											"mr-2 h-4 w-4",
-											props.value === option.value
-												? "opacity-100"
-												: "opacity-0",
-										)}
-									/>
-									{option.label}
+									<span>{option.label}</span>
+									<span className="text-xs text-muted-foreground">
+										{option.value}
+									</span>
+									{option.value === props.value && (
+										<Check className="ml-auto h-4 w-4 shrink-0 opacity-100" />
+									)}
 								</CommandItem>
 							))}
 						</CommandGroup>

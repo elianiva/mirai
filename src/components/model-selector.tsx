@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Combobox, type Option } from "~/components/ui/combobox";
+import { Combobox } from "~/components/ui/combobox";
 import { Label } from "~/components/ui/label";
 import { useOpenRouterModels } from "~/lib/query/profile";
+import { cn } from "~/lib/utils";
 
 type ModelSelectorProps = {
 	value: string;
@@ -13,19 +14,20 @@ type ModelSelectorProps = {
 
 export function ModelSelector(props: ModelSelectorProps) {
 	const [open, setOpen] = useState(false);
-	const { data: models, isLoading, error } = useOpenRouterModels();
+	const { data: models = [], isLoading, error } = useOpenRouterModels();
 
-	// Convert models to options format for the combobox
-	const options: Option[] = models
-		? models.map((model) => ({
-				value: model.id,
-				label: model.name,
-			}))
-		: [];
+	// Handle model change
+	const handleModelChange = (value: string) => {
+		if (props.onChange) {
+			props.onChange(value);
+		}
+	};
 
 	return (
-		<div className="space-y-2">
-			<Label htmlFor={props.id || "model"}>Model</Label>
+		<div className="space-y-2 w-full">
+			<Label htmlFor={props.id || "model"}>
+				Model {props.required && <span className="text-destructive">*</span>}
+			</Label>
 			{isLoading ? (
 				<div className="w-full h-10 bg-muted animate-pulse rounded-md" />
 			) : error ? (
@@ -37,11 +39,14 @@ export function ModelSelector(props: ModelSelectorProps) {
 					open={open}
 					setOpen={setOpen}
 					value={props.value}
-					setValue={props.onChange}
-					options={options}
+					setValue={handleModelChange}
+					options={models}
 					placeholder="Select a model"
 					emptyMessage="No models found"
-					className="w-full"
+					className={cn(
+						"w-full",
+						props.required && !props.value && "border-destructive",
+					)}
 				/>
 			)}
 			<p className="text-xs text-muted-foreground mt-1">

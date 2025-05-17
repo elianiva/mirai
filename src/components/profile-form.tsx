@@ -3,11 +3,14 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
+import { Slider } from "~/components/ui/slider";
 import type { Id } from "convex/_generated/dataModel";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
 import { useCreateProfile, useUpdateProfile } from "~/lib/query/profile";
 import { ModelSelector } from "~/components/model-selector";
+import { cn } from "~/lib/utils";
+import { profileFormSchema } from "~/lib/functions/profile";
 
 type ProfileFormProps = {
 	profile?: ProfileData;
@@ -27,8 +30,11 @@ export function ProfileForm(props: ProfileFormProps) {
 			topP: props.profile?.topP ?? 1.0,
 			topK: props.profile?.topK ?? 50,
 		},
-		onSubmit: async ({ value }) => {
-			try {
+		validators: {
+			onChange: profileFormSchema,
+		},
+		onSubmit: ({ value }) => {
+			const savePromise = async () => {
 				if (props.profile?._id) {
 					await updateProfile({
 						id: props.profile._id as Id<"profiles">,
@@ -37,12 +43,20 @@ export function ProfileForm(props: ProfileFormProps) {
 				} else {
 					await createProfile(value);
 				}
-				props.onBack(); // Go back to the list after saving
-				toast.success("Profile saved successfully!");
-			} catch (error) {
-				console.error("Failed to save profile:", error);
-				toast.error("Failed to save profile");
-			}
+				return true;
+			};
+
+			toast.promise(savePromise(), {
+				loading: "Saving profile...",
+				success: () => {
+					props.onBack();
+					return "Profile saved successfully!";
+				},
+				error: (err) => {
+					console.error("Failed to save profile:", err);
+					return "Failed to save profile";
+				},
+			});
 		},
 	});
 
@@ -68,13 +82,18 @@ export function ProfileForm(props: ProfileFormProps) {
 					name="name"
 					children={(field) => (
 						<>
-							<Label htmlFor={field.name}>Name</Label>
+							<Label htmlFor={field.name}>
+								Name <span className="text-destructive">*</span>
+							</Label>
 							<Input
 								id={field.name}
 								name={field.name}
 								value={field.state.value}
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
+								className={cn({
+									"border-destructive": field.state.meta.errors?.length,
+								})}
 								required
 							/>
 							<p className="text-xs text-muted-foreground mt-1">
@@ -140,18 +159,20 @@ export function ProfileForm(props: ProfileFormProps) {
 					name="temperature"
 					children={(field) => (
 						<>
-							<Label htmlFor={field.name}>Temperature</Label>
-							<Input
+							<div className="flex justify-between items-center">
+								<Label htmlFor={field.name}>
+									Temperature: {field.state.value.toFixed(2)}
+								</Label>
+							</div>
+							<Slider
 								id={field.name}
 								name={field.name}
-								type="number"
-								step="0.1"
-								value={field.state.value}
-								onBlur={field.handleBlur}
-								onChange={(e) =>
-									field.handleChange(Number.parseFloat(e.target.value))
-								}
-								required
+								min={0}
+								max={1}
+								step={0.01}
+								value={[field.state.value]}
+								onValueChange={(value) => field.handleChange(value[0])}
+								className="py-4"
 							/>
 							<p className="text-xs text-muted-foreground mt-1">
 								Controls randomness in responses. Higher values (0.7-1.0)
@@ -172,18 +193,20 @@ export function ProfileForm(props: ProfileFormProps) {
 					name="topP"
 					children={(field) => (
 						<>
-							<Label htmlFor={field.name}>Top P</Label>
-							<Input
+							<div className="flex justify-between items-center">
+								<Label htmlFor={field.name}>
+									Top P: {field.state.value.toFixed(2)}
+								</Label>
+							</div>
+							<Slider
 								id={field.name}
 								name={field.name}
-								type="number"
-								step="0.1"
-								value={field.state.value}
-								onBlur={field.handleBlur}
-								onChange={(e) =>
-									field.handleChange(Number.parseFloat(e.target.value))
-								}
-								required
+								min={0}
+								max={1}
+								step={0.01}
+								value={[field.state.value]}
+								onValueChange={(value) => field.handleChange(value[0])}
+								className="py-4"
 							/>
 							<p className="text-xs text-muted-foreground mt-1">
 								Nucleus sampling parameter. The model considers tokens
@@ -204,18 +227,18 @@ export function ProfileForm(props: ProfileFormProps) {
 					name="topK"
 					children={(field) => (
 						<>
-							<Label htmlFor={field.name}>Top K</Label>
-							<Input
+							<div className="flex justify-between items-center">
+								<Label htmlFor={field.name}>Top K: {field.state.value}</Label>
+							</div>
+							<Slider
 								id={field.name}
 								name={field.name}
-								type="number"
-								step="1"
-								value={field.state.value}
-								onBlur={field.handleBlur}
-								onChange={(e) =>
-									field.handleChange(Number.parseInt(e.target.value, 10))
-								}
-								required
+								min={1}
+								max={100}
+								step={1}
+								value={[field.state.value]}
+								onValueChange={(value) => field.handleChange(value[0])}
+								className="py-4"
 							/>
 							<p className="text-xs text-muted-foreground mt-1">
 								Limits token selection to the top K most likely tokens. Higher
@@ -235,12 +258,8 @@ export function ProfileForm(props: ProfileFormProps) {
 				<Button type="button" variant="outline" onClick={props.onBack}>
 					Back
 				</Button>
-				<Button type="submit" disabled={form.state.isSubmitting}>
-					{form.state.isSubmitting
-						? "Saving..."
-						: props.profile
-							? "Save Changes"
-							: "Create Profile"}
+				<Button type="submit">
+					{props.profile ? "Save Changes" : "Create Profile"}
 				</Button>
 			</div>
 		</form>
