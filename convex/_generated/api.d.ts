@@ -16,7 +16,6 @@ import type {
 import type * as accountSettings from "../accountSettings.js";
 import type * as messages from "../messages.js";
 import type * as modes from "../modes.js";
-import type * as openrouterSettings from "../openrouterSettings.js";
 import type * as profileOptions from "../profileOptions.js";
 import type * as profiles from "../profiles.js";
 import type * as threads from "../threads.js";
@@ -33,7 +32,6 @@ declare const fullApi: ApiFromModules<{
   accountSettings: typeof accountSettings;
   messages: typeof messages;
   modes: typeof modes;
-  openrouterSettings: typeof openrouterSettings;
   profileOptions: typeof profileOptions;
   profiles: typeof profiles;
   threads: typeof threads;

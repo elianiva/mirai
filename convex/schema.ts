@@ -17,10 +17,6 @@ const schema = defineSchema({
 		whenToUse: v.string(),
 		additionalInstructions: v.string(),
 	}),
-	openrouterSettings: defineTable({
-		encryptedApiKey: v.string(),
-		iv: v.string(),
-	}),
 	profiles: defineTable({
 		name: v.string(),
 		description: v.string(),

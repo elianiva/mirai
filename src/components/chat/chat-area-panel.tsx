@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "~/../convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
 import { useUser } from "~/lib/query/user";
 import { useProfileOptions } from "~/lib/query/profile";
 import { useNavigate } from "@tanstack/react-router";
+import { useThread, useMessages, useCreateThread } from "~/lib/query/chat";
 
 type Message = {
 	_id: Id<"messages">;
@@ -38,16 +37,10 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const { data: profiles } = useProfileOptions();
 	const defaultProfile = profiles?.[0];
 
-	const thread = useQuery(
-		api.threads.getById,
-		threadId ? { id: threadId } : "skip",
-	);
-	const messages = useQuery(
-		api.messages.list,
-		threadId ? { threadId } : "skip",
-	);
+	const thread = useThread(threadId);
+	const messages = useMessages(threadId);
 
-	const createThread = useMutation(api.threads.create);
+	const { mutateAsync: createThread } = useCreateThread();
 
 	useEffect(() => {
 		if (scrollRef.current) {

@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
-import { GeneralSettings } from "./general-settings";
 import { AccountSettings } from "./account-settings";
 import { ProfileSettings } from "./profile-settings";
-import { Settings, User, Layers, FileCog } from "lucide-react";
+import { User, Layers, FileCog } from "lucide-react";
 import { ModesSettings } from "./modes-settings";
 import type React from "react";
 
@@ -21,12 +20,6 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-	{
-		id: "general",
-		label: "General",
-		icon: Settings,
-		content: <GeneralSettings />,
-	},
 	{
 		id: "account",
 		label: "Account",
