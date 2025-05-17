@@ -10,6 +10,21 @@ import { updateModeSettingsSchema } from "~/lib/functions/mode";
 import { useProfileOptions } from "~/lib/query/profile";
 import { toast } from "sonner";
 
+/**
+ * Converts a string to a URL-friendly slug
+ * - Converts to lowercase
+ * - Replaces spaces and non-alphanumeric characters with hyphens
+ * - Removes leading/trailing hyphens
+ */
+function slugify(text: string): string {
+	return text
+		.toLowerCase()
+		.trim()
+		.replace(/[^\w\s-]/g, "") // Remove non-word chars except spaces and hyphens
+		.replace(/[\s_]+/g, "-") // Replace spaces and underscores with hyphens
+		.replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+}
+
 type ModeData = {
 	id: string;
 	slug: string;
@@ -148,7 +163,16 @@ export function ModeSettings(props: ModeSettingsProps) {
 								name={field.name}
 								value={field.state.value}
 								onBlur={field.handleBlur}
-								onChange={(e) => field.handleChange(e.target.value)}
+								onChange={(e) => {
+									const nameValue = e.target.value;
+									field.handleChange(nameValue);
+
+									// Auto-update the slug field with a slugified version of the name
+									if (nameValue) {
+										const slugifiedName = slugify(nameValue);
+										form.setFieldValue("slug", slugifiedName);
+									}
+								}}
 								placeholder="e.g., Code Mode"
 							/>
 							<p className="text-xs text-muted-foreground mt-1">
