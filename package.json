@@ -12,9 +12,11 @@
 		"ui": "bunx shadcn@canary"
 	},
 	"dependencies": {
+		"@ai-sdk/openai-compatible": "^0.2.14",
 		"@clerk/backend": "^1.32.2",
 		"@clerk/tanstack-react-start": "^0.15.4",
 		"@convex-dev/react-query": "^0.0.0-alpha.8",
+		"@openrouter/ai-sdk-provider": "^0.4.5",
 		"@radix-ui/react-avatar": "^1.1.9",
 		"@radix-ui/react-dialog": "^1.1.13",
 		"@radix-ui/react-label": "^2.1.6",
@@ -31,6 +33,7 @@
 		"@tanstack/react-router-with-query": "^1.120.3",
 		"@tanstack/react-start": "^1.120.3",
 		"@types/crypto-js": "^4.2.2",
+		"ai": "^4.3.15",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"cmdk": "^1.1.1",
@@ -38,6 +41,7 @@
 		"crypto-js": "^4.2.0",
 		"lucide-react": "^0.511.0",
 		"next-themes": "^0.4.6",
+		"openai": "^4.100.0",
 		"react": "^19.1.0",
 		"react-dom": "^19.1.0",
 		"react-resizable-panels": "^3.0.2",

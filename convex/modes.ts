@@ -54,3 +54,9 @@ export const getModeSettings = query({
 		return await ctx.db.query("modes").first();
 	},
 });
+
+export const getAllModes = query({
+	handler: async (ctx) => {
+		return await ctx.db.query("modes").collect();
+	},
+});

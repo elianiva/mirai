@@ -29,6 +29,19 @@ const schema = defineSchema({
 		topP: v.number(),
 		topK: v.number(),
 	}),
+	// Add threads schema
+	threads: defineTable({
+		title: v.optional(v.string()),
+		participantIds: v.array(v.string()),
+	}).index("by_participant", ["participantIds"]),
+	// Add messages schema
+	messages: defineTable({
+		threadId: v.id("threads"),
+		senderId: v.string(),
+		content: v.string(),
+		type: v.string(),
+		metadata: v.optional(v.any()),
+	}).index("by_thread", ["threadId"]),
 });
 
 export default schema;

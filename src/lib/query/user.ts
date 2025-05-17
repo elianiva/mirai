@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { queryOptions } from "@tanstack/react-query";
-import { authStateFn } from "../functions/auth";
+import { authUserFn } from "../functions/auth";
 
 export const USER_QUERY_KEYS = {
 	user: "user",
@@ -9,7 +9,7 @@ export const USER_QUERY_KEYS = {
 
 export const userQueryOptions = queryOptions({
 	queryKey: [USER_QUERY_KEYS.user],
-	queryFn: async () => authStateFn(),
+	queryFn: async () => authUserFn(),
 });
 
 export const useUser = () => {
