@@ -14,13 +14,31 @@ AI chat client because I don't like existing ones.
 - I want it to be easily deployed on serverless services, a lot of existing solutions requires a server, I'm too broke for that stuff
 - because it's fun??? this is just yet another side project
 
+## Other chat clients
+
+You might be better off using these chat clients, they are proven to work well and might suit your use case better. I just have issues with them (not necessarily a bad thing, it's just that the feature I'm looking for isn't there)
+
+- [t3.chat](https://t3.chat) - Probably the fastest chat client out there, also super cheap. I don't use it just because I don't really like monthly subscription and I want more features for myself.
+- [Cherry Studio](https://github.com/CherryHQ/cherry-studio) - Good desktop chat client with a lot of features. Too many features for me, and it still feels clunky.
+- [LibreChat](https://www.librechat.ai/) - If you want a reliable self hosted solution you might as well use this one. I don't use it since it requires me to rent a server.
+- ...other generic chat app - You know, ChatGPT, Claude, etc. I don't like them since I can't switch between models.
+
 ## How to use
 
-You need to self-host this yourself, I designed it to be single user only because I don't want to deal with securely storing user's API key. Remember, this thing is BYOK.
+If you still want to use this, you need to self-host this yourself. I designed it to be single user only because I don't want to deal with securely storing user's API key and I don't want to pay other people's usage :p
+Even though it's BYOK, if people use this, I may have to pay for the convex instance or clerk, which I don't want. There's no such thing as free lunch lol.
 
 Thankfully, it's super easy to do!
 
 [Cloudflare deploy button when I get to that]
+
+## Tech
+
+- Tanstack Start / Tanstack Router
+- Tanstack Query
+- Tanstack Form
+- Convex DB
+- shadcn/ui
 
 ## Contributing
 
