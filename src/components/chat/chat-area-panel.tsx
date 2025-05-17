@@ -6,7 +6,8 @@ import type { Id } from "convex/_generated/dataModel";
 import { useUser } from "~/lib/query/user";
 import { useProfileOptions } from "~/lib/query/profile";
 import { useNavigate } from "@tanstack/react-router";
-import { useThread, useMessages, useCreateThread } from "~/lib/query/chat";
+import { useMessages } from "~/lib/query/messages";
+import { useCreateThread, useThread } from "~/lib/query/threads";
 
 type Message = {
 	_id: Id<"messages">;
@@ -22,7 +23,7 @@ type Message = {
 };
 
 type ChatAreaPanelProps = {
-	threadId: Id<"threads"> | undefined;
+	threadId: Id<"threads">;
 	onThreadClick: (threadId: Id<"threads">) => void;
 };
 
@@ -33,14 +34,14 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const [message, setMessage] = useState("");
 	const scrollRef = useRef<HTMLDivElement>(null);
 
+	const thread = useThread(threadId);
 	const { data: user } = useUser();
-	const { data: profiles } = useProfileOptions();
+	const profiles = useProfileOptions();
 	const defaultProfile = profiles?.[0];
 
-	const thread = useThread(threadId);
 	const messages = useMessages(threadId);
 
-	const { mutateAsync: createThread } = useCreateThread();
+	const createThread = useCreateThread();
 
 	useEffect(() => {
 		if (scrollRef.current) {

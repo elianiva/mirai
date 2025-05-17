@@ -1,18 +1,22 @@
-import type { z } from "zod";
-import type { updateModeSettingsSchema } from "../functions/mode";
-import { modeApi } from "../functions/mode";
-import { useMutation as useConvexMutation } from "convex/react";
-import { useMutation } from "@tanstack/react-query";
+import { z } from "zod";
+import { useMutation } from "convex/react";
+import { api } from "~/../convex/_generated/api";
+
+export const updateModeSettingsSchema = z.object({
+	slug: z.string(),
+	icon: z.string(),
+	name: z.string(),
+	description: z.string(),
+	profileSelector: z.string(),
+	modeDefinition: z.string(),
+	whenToUse: z.string(),
+	additionalInstructions: z.string(),
+});
 
 export type UpdateModeSettingsVariables = z.infer<
 	typeof updateModeSettingsSchema
 >;
 
 export function useUpdateModeSettings() {
-	const convexMutation = useConvexMutation(modeApi.update);
-	return useMutation({
-		mutationFn: (variables: UpdateModeSettingsVariables) => {
-			return convexMutation(variables);
-		},
-	});
+	return useMutation(api.modes.updateModeSettings);
 }

@@ -123,7 +123,6 @@ export function ModesSettings() {
 
 	function handleAddModeSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		console.log("New mode data:", newMode);
 		// Reset form after submission
 		setNewMode({
 			id: "",

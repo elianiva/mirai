@@ -1,14 +1,14 @@
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { UserProfileSection } from "./user-profile-section";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "~/../convex/_generated/api";
 import { useUser } from "~/lib/query/user";
 import { Button } from "~/components/ui/button";
 import { Plus, Loader2, Trash2 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import type { Id, Doc } from "convex/_generated/dataModel";
-
-type Thread = Doc<"threads">;
+import type { Id } from "convex/_generated/dataModel";
+import { useThreads } from "~/lib/query/threads";
+import { useCreateThread } from "~/lib/query/threads";
+import { useRemoveThread } from "~/lib/query/threads";
+import { toast } from "sonner";
 
 type ChatListPanelProps = {
 	threadId: Id<"threads"> | undefined;
@@ -19,20 +19,31 @@ export function ChatListPanel(props: ChatListPanelProps) {
 	const navigate = useNavigate();
 
 	const { data: user } = useUser();
-	const threads = useQuery(api.threads.list);
-	const createThread = useMutation(api.threads.create);
-	const removeThread = useMutation(api.threads.remove);
+	const threads = useThreads();
+	const createThread = useCreateThread();
+	const removeThread = useRemoveThread();
 	const isLoading = threads === undefined;
 
 	async function handleCreateThread() {
 		if (!user?.id) return;
 
-		const threadId = await createThread({
-			title: "New Chat",
-			participantIds: [user.id],
-		});
-
-		navigate({ to: "/$threadId", params: { threadId } });
+		toast.promise(
+			createThread({
+				title: "New Chat",
+				participantIds: [user.id],
+			}),
+			{
+				loading: "Creating thread...",
+				success: (data) => {
+					navigate({
+						to: "/$threadId",
+						params: { threadId: data.toString() },
+					});
+					return "Thread created";
+				},
+				error: "Failed to create thread",
+			},
+		);
 	}
 
 	async function handleDeleteThread(
@@ -41,15 +52,14 @@ export function ChatListPanel(props: ChatListPanelProps) {
 	) {
 		e.stopPropagation();
 
-		try {
-			await removeThread({ id: threadId });
-
-			if (props.threadId === threadId) {
+		toast.promise(removeThread({ id: threadId }), {
+			loading: "Deleting thread...",
+			success: () => {
 				navigate({ to: "/" });
-			}
-		} catch (error) {
-			console.error("Error deleting thread:", error);
-		}
+				return "Thread deleted";
+			},
+			error: "Failed to delete thread",
+		});
 	}
 
 	return (
@@ -80,7 +90,7 @@ export function ChatListPanel(props: ChatListPanelProps) {
 					</div>
 				) : (
 					<div className="space-y-2">
-						{threads.map((thread: Thread) => (
+						{threads.map((thread) => (
 							<button
 								type="button"
 								key={thread._id}

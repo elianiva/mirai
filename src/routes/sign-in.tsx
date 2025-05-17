@@ -22,7 +22,7 @@ function SignInComponent() {
 						couldn't find one that suits him.
 					</p>
 				</div>
-				<SignInButton>
+				<SignInButton forceRedirectUrl="/new">
 					<Button className="w-full">Sign In</Button>
 				</SignInButton>
 			</div>

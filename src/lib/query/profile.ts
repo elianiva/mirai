@@ -1,17 +1,24 @@
-import { profileApi } from "../functions/profile";
-import { useQuery } from "@tanstack/react-query";
-import { convexQuery } from "@convex-dev/react-query";
+import { useQuery as useTanstackQuery } from "@tanstack/react-query";
 import type { Id } from "convex/_generated/dataModel";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "~/../convex/_generated/api";
+import { z } from "zod";
 
-// Query hooks
+export const profileFormSchema = z.object({
+	name: z.string().min(1, "Name is required"),
+	model: z.string().min(1, "Model is required"),
+	description: z.string(),
+	temperature: z.number(),
+	topP: z.number(),
+	topK: z.number(),
+});
+
 export function useProfileOptions() {
-	return useQuery(convexQuery(profileApi.all, {}));
+	return useQuery(api.profileOptions.getProfileOptions, {});
 }
 
 export function useProfile(id: Id<"profiles">) {
-	return useQuery(convexQuery(profileApi.getById, { id }));
+	return useQuery(api.profileOptions.getProfileById, { id });
 }
 
 export type OpenRouterModel = {
@@ -20,7 +27,7 @@ export type OpenRouterModel = {
 };
 
 export function useOpenRouterModels() {
-	return useQuery({
+	return useTanstackQuery({
 		queryKey: ["openrouter-models"],
 		queryFn: async (): Promise<OpenRouterModel[]> => {
 			try {

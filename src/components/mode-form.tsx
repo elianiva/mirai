@@ -6,9 +6,9 @@ import { Button } from "~/components/ui/button";
 import { Combobox } from "~/components/ui/combobox";
 import { Textarea } from "~/components/ui/textarea";
 import { useUpdateModeSettings } from "~/lib/query/mode";
-import { updateModeSettingsSchema } from "~/lib/functions/mode";
 import { useProfileOptions } from "~/lib/query/profile";
 import { toast } from "sonner";
+import { updateModeSettingsSchema } from "~/lib/query/mode";
 
 /**
  * Converts a string to a URL-friendly slug
@@ -44,8 +44,7 @@ type ModeSettingsProps = {
 
 export function ModeSettings(props: ModeSettingsProps) {
 	const updateModeSettingMutation = useUpdateModeSettings();
-	const { data: profileData, isLoading: isLoadingProfiles } =
-		useProfileOptions();
+	const profileData = useProfileOptions();
 	const [open, setOpen] = React.useState(false);
 
 	// Transform profile data to match the Option[] type expected by Combobox
@@ -69,7 +68,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 			additionalInstructions: props.mode.additionalInstructions,
 		},
 		onSubmit: ({ value }) => {
-			toast.promise(updateModeSettingMutation.mutateAsync(value), {
+			toast.promise(updateModeSettingMutation(value), {
 				loading: "Saving...",
 				success: "Settings saved",
 				error: "Failed to save settings",
@@ -230,12 +229,14 @@ export function ModeSettings(props: ModeSettingsProps) {
 								setValue={field.handleChange}
 								options={profileOptions}
 								placeholder={
-									isLoadingProfiles
+									profileData === undefined
 										? "Loading profiles..."
 										: "Select profile..."
 								}
 								emptyMessage={
-									isLoadingProfiles ? "Loading..." : "No profiles found."
+									profileData === undefined
+										? "Loading..."
+										: "No profiles found."
 								}
 								// id={field.name} // Combobox might not need id directly
 								// name={field.name} // Combobox might not need name directly
@@ -344,11 +345,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 				<Button type="button" variant="outline" onClick={props.onBack}>
 					Back
 				</Button>
-				<Button type="submit" disabled={updateModeSettingMutation.isPending}>
-					{updateModeSettingMutation.isPending
-						? "Saving..."
-						: `Save ${props.mode.name} Settings`}
-				</Button>
+				<Button type="submit">Save {props.mode.name} Settings</Button>
 			</div>
 		</form>
 	);

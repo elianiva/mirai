@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useCreateProfile, useUpdateProfile } from "~/lib/query/profile";
 import { ModelSelector } from "~/components/model-selector";
 import { cn } from "~/lib/utils";
-import { profileFormSchema } from "~/lib/functions/profile";
+import { profileFormSchema } from "~/lib/query/profile";
 
 type ProfileFormProps = {
 	profile?: ProfileData;
