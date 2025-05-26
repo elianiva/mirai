@@ -1,11 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SignInButton } from "@clerk/tanstack-react-start";
 import { Button } from "~/components/ui/button";
-import { authUserFn } from "~/lib/functions/auth";
+import { authStateFn, authUserFn } from "~/lib/functions/auth";
 
 export const Route = createFileRoute("/sign-in")({
 	component: SignInComponent,
-	beforeLoad: () => authUserFn(),
+	beforeLoad: async () => {
+		const auth = await authStateFn();
+		if (auth.userId) {
+			throw redirect({ to: "/$threadId", params: { threadId: "1" } });
+		}
+	},
 });
 
 function SignInComponent() {

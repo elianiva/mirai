@@ -25,12 +25,9 @@ const schema = defineSchema({
 		topP: v.number(),
 		topK: v.number(),
 	}),
-	// Add threads schema
 	threads: defineTable({
-		title: v.optional(v.string()),
-		participantIds: v.array(v.string()),
-	}).index("by_participant", ["participantIds"]),
-	// Add messages schema
+		title: v.string(),
+	}),
 	messages: defineTable({
 		threadId: v.id("threads"),
 		senderId: v.string(),

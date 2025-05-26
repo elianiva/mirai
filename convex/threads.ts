@@ -1,10 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { generateText } from "ai";
+import { getChatModel } from "../src/lib/ai";
 
 export const create = mutation({
 	args: {
-		title: v.optional(v.string()),
-		participantIds: v.array(v.string()),
+		message: v.string(),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -12,16 +13,19 @@ export const create = mutation({
 			throw new Error("Not authenticated");
 		}
 
-		const userId = identity.subject;
-
-		const participantIds = args.participantIds.includes(userId)
-			? args.participantIds
-			: [...args.participantIds, userId];
-
-		return await ctx.db.insert("threads", {
-			title: args.title || "New Chat",
-			participantIds,
+		const threadTitle = await generateText({
+			model: getChatModel("google/gemini-2.0-flash-lite"),
+			prompt: `
+				Generate a suitable title for this message, make it short and concise. 4 words max. DO NOT use any formatting.
+				Message: ${args.message}
+			`,
 		});
+
+		const thread = await ctx.db.insert("threads", {
+			title: threadTitle.text,
+		});
+
+		return thread;
 	},
 });
 
@@ -42,10 +46,6 @@ export const getById = query({
 			throw new Error("Thread not found");
 		}
 
-		if (!thread.participantIds.includes(userId)) {
-			throw new Error("Not authorized to access this thread");
-		}
-
 		return thread;
 	},
 });
@@ -58,13 +58,7 @@ export const list = query({
 			throw new Error("Not authenticated");
 		}
 
-		const userId = identity.subject;
-
-		return await ctx.db
-			.query("threads")
-			.withIndex("by_participant", (q) => q.eq("participantIds", [userId]))
-			.order("desc")
-			.collect();
+		return await ctx.db.query("threads").order("desc").collect();
 	},
 });
 
@@ -86,10 +80,6 @@ export const updateTitle = mutation({
 			throw new Error("Thread not found");
 		}
 
-		if (!thread.participantIds.includes(userId)) {
-			throw new Error("Not authorized to update this thread");
-		}
-
 		await ctx.db.patch(args.id, {
 			title: args.title,
 		});
@@ -108,15 +98,10 @@ export const remove = mutation({
 			throw new Error("Not authenticated");
 		}
 
-		const userId = identity.subject;
 		const thread = await ctx.db.get(args.id);
 
 		if (!thread) {
 			throw new Error("Thread not found");
-		}
-
-		if (!thread.participantIds.includes(userId)) {
-			throw new Error("Not authorized to delete this thread");
 		}
 
 		const messages = await ctx.db

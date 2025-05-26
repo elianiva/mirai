@@ -2,17 +2,19 @@ import { ScrollArea } from "~/components/ui/scroll-area";
 import { UserProfileSection } from "./user-profile-section";
 import { useUser } from "~/lib/query/user";
 import { Button } from "~/components/ui/button";
-import { Plus, Loader2, Trash2 } from "lucide-react";
+import { Plus, Loader2, Trash2, Menu } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
 import { useThreads } from "~/lib/query/threads";
 import { useCreateThread } from "~/lib/query/threads";
 import { useRemoveThread } from "~/lib/query/threads";
 import { toast } from "sonner";
+import type { ReactNode } from "react";
 
 type ChatListPanelProps = {
 	threadId: Id<"threads"> | undefined;
 	onThreadClick: (threadId: Id<"threads">) => void;
+	onToggleCollapse: () => void;
 };
 
 export function ChatListPanel(props: ChatListPanelProps) {
@@ -29,8 +31,7 @@ export function ChatListPanel(props: ChatListPanelProps) {
 
 		toast.promise(
 			createThread({
-				title: "New Chat",
-				participantIds: [user.id],
+				message: "New Chat",
 			}),
 			{
 				loading: "Creating thread...",
@@ -65,13 +66,23 @@ export function ChatListPanel(props: ChatListPanelProps) {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="p-4">
-				<Button
-					onClick={handleCreateThread}
-					className="w-full flex items-center gap-2"
-				>
-					<Plus className="h-4 w-4" />
-					New Chat
-				</Button>
+				<div className="flex items-center gap-2">
+					<Button
+						onClick={props.onToggleCollapse}
+						variant="secondary"
+						size="sm"
+						className="h-10 w-10 p-0 shrink-0"
+					>
+						<Menu className="h-4 w-4" />
+					</Button>
+					<Button
+						onClick={handleCreateThread}
+						className="flex-1 flex items-center gap-2"
+					>
+						<Plus className="h-4 w-4" />
+						New Chat
+					</Button>
+				</div>
 			</div>
 
 			<ScrollArea className="flex-grow px-4">

@@ -9,18 +9,21 @@ import type { Id, Doc } from "convex/_generated/dataModel";
 // Define the Mode type
 type Mode = Doc<"modes">;
 
-export function ModesPanel() {
+type ModesPanelProps = {
+  onModeSelect?: (modeId: Id<"modes">) => void;
+};
+
+export function ModesPanel(props: ModesPanelProps) {
 	const params = useParams({ from: "/$threadId" });
 	const threadId = params.threadId as Id<"threads"> | undefined;
 
 	const modes = useQuery(api.modes.getAllModes);
-	const [selectedModeId, setSelectedModeId] = useState<string>("general");
+	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
 
 	// Handle mode selection
-	function handleModeSelect(modeId: string) {
-		setSelectedModeId(modeId);
-		// In a real implementation, you would update the thread's mode
-		// or store the selected mode in state for the next message
+	function handleModeSelect(mode: Mode) {
+		setSelectedModeId(mode._id);
+		props.onModeSelect?.(mode._id);
 	}
 
 	return (
@@ -39,10 +42,10 @@ export function ModesPanel() {
 								type="button"
 								key={mode._id}
 								className={`flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-accent ${
-									selectedModeId === mode.slug ? "bg-accent" : ""
+									selectedModeId === mode._id ? "bg-accent" : ""
 								}`}
-								onClick={() => handleModeSelect(mode.slug)}
-								aria-pressed={selectedModeId === mode.slug}
+								onClick={() => handleModeSelect(mode)}
+								aria-pressed={selectedModeId === mode._id}
 							>
 								<div className="flex h-8 w-8 items-center justify-center rounded-full border">
 									<span className="text-lg">{mode.icon}</span>
@@ -64,13 +67,13 @@ export function ModesPanel() {
 						<div className="rounded-md border p-3 text-sm">
 							<p className="mb-2 font-medium">When to use:</p>
 							<p className="mb-4 text-muted-foreground">
-								{modes.find((m: Mode) => m.slug === selectedModeId)
+								{modes.find((m: Mode) => m._id === selectedModeId)
 									?.whenToUse || "Use this mode for general conversations."}
 							</p>
 
 							<p className="mb-2 font-medium">How it works:</p>
 							<p className="text-muted-foreground">
-								{modes.find((m: Mode) => m.slug === selectedModeId)
+								{modes.find((m: Mode) => m._id === selectedModeId)
 									?.modeDefinition ||
 									"This mode provides general assistance for a variety of tasks."}
 							</p>

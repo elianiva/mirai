@@ -43,15 +43,10 @@ export const updateModeSettings = mutation({
 
 export const getModeSettings = query({
 	args: {
-		id: v.optional(v.id("modes")),
+		id: v.id("modes"),
 	},
 	handler: async (ctx, args) => {
-		if (args.id) {
-			return await ctx.db.get(args.id);
-		}
-
-		// If no ID is provided, return the first mode or null
-		return await ctx.db.query("modes").first();
+		return await ctx.db.get(args.id);
 	},
 });
 

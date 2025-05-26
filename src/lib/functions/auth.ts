@@ -1,8 +1,8 @@
-import { createClerkClient } from "@clerk/backend";
 import { getAuth } from "@clerk/tanstack-react-start/server";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getWebRequest } from "@tanstack/react-start/server";
+import { clerkClient } from "../auth";
 
 export const authStateFn = createServerFn({ method: "GET" }).handler(
 	async () => {
@@ -22,10 +22,6 @@ export const authUserFn = createServerFn({ method: "GET" }).handler(
 		if (!auth.userId) {
 			throw redirect({ to: "/sign-in" });
 		}
-
-		const clerkClient = createClerkClient({
-			secretKey: process.env.CLERK_SECRET_KEY,
-		});
 
 		const user = await clerkClient.users.getUser(auth.userId);
 		return {
