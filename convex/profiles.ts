@@ -17,6 +17,7 @@ export const get = query({
 
 export const create = mutation({
 	args: {
+		slug: v.string(),
 		name: v.string(),
 		description: v.string(),
 		model: v.string(),
@@ -32,6 +33,7 @@ export const create = mutation({
 export const update = mutation({
 	args: {
 		id: v.id("profiles"),
+		slug: v.optional(v.string()),
 		name: v.optional(v.string()),
 		description: v.optional(v.string()),
 		model: v.optional(v.string()),

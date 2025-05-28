@@ -9,7 +9,7 @@ import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
 import { useCreateProfile, useUpdateProfile } from "~/lib/query/profile";
 import { ModelSelector } from "~/components/model-selector";
-import { cn } from "~/lib/utils";
+import { cn, slugify } from "~/lib/utils";
 import { profileFormSchema } from "~/lib/query/profile";
 
 type ProfileFormProps = {
@@ -23,11 +23,12 @@ export function ProfileForm(props: ProfileFormProps) {
 
 	const form = useForm({
 		defaultValues: {
+			slug: props.profile?.slug ?? "",
 			name: props.profile?.name ?? "",
 			description: props.profile?.description ?? "",
 			model: props.profile?.model ?? "",
-			temperature: props.profile?.temperature ?? 0.7,
-			topP: props.profile?.topP ?? 1.0,
+			temperature: props.profile?.temperature ?? 0.5,
+			topP: props.profile?.topP ?? 0.5,
 			topK: props.profile?.topK ?? 50,
 		},
 		validators: {
@@ -79,11 +80,11 @@ export function ProfileForm(props: ProfileFormProps) {
 			</div>
 			<div className="space-y-2">
 				<form.Field
-					name="name"
+					name="slug"
 					children={(field) => (
 						<>
 							<Label htmlFor={field.name}>
-								Name <span className="text-destructive">*</span>
+								Slug <span className="text-destructive">*</span>
 							</Label>
 							<Input
 								id={field.name}
@@ -95,15 +96,60 @@ export function ProfileForm(props: ProfileFormProps) {
 									"border-destructive": field.state.meta.errors?.length,
 								})}
 								required
+								placeholder="balanced, creative, precise"
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
+							<p className="text-xs text-muted-foreground mt-1">
+								A unique identifier for this profile (lowercase, no spaces).
+							</p>
+						</>
+					)}
+				/>
+			</div>
+			<div className="space-y-2">
+				<form.Field
+					name="name"
+					children={(field) => (
+						<>
+							<Label htmlFor={field.name}>
+								Name <span className="text-destructive">*</span>
+							</Label>
+							<Input
+								id={field.name}
+								name={field.name}
+								value={field.state.value}
+								onBlur={field.handleBlur}
+								onChange={(e) => {
+									const nameValue = e.target.value;
+									field.handleChange(nameValue);
+
+									// Auto-update the slug field with a slugified version of the name
+									if (nameValue) {
+										const slugifiedName = slugify(nameValue);
+										form.setFieldValue("slug", slugifiedName);
+									}
+								}}
+								className={cn({
+									"border-destructive": field.state.meta.errors?.length,
+								})}
+								required
+							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground mt-1">
 								A unique name to identify this profile.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -145,9 +191,11 @@ export function ProfileForm(props: ProfileFormProps) {
 								onChange={(value) => field.handleChange(value)}
 								required
 							/>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
 								</em>
 							) : null}
 						</>
@@ -172,9 +220,8 @@ export function ProfileForm(props: ProfileFormProps) {
 								step={0.01}
 								value={[field.state.value]}
 								onValueChange={(value) => field.handleChange(value[0])}
-								className="py-4"
 							/>
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground">
 								Controls randomness in responses. Higher values (0.7-1.0)
 								produce more creative outputs, while lower values (0.1-0.5) make
 								responses more focused and deterministic.
@@ -206,16 +253,17 @@ export function ProfileForm(props: ProfileFormProps) {
 								step={0.01}
 								value={[field.state.value]}
 								onValueChange={(value) => field.handleChange(value[0])}
-								className="py-4"
 							/>
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground">
 								Nucleus sampling parameter. The model considers tokens
 								comprising the top P probability mass (0.0-1.0). Lower values
 								make output more focused, higher values allow more variety.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
 								</em>
 							) : null}
 						</>
@@ -238,16 +286,17 @@ export function ProfileForm(props: ProfileFormProps) {
 								step={1}
 								value={[field.state.value]}
 								onValueChange={(value) => field.handleChange(value[0])}
-								className="py-4"
 							/>
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground">
 								Limits token selection to the top K most likely tokens. Higher
 								values (40-50) allow more diversity, while lower values produce
 								more focused responses.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
 								</em>
 							) : null}
 						</>
@@ -259,7 +308,7 @@ export function ProfileForm(props: ProfileFormProps) {
 					Back
 				</Button>
 				<Button type="submit">
-					{props.profile ? "Save Changes" : "Create Profile"}
+					{props.profile ? "Save" : "Create"} Profile
 				</Button>
 			</div>
 		</form>

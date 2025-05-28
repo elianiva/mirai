@@ -18,6 +18,7 @@ const schema = defineSchema({
 		additionalInstructions: v.string(),
 	}),
 	profiles: defineTable({
+		slug: v.string(),
 		name: v.string(),
 		description: v.string(),
 		model: v.string(),

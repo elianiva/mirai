@@ -20,6 +20,7 @@ import {
 export type Option = {
 	value: string;
 	label: string;
+	slug?: string;
 };
 
 type ComboboxProps = {
@@ -34,9 +35,9 @@ type ComboboxProps = {
 };
 
 export function Combobox(props: ComboboxProps) {
+	console.log({ props });
 	const [searchQuery, setSearchQuery] = React.useState("");
 
-	// Filter options based on search query
 	const filteredOptions = React.useMemo(() => {
 		if (!searchQuery) return props.options;
 
@@ -64,10 +65,12 @@ export function Combobox(props: ComboboxProps) {
 						!props.value && "text-muted-foreground",
 					)}
 				>
-					{props.value
-						? props.options.find((option) => option.value === props.value)
-								?.label || props.value
-						: props.placeholder}
+					<span className="truncate">
+						{props.value
+							? props.options.find((option) => option.value === props.value)
+									?.label || props.value
+							: props.placeholder}
+					</span>
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>
 			</PopoverTrigger>
@@ -80,7 +83,7 @@ export function Combobox(props: ComboboxProps) {
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
-					<CommandList>
+					<CommandList className="max-h-72 overflow-y-auto">
 						<CommandEmpty>
 							{props.emptyMessage || "No options found."}
 						</CommandEmpty>
@@ -97,13 +100,13 @@ export function Combobox(props: ComboboxProps) {
 										setSearchQuery(""); // Clear search when an option is selected
 									}}
 								>
-									<span>{option.label}</span>
-									<span className="text-xs text-muted-foreground">
-										{option.value}
-									</span>
 									{option.value === props.value && (
-										<Check className="ml-auto h-4 w-4 shrink-0 opacity-100" />
+										<Check className="size-4 shrink-0 opacity-100" />
 									)}
+									<span className="truncate flex-1">{option.label}</span>
+									<span className="text-xs text-muted-foreground truncate text-right">
+										{option.slug || option.value}
+									</span>
 								</CommandItem>
 							))}
 						</CommandGroup>

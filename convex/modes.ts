@@ -2,6 +2,40 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 
+export const create = mutation({
+	args: {
+		slug: v.string(),
+		icon: v.string(),
+		name: v.string(),
+		description: v.string(),
+		profileSelector: v.string(),
+		modeDefinition: v.string(),
+		whenToUse: v.string(),
+		additionalInstructions: v.string(),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.insert("modes", args);
+	},
+});
+
+export const update = mutation({
+	args: {
+		id: v.id("modes"),
+		slug: v.optional(v.string()),
+		icon: v.optional(v.string()),
+		name: v.optional(v.string()),
+		description: v.optional(v.string()),
+		profileSelector: v.optional(v.string()),
+		modeDefinition: v.optional(v.string()),
+		whenToUse: v.optional(v.string()),
+		additionalInstructions: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const { id, ...rest } = args;
+		return await ctx.db.patch(id, rest);
+	},
+});
+
 export const updateModeSettings = mutation({
 	args: {
 		slug: v.string(),

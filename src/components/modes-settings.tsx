@@ -1,91 +1,29 @@
 import {
 	Card,
+	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "~/components/ui/card";
 import { useState } from "react";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Loader2, Plus, UserX } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { ModeSettings } from "./mode-form";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
+import { useQuery } from "convex/react";
+import { api } from "~/../convex/_generated/api";
+import type { Doc } from "convex/_generated/dataModel";
 
-type ModeData = {
-	id: string;
-	slug: string;
-	icon: string;
-	name: string;
-	description: string;
-	profileSelector: string;
-	modeDefinition: string;
-	whenToUse: string;
-	additionalInstructions: string;
-};
-
-const MODES_DATA: ModeData[] = [
-	{
-		id: "general",
-		slug: "general",
-		icon: "✨",
-		name: "General",
-		description: "Handle a wide variety of tasks and questions.",
-		profileSelector: "",
-		modeDefinition:
-			"A versatile AI assistant capable of handling a wide range of tasks and providing information on various topics.",
-		whenToUse:
-			"Use this mode when your task doesn't fit into a specific category or for general questions.",
-		additionalInstructions: "",
-	},
-	{
-		id: "research",
-		slug: "research",
-		icon: "🔬",
-		name: "Research",
-		description: "Gather and synthesize information from various sources.",
-		profileSelector: "",
-		modeDefinition:
-			"An AI specializing in information retrieval and synthesis. Capable of searching for information and providing comprehensive summaries.",
-		whenToUse:
-			"Use this mode when you need to research a topic, find data, or get summaries of documents.",
-		additionalInstructions: "Specify the sources to prioritize if any.",
-	},
-	{
-		id: "summarizer",
-		slug: "summarizer",
-		icon: "📝",
-		name: "Summarizer",
-		description: "Condense text into concise summaries.",
-		profileSelector: "",
-		modeDefinition:
-			"An AI skilled at summarizing text. Extracts key information and presents it concisely with clarity and accuracy.",
-		whenToUse:
-			"Use this mode when you have a long piece of text (document, article, conversation) that you need summarized.",
-		additionalInstructions:
-			"Specify the desired length or level of detail for the summary.",
-	},
-	{
-		id: "grammar-checker",
-		slug: "grammar-checker",
-		icon: "✍️",
-		name: "Grammar Checker",
-		description: "Review and correct grammar, spelling, and punctuation.",
-		profileSelector: "",
-		modeDefinition:
-			"An AI focused on linguistic analysis and correction. Identifies and suggests corrections for grammar, spelling, and punctuation errors with high precision.",
-		whenToUse:
-			"Use this mode when you need to proofread written content for errors.",
-		additionalInstructions:
-			"Specify the language and any specific style guidelines.",
-	},
-];
+export type ModeData = Doc<"modes">;
 
 export function ModesSettings() {
+	const allModes = useQuery(api.modes.getAllModes);
+	
 	const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
 	const [showAddForm, setShowAddForm] = useState(false);
-	const [newMode, setNewMode] = useState<ModeData>({
-		id: "",
+	const [newMode, setNewMode] = useState<Omit<ModeData, "_id" | "_creationTime">>({
 		slug: "",
 		icon: "",
 		name: "",
@@ -125,7 +63,6 @@ export function ModesSettings() {
 		e.preventDefault();
 		// Reset form after submission
 		setNewMode({
-			id: "",
 			slug: "",
 			icon: "",
 			name: "",
@@ -139,7 +76,7 @@ export function ModesSettings() {
 	}
 
 	if (selectedModeId) {
-		const selectedMode = MODES_DATA.find((mode) => mode.id === selectedModeId);
+		const selectedMode = allModes?.find((mode: ModeData) => mode._id === selectedModeId);
 
 		if (!selectedMode) {
 			return (
@@ -152,7 +89,20 @@ export function ModesSettings() {
 			);
 		}
 
-		return <ModeSettings mode={selectedMode} onBack={handleBackClick} />;
+		// Convert database mode to the format expected by ModeSettings
+		const modeForForm = {
+			id: selectedMode._id,
+			slug: selectedMode.slug,
+			icon: selectedMode.icon,
+			name: selectedMode.name,
+			description: selectedMode.description,
+			profileSelector: selectedMode.profileSelector,
+			modeDefinition: selectedMode.modeDefinition,
+			whenToUse: selectedMode.whenToUse,
+			additionalInstructions: selectedMode.additionalInstructions,
+		};
+
+		return <ModeSettings mode={modeForForm} onBack={handleBackClick} />;
 	}
 
 	if (showAddForm) {
@@ -170,17 +120,6 @@ export function ModesSettings() {
 						</p>
 					</div>
 
-					<div className="space-y-2">
-						<Label htmlFor="id">ID</Label>
-						<Input
-							id="id"
-							name="id"
-							value={newMode.id}
-							onChange={handleInputChange}
-							placeholder="e.g., code-mode"
-							required
-						/>
-					</div>
 
 					<div className="space-y-2">
 						<Label htmlFor="slug">Slug</Label>
@@ -307,32 +246,56 @@ export function ModesSettings() {
 					Add Mode
 				</Button>
 			</div>
-			<div className="flex flex-col gap-2">
-				{MODES_DATA.map((mode) => (
-					<Card
-						key={mode.id}
-						className="cursor-pointer shadow-none hover:border-primary"
-						onClick={() => handleModeClick(mode.id)}
-					>
-						<CardHeader className="flex flex-row items-center justify-between p-4">
-							<div className="flex items-center space-x-3">
-								<div className="w-10 h-10 rounded-full border flex items-center justify-center">
-									<span className="text-xl">{mode.icon}</span>
+			{/* Content section with conditional rendering */}
+			{allModes === undefined ? (
+				<div className="flex items-center justify-center p-8">
+					<div className="flex flex-col items-center gap-2">
+						<Loader2 className="h-8 w-8 animate-spin text-primary" />
+						<p className="text-sm text-muted-foreground">
+							Loading modes...
+						</p>
+					</div>
+				</div>
+			) : allModes.length === 0 ? (
+				<Card className="flex flex-col items-center justify-center p-8 text-center">
+					<CardContent className="pt-6">
+						<UserX className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+						<h3 className="mt-4 text-lg font-medium">
+							No modes available
+						</h3>
+						<p className="mt-2 text-sm text-muted-foreground">
+							You don't have any AI modes yet. Create a mode to get started or run the database seeding.
+						</p>
+					</CardContent>
+				</Card>
+			) : (
+				<div className="flex flex-col gap-2">
+					{allModes.map((mode: ModeData) => (
+						<Card
+							key={mode._id}
+							className="cursor-pointer shadow-none hover:border-primary"
+							onClick={() => handleModeClick(mode._id)}
+						>
+							<CardHeader className="flex flex-row items-center justify-between p-4">
+								<div className="flex items-center space-x-3">
+									<div className="w-10 h-10 rounded-full border flex items-center justify-center">
+										<span className="text-xl">{mode.icon}</span>
+									</div>
+									<div>
+										<CardTitle className="text-base font-medium">
+											{mode.name}
+										</CardTitle>
+										<CardDescription className="text-xs">
+											{mode.description}
+										</CardDescription>
+									</div>
 								</div>
-								<div>
-									<CardTitle className="text-base font-medium">
-										{mode.name}
-									</CardTitle>
-									<CardDescription className="text-xs">
-										{mode.description}
-									</CardDescription>
-								</div>
-							</div>
-							<ChevronRight className="h-5 w-5 text-muted-foreground" />
-						</CardHeader>
-					</Card>
-				))}
-			</div>
+								<ChevronRight className="h-5 w-5 text-muted-foreground" />
+							</CardHeader>
+						</Card>
+					))}
+				</div>
+			)}
 		</div>
 	);
 }

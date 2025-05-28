@@ -9,7 +9,8 @@
 		"start": "vinxi start",
 		"format": "biome check --write",
 		"db": "bunx convex",
-		"ui": "bunx shadcn@canary"
+		"ui": "bunx shadcn@canary",
+		"seed": "bunx convex run seed:seedDatabase"
 	},
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^0.2.14",

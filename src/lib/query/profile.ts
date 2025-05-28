@@ -5,6 +5,7 @@ import { api } from "~/../convex/_generated/api";
 import { z } from "zod";
 
 export const profileFormSchema = z.object({
+	slug: z.string().min(1, "Slug is required"),
 	name: z.string().min(1, "Name is required"),
 	model: z.string().min(1, "Model is required"),
 	description: z.string(),
@@ -47,6 +48,7 @@ export function useOpenRouterModels() {
 
 // Mutation hooks
 export type CreateProfileData = {
+	slug: string;
 	name: string;
 	description: string;
 	model: string;
@@ -57,6 +59,7 @@ export type CreateProfileData = {
 
 export type UpdateProfileData = {
 	id: Id<"profiles">;
+	slug: string;
 	name: string;
 	description: string;
 	model: string;

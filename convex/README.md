@@ -88,3 +88,80 @@ function handleButtonPress() {
 Use the Convex CLI to push your functions to a deployment. See everything
 the Convex CLI can do by running `npx convex -h` in your project root
 directory. To learn more, launch the docs with `npx convex docs`.
+
+# Convex Backend
+
+This directory contains the Convex backend functions for the Mirai AI chat application.
+
+## Database Seeding
+
+The application includes default profiles and modes that can be used to seed the database.
+
+### Available Seeding Functions
+
+#### `seed.seedDatabase`
+Seeds the database with default profiles and modes. This function checks if data already exists and only inserts if tables are empty.
+
+#### `seed.clearDatabase`  
+Clears all profiles and modes from the database. Use with caution as this will delete all existing data.
+
+#### `dev-utils.runSeed`
+Convenience function that calls `seedDatabase`.
+
+#### `dev-utils.resetDatabase`
+Clears the database and then seeds it with default data. Useful for development and testing.
+
+### How to Run Seeding
+
+You can run these functions from the Convex dashboard or using the Convex CLI:
+
+1. **Using Convex Dashboard:**
+   - Go to your Convex dashboard
+   - Navigate to the Functions tab
+   - Find and run `seed.seedDatabase` or `dev-utils.runSeed`
+
+2. **Using Convex CLI:**
+   ```bash
+   # Seed the database
+   npx convex run seed:seedDatabase
+   
+   # Or use the convenience function
+   npx convex run dev-utils:runSeed
+   
+   # Reset database (clear and reseed)
+   npx convex run dev-utils:resetDatabase
+   
+   # Clear database only
+   npx convex run seed:clearDatabase
+   ```
+
+### Default Data
+
+The default data is defined in `src/lib/defaults.ts` and includes:
+
+**Profiles:**
+- Balanced (temperature: 0.7)
+- Creative (temperature: 0.9) 
+- Precise (temperature: 0.3)
+
+**Modes:**
+- General
+- Research
+- Summarizer
+- Grammar Checker
+
+### Schema
+
+The database schema is defined in `schema.ts` and includes the following tables:
+
+- `profiles` - AI model configurations with different temperature settings
+- `modes` - Different AI behaviors and capabilities
+- `threads` - Chat conversation threads
+- `messages` - Individual messages within threads
+- `accountSettings` - User account settings
+
+## Development Notes
+
+- The seeding functions are idempotent - they won't create duplicates if run multiple times
+- Default data is used as fallbacks in the UI when the database is empty
+- All seeding operations are logged to the console for debugging

@@ -47,7 +47,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
 	return (
 		<Dialog open={props.isOpen} onOpenChange={props.onOpenChange}>
-			<DialogContent className="sm:max-w-4xl h-[calc(100vh-20rem)] flex flex-col p-0">
+			<DialogContent className="sm:max-w-4xl h-4/5 flex flex-col p-0">
 				<div className="flex flex-1 overflow-hidden">
 					<nav className="w-56 border-r bg-muted/20 p-4 space-y-1 overflow-y-auto">
 						{NAV_ITEMS.map((item) => (

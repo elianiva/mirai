@@ -17,6 +17,14 @@ export type UpdateModeSettingsVariables = z.infer<
 	typeof updateModeSettingsSchema
 >;
 
+export function useCreateMode() {
+	return useMutation(api.modes.create);
+}
+
+export function useUpdateMode() {
+	return useMutation(api.modes.update);
+}
+
 export function useUpdateModeSettings() {
 	return useMutation(api.modes.updateModeSettings);
 }

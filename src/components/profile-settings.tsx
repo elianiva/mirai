@@ -9,13 +9,13 @@ import { useState } from "react";
 import { ChevronRight, Loader2, Plus, UserX } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { ProfileForm } from "./profile-form";
-import type { Doc } from "convex/_generated/dataModel";
 import { useProfileOptions } from "~/lib/query/profile";
+import type { Doc } from "convex/_generated/dataModel";
 
 export type ProfileData = Doc<"profiles">;
 
 export function ProfileSettings() {
-	const { data: profiles } = useProfileOptions();
+	const allProfiles = useProfileOptions();
 	const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
 		null,
 	);
@@ -38,7 +38,7 @@ export function ProfileSettings() {
 
 	// Find selected profile if ID is set
 	const selectedProfile = selectedProfileId
-		? profiles?.find((profile) => profile._id === selectedProfileId)
+		? allProfiles?.find((profile: ProfileData) => profile._id === selectedProfileId)
 		: undefined;
 
 	return (
@@ -76,7 +76,7 @@ export function ProfileSettings() {
 					</div>
 
 					{/* Content section with conditional rendering using ternary operators */}
-					{profiles === undefined ? (
+					{allProfiles === undefined ? (
 						<div className="flex items-center justify-center p-8">
 							<div className="flex flex-col items-center gap-2">
 								<Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -85,7 +85,7 @@ export function ProfileSettings() {
 								</p>
 							</div>
 						</div>
-					) : profiles.length === 0 ? (
+					) : allProfiles.length === 0 ? (
 						<Card className="flex flex-col items-center justify-center p-8 text-center">
 							<CardContent className="pt-6">
 								<UserX className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
@@ -100,7 +100,7 @@ export function ProfileSettings() {
 						</Card>
 					) : (
 						<div className="flex flex-col gap-2">
-							{profiles.map((profile) => (
+							{allProfiles.map((profile: ProfileData) => (
 								<Card
 									key={profile._id}
 									className="cursor-pointer shadow-none hover:border-primary"

@@ -1,29 +1,14 @@
-import * as React from "react";
 import { useForm } from "@tanstack/react-form";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Button } from "~/components/ui/button";
-import { Combobox } from "~/components/ui/combobox";
 import { Textarea } from "~/components/ui/textarea";
-import { useUpdateModeSettings } from "~/lib/query/mode";
-import { useProfileOptions } from "~/lib/query/profile";
+import { useCreateMode, useUpdateMode } from "~/lib/query/mode";
 import { toast } from "sonner";
 import { updateModeSettingsSchema } from "~/lib/query/mode";
-
-/**
- * Converts a string to a URL-friendly slug
- * - Converts to lowercase
- * - Replaces spaces and non-alphanumeric characters with hyphens
- * - Removes leading/trailing hyphens
- */
-function slugify(text: string): string {
-	return text
-		.toLowerCase()
-		.trim()
-		.replace(/[^\w\s-]/g, "") // Remove non-word chars except spaces and hyphens
-		.replace(/[\s_]+/g, "-") // Replace spaces and underscores with hyphens
-		.replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
-}
+import { slugify } from "~/lib/utils";
+import { ProfileSelector } from "./chat/profile-selector";
+import type { Id } from "convex/_generated/dataModel";
 
 type ModeData = {
 	id: string;
@@ -38,44 +23,52 @@ type ModeData = {
 };
 
 type ModeSettingsProps = {
-	mode: ModeData;
+	mode?: ModeData;
 	onBack: () => void;
 };
 
 export function ModeSettings(props: ModeSettingsProps) {
-	const updateModeSettingMutation = useUpdateModeSettings();
-	const profileData = useProfileOptions();
-	const [open, setOpen] = React.useState(false);
-
-	// Transform profile data to match the Option[] type expected by Combobox
-	const profileOptions = React.useMemo(() => {
-		if (!profileData) return [];
-		return profileData.map((profile) => ({
-			value: profile._id,
-			label: profile.name,
-		}));
-	}, [profileData]);
+	const createMode = useCreateMode();
+	const updateMode = useUpdateMode();
 
 	const form = useForm({
 		defaultValues: {
-			slug: props.mode.slug,
-			icon: props.mode.icon,
-			name: props.mode.name,
-			description: props.mode.description,
-			profileSelector: props.mode.profileSelector,
-			modeDefinition: props.mode.modeDefinition,
-			whenToUse: props.mode.whenToUse,
-			additionalInstructions: props.mode.additionalInstructions,
-		},
-		onSubmit: ({ value }) => {
-			toast.promise(updateModeSettingMutation(value), {
-				loading: "Saving...",
-				success: "Settings saved",
-				error: "Failed to save settings",
-			});
+			slug: props.mode?.slug || "",
+			icon: props.mode?.icon || "",
+			name: props.mode?.name || "",
+			description: props.mode?.description || "",
+			profileSelector: props.mode?.profileSelector || "",
+			modeDefinition: props.mode?.modeDefinition || "",
+			whenToUse: props.mode?.whenToUse || "",
+			additionalInstructions: props.mode?.additionalInstructions || "",
 		},
 		validators: {
 			onChange: updateModeSettingsSchema,
+		},
+		onSubmit: ({ value }) => {
+			const savePromise = async () => {
+				if (props.mode?.id) {
+					await updateMode({
+						id: props.mode.id as Id<"modes">,
+						...value,
+					});
+				} else {
+					await createMode(value);
+				}
+				return true;
+			};
+
+			toast.promise(savePromise(), {
+				loading: "Saving mode...",
+				success: () => {
+					props.onBack();
+					return "Mode saved successfully!";
+				},
+				error: (err) => {
+					console.error("Failed to save mode:", err);
+					return "Failed to save mode";
+				},
+			});
 		},
 	});
 
@@ -89,9 +82,11 @@ export function ModeSettings(props: ModeSettingsProps) {
 			className="space-y-4"
 		>
 			<div>
-				<h3 className="text-xl font-semibold">{props.mode.name} Settings</h3>
+				<h3 className="text-xl font-semibold">
+					{props.mode?.name ? props.mode.name : "New Mode"}
+				</h3>
 				<p className="text-sm text-muted-foreground">
-					Customize settings for the {props.mode.name} mode.
+					Customize settings for this mode.
 				</p>
 			</div>
 
@@ -107,17 +102,19 @@ export function ModeSettings(props: ModeSettingsProps) {
 								value={field.state.value}
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
-								placeholder="e.g., 💻 or path/to/icon.png"
+								placeholder="💻 or path/to/icon.png"
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground mt-1">
 								Visual identifier for the mode. Can be an emoji or path to an
 								image file.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -135,17 +132,19 @@ export function ModeSettings(props: ModeSettingsProps) {
 								value={field.state.value}
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
-								placeholder="e.g., code-mode"
+								placeholder="mode-name"
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground mt-1">
 								Unique identifier used in URLs and API calls. Should be
 								lowercase with hyphens.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -172,16 +171,18 @@ export function ModeSettings(props: ModeSettingsProps) {
 										form.setFieldValue("slug", slugifiedName);
 									}
 								}}
-								placeholder="e.g., Code Mode"
+								placeholder="Mode Name"
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground mt-1">
 								Display name for the mode shown in the UI and mode selector.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -202,15 +203,17 @@ export function ModeSettings(props: ModeSettingsProps) {
 								placeholder="A summary of what this mode does."
 								rows={3}
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground mt-1">
 								Brief explanation of the mode's purpose and capabilities shown
 								to users.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -222,34 +225,21 @@ export function ModeSettings(props: ModeSettingsProps) {
 					children={(field) => (
 						<>
 							<Label htmlFor={field.name}>Profile Selector</Label>
-							<Combobox
-								open={open}
-								setOpen={setOpen}
-								value={field.state.value}
-								setValue={field.handleChange}
-								options={profileOptions}
-								placeholder={
-									profileData === undefined
-										? "Loading profiles..."
-										: "Select profile..."
-								}
-								emptyMessage={
-									profileData === undefined
-										? "Loading..."
-										: "No profiles found."
-								}
-								// id={field.name} // Combobox might not need id directly
-								// name={field.name} // Combobox might not need name directly
+							<ProfileSelector
+								selectedProfileId={field.state.value as Id<"profiles">}
+								onProfileSelect={field.handleChange}
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground mt-1">
 								Determines which AI profile/personality to use when operating in
 								this mode.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -270,15 +260,17 @@ export function ModeSettings(props: ModeSettingsProps) {
 								placeholder="Detailed instructions for the AI in this mode."
 								rows={5}
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground mt-1">
 								Core instructions that define how the AI should behave, respond,
 								and process information in this mode.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -299,15 +291,17 @@ export function ModeSettings(props: ModeSettingsProps) {
 								placeholder="Describe scenarios where this mode is most effective."
 								rows={3}
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground mt-1">
 								Guidelines for users about optimal situations to use this mode
 								for best results.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -328,15 +322,17 @@ export function ModeSettings(props: ModeSettingsProps) {
 								placeholder="Any other specific guidelines or context for this mode."
 								rows={3}
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground mt-1">
 								Supplementary directives that further refine the AI's behavior
 								or provide context-specific guidance.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -345,7 +341,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 				<Button type="button" variant="outline" onClick={props.onBack}>
 					Back
 				</Button>
-				<Button type="submit">Save {props.mode.name} Settings</Button>
+				<Button type="submit">{props.mode ? "Save" : "Create"} Mode</Button>
 			</div>
 		</form>
 	);

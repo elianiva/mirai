@@ -21,10 +21,6 @@ export const create = mutation({
 			throw new Error("Thread not found");
 		}
 
-		if (!thread.participantIds.includes(userId)) {
-			throw new Error("Not authorized to post in this thread");
-		}
-
 		return await ctx.db.insert("messages", {
 			threadId: args.threadId,
 			senderId: userId,
@@ -52,41 +48,11 @@ export const list = query({
 			throw new Error("Thread not found");
 		}
 
-		if (!thread.participantIds.includes(userId)) {
-			throw new Error("Not authorized to view this thread");
-		}
-
 		return await ctx.db
 			.query("messages")
 			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
 			.order("asc")
 			.collect();
-	},
-});
-
-export const getById = query({
-	args: {
-		id: v.id("messages"),
-	},
-	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
-
-		const userId = identity.subject;
-		const message = await ctx.db.get(args.id);
-
-		if (!message) {
-			throw new Error("Message not found");
-		}
-
-		const thread = await ctx.db.get(message.threadId);
-		if (!thread || !thread.participantIds.includes(userId)) {
-			throw new Error("Not authorized to view this message");
-		}
-
-		return message;
 	},
 });
 

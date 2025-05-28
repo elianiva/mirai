@@ -14,8 +14,7 @@ export const getThreadSchema = z.object({
 export type GetThreadVariables = z.infer<typeof getThreadSchema>;
 
 export const createThreadSchema = z.object({
-	title: z.string(),
-	participantIds: z.array(z.string()),
+	message: z.string(),
 });
 
 export type CreateThreadVariables = z.infer<typeof createThreadSchema>;

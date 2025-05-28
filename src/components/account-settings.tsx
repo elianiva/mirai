@@ -13,8 +13,8 @@ import { toast } from "sonner";
 
 export function AccountSettings() {
 	const { data: user } = useUser();
-	const { data: accountSettings } = useAccountSettings();
-	const mutation = useUpdateAccountSettings();
+	const accountSettings = useAccountSettings();
+	const updateAccountSettings = useUpdateAccountSettings();
 
 	const form = useForm({
 		defaultValues: {
@@ -23,7 +23,7 @@ export function AccountSettings() {
 			behavior: accountSettings?.behavior ?? "",
 		},
 		onSubmit: ({ value }) => {
-			toast.promise(mutation.mutateAsync(value), {
+			toast.promise(updateAccountSettings(value), {
 				loading: "Saving...",
 				success: "Account settings saved",
 				error: "Failed to save account settings",
@@ -124,9 +124,7 @@ export function AccountSettings() {
 					)}
 				/>
 			</div>
-			<Button onClick={form.handleSubmit} disabled={mutation.isPending}>
-				{mutation.isPending ? "Saving..." : "Save Changes"}
-			</Button>
+			<Button type="submit">Save Changes</Button>
 		</form>
 	);
 }

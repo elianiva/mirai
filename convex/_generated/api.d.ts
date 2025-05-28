@@ -20,6 +20,7 @@ import type * as messages from "../messages.js";
 import type * as modes from "../modes.js";
 import type * as profileOptions from "../profileOptions.js";
 import type * as profiles from "../profiles.js";
+import type * as seed from "../seed.js";
 import type * as threads from "../threads.js";
 
 /**
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   modes: typeof modes;
   profileOptions: typeof profileOptions;
   profiles: typeof profiles;
+  seed: typeof seed;
   threads: typeof threads;
 }>;
 export declare const api: FilterApi<
