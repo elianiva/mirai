@@ -98,15 +98,9 @@ export const remove = mutation({
 			throw new Error("Not authenticated");
 		}
 
-		const userId = identity.subject;
 		const message = await ctx.db.get(args.id);
-
 		if (!message) {
 			throw new Error("Message not found");
-		}
-
-		if (message.senderId !== userId) {
-			throw new Error("Not authorized to delete this message");
 		}
 
 		await ctx.db.delete(args.id);

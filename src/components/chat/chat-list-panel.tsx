@@ -6,10 +6,8 @@ import { Plus, Loader2, Trash2, Menu } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
 import { useThreads } from "~/lib/query/threads";
-import { useCreateThread } from "~/lib/query/threads";
 import { useRemoveThread } from "~/lib/query/threads";
 import { toast } from "sonner";
-import type { ReactNode } from "react";
 
 type ChatListPanelProps = {
 	threadId: Id<"threads"> | undefined;
@@ -22,29 +20,14 @@ export function ChatListPanel(props: ChatListPanelProps) {
 
 	const { data: user } = useUser();
 	const threads = useThreads();
-	const createThread = useCreateThread();
 	const removeThread = useRemoveThread();
 	const isLoading = threads === undefined;
 
-	async function handleCreateThread() {
-		if (!user?.id) return;
-
-		toast.promise(
-			createThread({
-				message: "New Chat",
-			}),
-			{
-				loading: "Creating thread...",
-				success: (data) => {
-					navigate({
-						to: "/$threadId",
-						params: { threadId: data.toString() },
-					});
-					return "Thread created";
-				},
-				error: "Failed to create thread",
-			},
-		);
+	function handleNewChat() {
+		navigate({
+			to: "/$threadId",
+			params: { threadId: "new" },
+		});
 	}
 
 	async function handleDeleteThread(
@@ -76,7 +59,7 @@ export function ChatListPanel(props: ChatListPanelProps) {
 						<Menu className="h-4 w-4" />
 					</Button>
 					<Button
-						onClick={handleCreateThread}
+						onClick={handleNewChat}
 						className="flex-1 flex items-center gap-2"
 					>
 						<Plus className="h-4 w-4" />

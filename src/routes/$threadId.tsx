@@ -3,14 +3,12 @@ import { authUserFn } from "~/lib/functions/auth";
 import { Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
 import { ChatListPanel } from "~/components/chat/chat-list-panel";
 import { ChatAreaPanel } from "~/components/chat/chat-area-panel";
-import { ModesPanel } from "~/components/chat/modes-panel";
 import { userQueryOptions } from "~/lib/query/user";
 import type { Id } from "convex/_generated/dataModel";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { Button } from "~/components/ui/button";
 import { useState } from "react";
 import { Menu } from "lucide-react";
-import { useModes } from "~/lib/query/mode";
 
 export const Route = createFileRoute("/$threadId")({
 	component: ThreadPage,
@@ -29,8 +27,6 @@ export const Route = createFileRoute("/$threadId")({
 export function ThreadPage() {
 	const params = Route.useParams();
 	const navigate = Route.useNavigate();
-	const modes = useModes();
-	const [selectedModeId, setSelectedModeId] = useState(modes?.[0]?._id);
 	const [leftPanelOpen, setLeftPanelOpen] = useState(true);
 	const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
@@ -82,45 +78,12 @@ export function ThreadPage() {
 
 					<div className="flex-1 h-full">
 						<ChatAreaPanel
-							threadId={params.threadId as Id<"threads">}
+							threadId={params.threadId === "new" ? "new" as Id<"threads"> : params.threadId as Id<"threads">}
 							onThreadClick={(threadId) => {
 								navigate({ to: "/$threadId", params: { threadId } });
 							}}
-							selectedModeId={selectedModeId}
 						/>
 					</div>
-
-					<Collapsible
-						open={rightPanelOpen}
-						onOpenChange={setRightPanelOpen}
-						className="h-full"
-					>
-						<CollapsibleContent className="h-full data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-300">
-							<div className="w-60 h-full border-l relative">
-								<ModesPanel onModeSelect={setSelectedModeId} />
-								<Button
-									onClick={() => setRightPanelOpen(false)}
-									variant="secondary"
-									size="sm"
-									className="absolute top-3 right-3 h-8 w-8 p-0"
-								>
-									<Menu className="h-4 w-4" />
-								</Button>
-							</div>
-						</CollapsibleContent>
-						{!rightPanelOpen && (
-							<div className="h-full w-12 border-l bg-background flex items-start justify-center pt-3">
-								<Button
-									onClick={() => setRightPanelOpen(true)}
-									variant="secondary"
-									size="sm"
-									className="h-8 w-8 p-0"
-								>
-									<Menu className="h-4 w-4" />
-								</Button>
-							</div>
-						)}
-					</Collapsible>
 				</div>
 			</Authenticated>
 		</>

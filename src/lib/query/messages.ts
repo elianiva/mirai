@@ -31,10 +31,10 @@ export function useMessages(threadId: Id<"threads">) {
 	);
 }
 
-export function useCreateMessage() {
-	return useMutation(api.messages.create);
-}
-
 export function useRemoveMessage() {
 	return useMutation(api.messages.remove);
+}
+
+export function useSendMessage() {
+	return useMutation(api.chat.sendMessage);
 }

@@ -3,131 +3,327 @@ import { ScrollArea } from "~/components/ui/scroll-area";
 import type { Id } from "convex/_generated/dataModel";
 import { useUser } from "~/lib/query/user";
 import { useNavigate } from "@tanstack/react-router";
-import { useCreateThread, useThread } from "~/lib/query/threads";
-import { useChat } from "@ai-sdk/react";
-import type { UIMessage } from "ai";
+import { useThread } from "~/lib/query/threads";
 import { ChatInput } from "./chat-input";
+import { useModes } from "~/lib/query/mode";
+import {
+	useMessages,
+	useSendMessage,
+	useRemoveMessage,
+} from "~/lib/query/messages";
+import { MarkdownRenderer } from "./markdown-renderer";
+import { Button } from "~/components/ui/button";
+import { RefreshCw, Trash2 } from "lucide-react";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "~/components/ui/dialog";
+import { ModeSelector } from "./mode-selector";
+import { cn } from "~/lib/utils";
 
 type ChatAreaPanelProps = {
 	threadId: Id<"threads">;
 	onThreadClick: (threadId: Id<"threads">) => void;
-	selectedModeId?: Id<"modes">;
-	onModeSelect?: (modeId: Id<"modes">) => void;
 };
 
 export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const threadId = props.threadId;
 	const navigate = useNavigate();
+	const modes = useModes();
+	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
+
+	if (!selectedModeId && modes?.[0]?._id) {
+		setSelectedModeId(modes[0]._id);
+	}
 
 	const [message, setMessage] = useState("");
-	const scrollRef = useRef<HTMLDivElement>(null);
+	const [isLoading, setIsLoading] = useState(false);
+	const scrollAreaRef = useRef<HTMLDivElement>(null);
+	const messagesEndRef = useRef<HTMLDivElement>(null);
+	const [autoScroll, setAutoScroll] = useState(true);
 
 	const thread = useThread(threadId);
 	const { data: user } = useUser();
 
-	const createThread = useCreateThread();
-
-	const { messages, isLoading, status } =
-		useChat({
-			api: "/api/chat",
-		});
+	const sendMessage = useSendMessage();
+	const messages = useMessages(threadId);
 
 	async function handleSendMessage() {
-		if (!message.trim() || isLoading || !props.selectedModeId) {
+		if (!message.trim() || isLoading || !selectedModeId) {
 			return;
 		}
 
-		const thread = await createThread({ message });
-		navigate({ to: "/$threadId", params: { threadId: thread } });
+		setIsLoading(true);
+		setAutoScroll(true);
+		try {
+			const result = await sendMessage({
+				threadId: threadId === "new" ? undefined : threadId,
+				modeId: selectedModeId,
+				message: message.trim(),
+			});
+
+			if (threadId === "new" && result.threadId) {
+				navigate({ to: "/$threadId", params: { threadId: result.threadId } });
+			}
+
+			setMessage("");
+		} catch (error) {
+			console.error("Failed to send message:", error);
+		} finally {
+			setIsLoading(false);
+		}
 	}
 
-	useEffect(() => {
-		if (scrollRef.current && messages?.length) {
-			scrollRef.current.scrollIntoView({ behavior: "smooth" });
+	async function handleRegenerate(
+		messageId: Id<"messages">,
+		modeId: Id<"modes">,
+	) {
+		if (!threadId || threadId === "new" || !messages) return;
+
+		// Find the message to regenerate and all messages before it
+		const messageIndex = messages.findIndex((msg) => msg._id === messageId);
+		if (messageIndex === -1) return;
+
+		// Get the last user message before this assistant message
+		let lastUserMessage = "";
+		for (let i = messageIndex - 1; i >= 0; i--) {
+			if (messages[i].type === "user") {
+				lastUserMessage = messages[i].content;
+				break;
+			}
 		}
-	}, [messages?.length]);
+
+		if (!lastUserMessage) return;
+
+		setIsLoading(true);
+		setAutoScroll(true);
+		try {
+			await sendMessage({
+				threadId: threadId,
+				modeId: modeId,
+				message: lastUserMessage,
+			});
+		} catch (error) {
+			console.error("Failed to regenerate message:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	}
+
+	// Auto-scroll to bottom when new messages arrive
+	useEffect(() => {
+		if (autoScroll && messagesEndRef.current) {
+			messagesEndRef.current.scrollIntoView({
+				behavior: "smooth",
+				block: "end",
+			});
+		}
+	});
+	// Detect if user scrolled up
+	function handleScroll() {
+		if (!scrollAreaRef.current) return;
+
+		const scrollContainer = scrollAreaRef.current.querySelector(
+			'[data-slot="scroll-area-viewport"]',
+		);
+		if (!scrollContainer) return;
+
+		const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+		const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+
+		setAutoScroll(isAtBottom);
+	}
 
 	return (
-		<div className="flex h-full flex-col p-4">
-			<ScrollArea className="flex-grow">
-				<div className="mb-4 flex items-center justify-between">
+		<div className="flex h-full flex-col overflow-hidden">
+			<div className="h-full w-full mx-auto flex flex-col overflow-hidden">
+				<div className="px-4 py-3 border-b flex-shrink-0">
 					<h2 className="text-lg font-semibold">
 						{thread?.title || "New Chat"}
 					</h2>
 				</div>
 
-				<div className="space-y-4">
-					{!messages?.length ? (
-						<div className="flex h-32 items-center justify-center text-muted-foreground">
-							Start a conversation by sending a message
+				<div className="flex-1 overflow-hidden">
+					<ScrollArea ref={scrollAreaRef} className="h-full w-full">
+						<div
+							className="h-full overflow-y-auto px-4"
+							onScroll={handleScroll}
+						>
+							<div className="max-w-2xl mx-auto py-4">
+								<div className="space-y-4">
+									{!messages?.length ? (
+										<div className="flex h-32 items-center justify-center text-muted-foreground">
+											Start a conversation by sending a message
+										</div>
+									) : (
+										messages.map((msg) => (
+											<MessageBubble
+												key={msg._id}
+												message={msg}
+												userId={user?.id || ""}
+												threadId={threadId}
+												onRegenerate={handleRegenerate}
+											/>
+										))
+									)}
+									<div ref={messagesEndRef} className="h-1" />
+								</div>
+							</div>
 						</div>
-					) : (
-						<>
-							{messages?.map((msg: UIMessage) => (
-								<MessageBubble
-									key={msg.id}
-									message={msg}
-									status={status}
-									userId={user?.id || ""}
-								/>
-							))}
-						</>
-					)}
-
-					<div ref={scrollRef} />
+					</ScrollArea>
 				</div>
-			</ScrollArea>
 
-			<ChatInput
-				message={message}
-				onMessageChange={setMessage}
-				onSendMessage={handleSendMessage}
-				isLoading={isLoading}
-				selectedModeId={props.selectedModeId}
-				onModeSelect={props.onModeSelect}
-			/>
+				<div className="flex-shrink-0 pb-4">
+					<ChatInput
+						message={message}
+						onMessageChange={setMessage}
+						onSendMessage={handleSendMessage}
+						isLoading={isLoading}
+						selectedModeId={selectedModeId}
+						onModeSelect={setSelectedModeId}
+					/>
+				</div>
+			</div>
 		</div>
 	);
 }
 
 type MessageBubbleProps = {
-	message: UIMessage;
+	message: {
+		_id: Id<"messages">;
+		content: string;
+		type: string;
+		senderId: string;
+		metadata?: {
+			isStreaming?: boolean;
+			modeId?: string;
+			profileId?: Id<"profiles">;
+		};
+	};
 	userId: string;
-	status: "error" | "submitted" | "streaming" | "ready";
+	threadId: Id<"threads">;
+	onRegenerate: (messageId: Id<"messages">, modeId: Id<"modes">) => void;
 };
 
 function MessageBubble(props: MessageBubbleProps) {
-	const isUser = props.message.role === "user";
+	const isUser = props.message.type === "user";
+	const isStreaming = props.message.metadata?.isStreaming;
+	const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>(
+		props.message.metadata?.modeId as Id<"modes">,
+	);
+	const removeMessage = useRemoveMessage();
+
+	async function handleRemove() {
+		try {
+			await removeMessage({ id: props.message._id });
+		} catch (error) {
+			console.error("Failed to remove message:", error);
+		}
+	}
+
+	function handleRegenerate() {
+		if (selectedModeId) {
+			props.onRegenerate(props.message._id, selectedModeId);
+			setShowRegenerateDialog(false);
+		}
+	}
 
 	return (
-		<div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-			<div
-				className={`rounded-lg p-3 max-w-[80%] ${
-					isUser
-						? "bg-primary text-primary-foreground"
-						: props.status === "error"
-							? "bg-destructive text-destructive-foreground"
-							: "bg-muted"
-				}`}
-			>
-				<div className="whitespace-pre-wrap break-words">
-					{props.message.content || (
-						<span className="text-muted-foreground">
-							{props.status === "streaming"
-								? "Generating response..."
-								: "No content"}
+		<div
+			className={`group flex flex-col ${isUser ? "items-end" : "items-start"} w-full`}
+		>
+			{isUser ? (
+				<div className="relative max-w-md rounded-2xl px-4 py-2.5 bg-primary text-primary-foreground">
+					<div className="whitespace-pre-wrap break-words text-sm">
+						{props.message.content}
+					</div>
+				</div>
+			) : (
+				<div className="w-full">
+					{props.message.content ? (
+						<MarkdownRenderer
+							content={props.message.content}
+							isStreaming={isStreaming}
+						/>
+					) : (
+						<span className="text-muted-foreground italic text-sm">
+							{isStreaming ? "Generating response..." : "No content"}
 						</span>
 					)}
-				</div>
 
-				{props.status === "streaming" && (
-					<div className="mt-2 flex items-center">
-						<div className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-						<div className="ml-1 h-1.5 w-1.5 rounded-full bg-current animate-pulse [animation-delay:0.2s]" />
-						<div className="ml-1 h-1.5 w-1.5 rounded-full bg-current animate-pulse [animation-delay:0.4s]" />
+					{isStreaming && !props.message.content && (
+						<div className="mt-2 flex items-center gap-1">
+							<div className="h-1.5 w-1.5 rounded-full bg-current opacity-75 animate-pulse" />
+							<div className="h-1.5 w-1.5 rounded-full bg-current opacity-75 animate-pulse [animation-delay:0.2s]" />
+							<div className="h-1.5 w-1.5 rounded-full bg-current opacity-75 animate-pulse [animation-delay:0.4s]" />
+						</div>
+					)}
+				</div>
+			)}
+
+			{!isStreaming && (
+				<div
+					className={cn(
+						"mt-1 flex opacity-20 group-hover:opacity-100 transition-opacity",
+						{
+							"justify-end": isUser,
+							"justify-start": !isUser,
+						},
+					)}
+				>
+					{!isUser && (
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-7 px-2 text-xs"
+							onClick={() => setShowRegenerateDialog(true)}
+						>
+							<RefreshCw className="size-3" />
+						</Button>
+					)}
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+						onClick={handleRemove}
+					>
+						<Trash2 className="size-3" />
+					</Button>
+				</div>
+			)}
+
+			<Dialog
+				open={showRegenerateDialog}
+				onOpenChange={setShowRegenerateDialog}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Regenerate Response</DialogTitle>
+						<DialogDescription>
+							Select a mode to regenerate this response with.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4">
+						<ModeSelector
+							selectedModeId={selectedModeId}
+							onModeSelect={setSelectedModeId}
+						/>
+						<div className="flex justify-end gap-2">
+							<Button
+								variant="outline"
+								onClick={() => setShowRegenerateDialog(false)}
+							>
+								Cancel
+							</Button>
+							<Button onClick={handleRegenerate}>Regenerate</Button>
+						</div>
 					</div>
-				)}
-			</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

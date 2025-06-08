@@ -20,24 +20,6 @@ export const create = mutation({
 
 export const update = mutation({
 	args: {
-		id: v.id("modes"),
-		slug: v.optional(v.string()),
-		icon: v.optional(v.string()),
-		name: v.optional(v.string()),
-		description: v.optional(v.string()),
-		profileSelector: v.optional(v.string()),
-		modeDefinition: v.optional(v.string()),
-		whenToUse: v.optional(v.string()),
-		additionalInstructions: v.optional(v.string()),
-	},
-	handler: async (ctx, args) => {
-		const { id, ...rest } = args;
-		return await ctx.db.patch(id, rest);
-	},
-});
-
-export const updateModeSettings = mutation({
-	args: {
 		slug: v.string(),
 		icon: v.string(),
 		name: v.string(),
@@ -48,7 +30,6 @@ export const updateModeSettings = mutation({
 		additionalInstructions: v.string(),
 	},
 	handler: async (ctx, args) => {
-		// Check if a mode with this slug already exists
 		const existingMode = await ctx.db
 			.query("modes")
 			.filter((q) => q.eq(q.field("slug"), args.slug))
@@ -58,12 +39,10 @@ export const updateModeSettings = mutation({
 		let message: string;
 
 		if (existingMode) {
-			// Update existing mode
 			await ctx.db.patch(existingMode._id, args);
 			id = existingMode._id;
 			message = "Mode settings updated successfully";
 		} else {
-			// Insert new mode
 			id = await ctx.db.insert("modes", args);
 			message = "Mode settings created successfully";
 		}
@@ -75,7 +54,7 @@ export const updateModeSettings = mutation({
 	},
 });
 
-export const getModeSettings = query({
+export const getById = query({
 	args: {
 		id: v.id("modes"),
 	},
@@ -84,7 +63,7 @@ export const getModeSettings = query({
 	},
 });
 
-export const getAllModes = query({
+export const get = query({
 	handler: async (ctx) => {
 		return await ctx.db.query("modes").collect();
 	},

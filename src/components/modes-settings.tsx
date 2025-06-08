@@ -12,14 +12,13 @@ import { ModeSettings } from "./mode-form";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
-import { useQuery } from "convex/react";
-import { api } from "~/../convex/_generated/api";
 import type { Doc } from "convex/_generated/dataModel";
+import { useModes } from "~/lib/query/mode";
 
 export type ModeData = Doc<"modes">;
 
 export function ModesSettings() {
-	const allModes = useQuery(api.modes.getAllModes);
+	const modes = useModes();
 	
 	const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
 	const [showAddForm, setShowAddForm] = useState(false);
@@ -76,7 +75,7 @@ export function ModesSettings() {
 	}
 
 	if (selectedModeId) {
-		const selectedMode = allModes?.find((mode: ModeData) => mode._id === selectedModeId);
+		const selectedMode = modes?.find((mode: ModeData) => mode._id === selectedModeId);
 
 		if (!selectedMode) {
 			return (
@@ -247,7 +246,7 @@ export function ModesSettings() {
 				</Button>
 			</div>
 			{/* Content section with conditional rendering */}
-			{allModes === undefined ? (
+			{modes === undefined ? (
 				<div className="flex items-center justify-center p-8">
 					<div className="flex flex-col items-center gap-2">
 						<Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -256,7 +255,7 @@ export function ModesSettings() {
 						</p>
 					</div>
 				</div>
-			) : allModes.length === 0 ? (
+			) : modes.length === 0 ? (
 				<Card className="flex flex-col items-center justify-center p-8 text-center">
 					<CardContent className="pt-6">
 						<UserX className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
@@ -270,7 +269,7 @@ export function ModesSettings() {
 				</Card>
 			) : (
 				<div className="flex flex-col gap-2">
-					{allModes.map((mode: ModeData) => (
+					{modes.map((mode: ModeData) => (
 						<Card
 							key={mode._id}
 							className="cursor-pointer shadow-none hover:border-primary"

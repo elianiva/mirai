@@ -26,9 +26,9 @@ export function useUpdateMode() {
 }
 
 export function useUpdateModeSettings() {
-	return useMutation(api.modes.updateModeSettings);
+	return useMutation(api.modes.update);
 }
 
 export function useModes() {
-	return useQuery(api.modes.getAllModes);
+	return useQuery(api.modes.get);
 }	
