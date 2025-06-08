@@ -32,10 +32,10 @@ type ComboboxProps = {
 	placeholder?: string;
 	emptyMessage?: string;
 	className?: string;
+	size?: "sm" | "lg" | "default" | "icon" | null;
 };
 
 export function Combobox(props: ComboboxProps) {
-	console.log({ props });
 	const [searchQuery, setSearchQuery] = React.useState("");
 
 	const filteredOptions = React.useMemo(() => {
@@ -57,6 +57,7 @@ export function Combobox(props: ComboboxProps) {
 			<PopoverTrigger asChild>
 				<Button
 					variant="outline"
+					size={props.size}
 					// biome-ignore lint/a11y/useSemanticElements: we need this for searchable options
 					role="combobox"
 					aria-expanded={props.open}
@@ -94,14 +95,15 @@ export function Combobox(props: ComboboxProps) {
 									key={option.value}
 									value={option.value}
 									onSelect={(currentValue) => {
-										// Don't clear the value if it's the same option
 										props.setValue(currentValue);
 										props.setOpen(false);
-										setSearchQuery(""); // Clear search when an option is selected
+										setSearchQuery("");
 									}}
 								>
-									{option.value === props.value && (
-										<Check className="size-4 shrink-0 opacity-100" />
+									{option.value === props.value ? (
+										<Check className="size-4 shrink-0" />
+									) : (
+										<div className="size-4 shrink-0" />
 									)}
 									<span className="truncate flex-1">{option.label}</span>
 									<span className="text-xs text-muted-foreground truncate text-right">

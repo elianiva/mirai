@@ -2,33 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import type { Id } from "convex/_generated/dataModel";
 import { useUser } from "~/lib/query/user";
-import { useProfileOptions } from "~/lib/query/profile";
 import { useNavigate } from "@tanstack/react-router";
 import { useCreateThread, useThread } from "~/lib/query/threads";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { ChatInput } from "./chat-input";
 
-type Message = {
-	_id: Id<"messages">;
-	threadId: Id<"threads">;
-	senderId: string;
-	content: string;
-	type: string;
-	metadata?: {
-		status?: string;
-		model?: string;
-		error?: string;
-	};
-};
-
 type ChatAreaPanelProps = {
 	threadId: Id<"threads">;
 	onThreadClick: (threadId: Id<"threads">) => void;
 	selectedModeId?: Id<"modes">;
-	selectedProfileId?: Id<"profiles">;
 	onModeSelect?: (modeId: Id<"modes">) => void;
-	onProfileSelect?: (profileId: Id<"profiles">) => void;
 };
 
 export function ChatAreaPanel(props: ChatAreaPanelProps) {
@@ -40,23 +24,16 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 
 	const thread = useThread(threadId);
 	const { data: user } = useUser();
-	const profiles = useProfileOptions();
-	const defaultProfile = profiles?.[0];
 
 	const createThread = useCreateThread();
 
-	const { messages, handleSubmit, handleInputChange, isLoading, status } =
+	const { messages, isLoading, status } =
 		useChat({
 			api: "/api/chat",
 		});
 
 	async function handleSendMessage() {
-		if (
-			!message.trim() ||
-			isLoading ||
-			!props.selectedModeId ||
-			!props.selectedProfileId
-		) {
+		if (!message.trim() || isLoading || !props.selectedModeId) {
 			return;
 		}
 
@@ -107,9 +84,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 				onSendMessage={handleSendMessage}
 				isLoading={isLoading}
 				selectedModeId={props.selectedModeId}
-				selectedProfileId={props.selectedProfileId}
 				onModeSelect={props.onModeSelect}
-				onProfileSelect={props.onProfileSelect}
 			/>
 		</div>
 	);

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "~/../convex/_generated/api";
 
 export const updateModeSettingsSchema = z.object({
@@ -28,3 +28,7 @@ export function useUpdateMode() {
 export function useUpdateModeSettings() {
 	return useMutation(api.modes.updateModeSettings);
 }
+
+export function useModes() {
+	return useQuery(api.modes.getAllModes);
+}	

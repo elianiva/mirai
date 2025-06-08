@@ -16,7 +16,6 @@ export function ModelSelector(props: ModelSelectorProps) {
 	const [open, setOpen] = useState(false);
 	const { data: models = [], isLoading, error } = useOpenRouterModels();
 
-	// Handle model change
 	const handleModelChange = (value: string) => {
 		if (props.onChange) {
 			props.onChange(value);

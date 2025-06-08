@@ -1,10 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { authUserFn } from "~/lib/functions/auth";
-import {
-	Collapsible,
-	CollapsibleTrigger,
-	CollapsibleContent,
-} from "~/components/ui/collapsible";
+import { Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
 import { ChatListPanel } from "~/components/chat/chat-list-panel";
 import { ChatAreaPanel } from "~/components/chat/chat-area-panel";
 import { ModesPanel } from "~/components/chat/modes-panel";
@@ -14,6 +10,7 @@ import { Authenticated, Unauthenticated } from "convex/react";
 import { Button } from "~/components/ui/button";
 import { useState } from "react";
 import { Menu } from "lucide-react";
+import { useModes } from "~/lib/query/mode";
 
 export const Route = createFileRoute("/$threadId")({
 	component: ThreadPage,
@@ -32,7 +29,8 @@ export const Route = createFileRoute("/$threadId")({
 export function ThreadPage() {
 	const params = Route.useParams();
 	const navigate = Route.useNavigate();
-	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
+	const modes = useModes();
+	const [selectedModeId, setSelectedModeId] = useState(modes?.[0]?._id);
 	const [leftPanelOpen, setLeftPanelOpen] = useState(true);
 	const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
@@ -52,7 +50,6 @@ export function ThreadPage() {
 			</Unauthenticated>
 			<Authenticated>
 				<div className="flex h-full w-full">
-					{/* Left Panel - Chat List */}
 					<Collapsible
 						open={leftPanelOpen}
 						onOpenChange={setLeftPanelOpen}
@@ -69,7 +66,6 @@ export function ThreadPage() {
 								/>
 							</div>
 						</CollapsibleContent>
-						{/* Collapsed state - just hamburger button */}
 						{!leftPanelOpen && (
 							<div className="h-full w-12 border-r bg-background flex items-start justify-center pt-3">
 								<Button
@@ -84,7 +80,6 @@ export function ThreadPage() {
 						)}
 					</Collapsible>
 
-					{/* Main Chat Area */}
 					<div className="flex-1 h-full">
 						<ChatAreaPanel
 							threadId={params.threadId as Id<"threads">}
@@ -95,7 +90,6 @@ export function ThreadPage() {
 						/>
 					</div>
 
-					{/* Right Panel - Modes */}
 					<Collapsible
 						open={rightPanelOpen}
 						onOpenChange={setRightPanelOpen}
@@ -104,7 +98,6 @@ export function ThreadPage() {
 						<CollapsibleContent className="h-full data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-300">
 							<div className="w-60 h-full border-l relative">
 								<ModesPanel onModeSelect={setSelectedModeId} />
-								{/* Right hamburger trigger */}
 								<Button
 									onClick={() => setRightPanelOpen(false)}
 									variant="secondary"
@@ -115,7 +108,6 @@ export function ThreadPage() {
 								</Button>
 							</div>
 						</CollapsibleContent>
-						{/* Collapsed state - just hamburger button */}
 						{!rightPanelOpen && (
 							<div className="h-full w-12 border-l bg-background flex items-start justify-center pt-3">
 								<Button
