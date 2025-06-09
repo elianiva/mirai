@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { memo } from "react";
 import { codeBlock } from "./code-block";
+import { CopyIcon } from "lucide-react";
 
 type MarkdownRendererProps = {
 	content: string;
@@ -74,7 +75,7 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 						{children}
 					</blockquote>
 				),
-				code: ({ className, children, ...props }) => {
+				code: ({ className, children }) => {
 					const match = /language-(\w+)/.exec(className || "");
 					const isInline = !match;
 
@@ -88,7 +89,7 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 
 					return (
 						<div className="relative my-3 group">
-							<pre className="overflow-x-auto rounded-lg bg-muted p-4">
+							<pre className="overflow-x-auto rounded-lg bg-secondary/50 p-4">
 								<code className="text-sm font-mono">{children}</code>
 							</pre>
 							<button
@@ -99,7 +100,7 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 								}}
 								className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 rounded bg-background/80 hover:bg-background text-xs"
 							>
-								Copy
+								<CopyIcon className="size-3" />
 							</button>
 						</div>
 					);

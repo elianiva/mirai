@@ -147,12 +147,7 @@ export const codeBlock = {
 
 function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 	const [highlightedHtml, setHighlightedHtml] = useState<string>("");
-	const [loadingState, setLoadingState] = useState<{
-		isLoading: boolean;
-		error: string | null;
-	}>({ isLoading: false, error: null });
-
-	const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const isMountedRef = useRef(true);
 
 	const { code, lang: rawLanguage } = extractCodeFromBlock(blockMatch.output);
@@ -162,9 +157,6 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 		isMountedRef.current = true;
 		return () => {
 			isMountedRef.current = false;
-			if (loadingTimeoutRef.current) {
-				clearTimeout(loadingTimeoutRef.current);
-			}
 		};
 	}, []);
 
@@ -202,6 +194,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 		const loadAndHighlight = async () => {
 			if (!code) return;
 
+			// Handle unsupported languages immediately
 			if (language === "text" || !isLanguageSupported(language)) {
 				const html = await highlightCode(code, "text");
 				if (!cancelled && html) {
@@ -210,6 +203,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 				return;
 			}
 
+			// Handle already loaded languages
 			if (loadedLanguages.has(language)) {
 				const html = await highlightCode(code, language);
 				if (!cancelled && html) {
@@ -218,56 +212,26 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 				return;
 			}
 
-			setLoadingState({ isLoading: true, error: null });
-
-			loadingTimeoutRef.current = setTimeout(() => {
-				if (!cancelled) {
-					setLoadingState({
-						isLoading: false,
-						error: "Language loading timed out",
-					});
-				}
-			}, 5000);
-
+			// Load new language
+			setIsLoading(true);
+			
 			try {
 				const success = await loadLanguageIfNeeded(language);
-
-				if (loadingTimeoutRef.current) {
-					clearTimeout(loadingTimeoutRef.current);
-				}
-
-				if (!cancelled) {
-					if (success) {
-						const html = await highlightCode(code, language);
-						if (html) {
-							setHighlightedHtml(html);
-							setLoadingState({ isLoading: false, error: null });
-						}
-					} else {
-						const html = await highlightCode(code, "text");
-						if (html) {
-							setHighlightedHtml(html);
-						}
-						setLoadingState({
-							isLoading: false,
-							error: `Failed to load ${language} syntax highlighting`,
-						});
-					}
+				const langToUse = success ? language : "text";
+				const html = await highlightCode(code, langToUse);
+				
+				if (!cancelled && html) {
+					setHighlightedHtml(html);
 				}
 			} catch (error) {
-				if (loadingTimeoutRef.current) {
-					clearTimeout(loadingTimeoutRef.current);
+				console.error(`Error loading ${language}:`, error);
+				const html = await highlightCode(code, "text");
+				if (!cancelled && html) {
+					setHighlightedHtml(html);
 				}
-
+			} finally {
 				if (!cancelled) {
-					const html = await highlightCode(code, "text");
-					if (html) {
-						setHighlightedHtml(html);
-					}
-					setLoadingState({
-						isLoading: false,
-						error: `Error loading ${language}: ${error}`,
-					});
+					setIsLoading(false);
 				}
 			}
 		};
@@ -289,44 +253,36 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 		}
 	}, [code]);
 
-	if (loadingState.isLoading) {
-		return (
-			<div className="relative my-3 overflow-hidden rounded-lg">
-				<div className="flex items-center justify-between bg-muted p-2">
-					<span className="text-sm text-muted-foreground">
-						{rawLanguage} (loading syntax highlighting...)
-					</span>
-				</div>
-				<pre className="overflow-x-auto bg-secondary/30 p-2">
-					<code className="text-sm font-mono">{code}</code>
-				</pre>
-			</div>
-		);
-	}
+	const getHeaderText = () => {
+		if (isLoading) {
+			return `${rawLanguage} (loading syntax highlighting...)`;
+		}
+		return rawLanguage;
+	};
+
+	const shouldShowHighlighted = highlightedHtml && !isLoading;
 
 	return (
 		<div className="relative my-3 group overflow-hidden rounded-lg">
 			<div className="flex items-center justify-between bg-muted p-2">
-				<span className="text-sm text-background uppercase font-bold">
-					{rawLanguage}
-					{loadingState.error && ` - ${loadingState.error}`}
-					{!isLanguageSupported(language) &&
-						language !== "text" &&
-						" (unsupported)"}
+				<span className={`text-sm leading-none uppercase font-bold ${
+					isLoading ? "text-muted-foreground" : "text-background"
+				}`}>
+					{getHeaderText()}
 				</span>
-				{code && (
+				{code && !isLoading && (
 					<Button
 						type="button"
 						onClick={handleCopy}
 						size="icon"
 						aria-label="Copy code to clipboard"
 					>
-						<CopyIcon className="size-3" />
+						<CopyIcon className="size-2" />
 					</Button>
 				)}
 			</div>
-			<div className="text-sm p-2 bg-sidebar">
-				{highlightedHtml ? (
+			<div className="text-sm p-2 bg-sidebar font-mono">
+				{shouldShowHighlighted ? (
 					<div
 						className="overflow-x-auto [&>pre]:!rounded-none [&>pre]:!m-0"
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: Required for syntax highlighting

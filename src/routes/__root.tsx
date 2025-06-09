@@ -8,8 +8,6 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
 import { NotFound } from "~/components/NotFound";
-// @ts-expect-error - this is a valid css file
-import appCss from "~/styles/app.css?url";
 import { seo } from "~/utils/seo";
 import type { QueryClient } from "@tanstack/react-query";
 import { Toaster } from "~/components/ui/sonner";
@@ -18,6 +16,9 @@ import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { authStateFn } from "~/lib/functions/auth";
 import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
+// @ts-expect-error - this is a valid css file
+import appCss from "~/styles/app.css?url";
+// @ts-expect-error - this is a valid css file
 import loraCss from "@fontsource-variable/lora/index.css?url";
 
 export const Route = createRootRouteWithContext<{
@@ -52,6 +53,10 @@ export const Route = createRootRouteWithContext<{
 			{
 				rel: "stylesheet",
 				href: "https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&display=swap",
+			},
+			{
+				rel: "stylesheet",
+				href: "https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700;900&display=swap",
 			},
 			{
 				rel: "stylesheet",

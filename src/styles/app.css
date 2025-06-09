@@ -73,6 +73,7 @@
   --chart-5: var(--color-chart-orange);
 
   --font-serif: "Lora", serif;
+  --font-mono: "Space Mono", monospace;
 
   /* Radius variables */
   --radius-sm: calc(var(--radius) - 4px);
