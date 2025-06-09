@@ -10,6 +10,7 @@ import {
 	useMessages,
 	useSendMessage,
 	useRemoveMessage,
+	useRegenerateMessage,
 } from "~/lib/query/messages";
 import { MarkdownRenderer } from "./markdown-renderer";
 import { Button } from "~/components/ui/button";
@@ -50,6 +51,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 
 	const sendMessage = useSendMessage();
 	const messages = useMessages(threadId);
+	const regenerateMessage = useRegenerateMessage();
 
 	async function handleSendMessage() {
 		if (!message.trim() || isLoading || !selectedModeId) {
@@ -81,30 +83,14 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		messageId: Id<"messages">,
 		modeId: Id<"modes">,
 	) {
-		if (!threadId || threadId === "new" || !messages) return;
-
-		// Find the message to regenerate and all messages before it
-		const messageIndex = messages.findIndex((msg) => msg._id === messageId);
-		if (messageIndex === -1) return;
-
-		// Get the last user message before this assistant message
-		let lastUserMessage = "";
-		for (let i = messageIndex - 1; i >= 0; i--) {
-			if (messages[i].type === "user") {
-				lastUserMessage = messages[i].content;
-				break;
-			}
-		}
-
-		if (!lastUserMessage) return;
+		if (!threadId || threadId === "new") return;
 
 		setIsLoading(true);
 		setAutoScroll(true);
 		try {
-			await sendMessage({
-				threadId: threadId,
+			await regenerateMessage({
+				messageId: messageId,
 				modeId: modeId,
-				message: lastUserMessage,
 			});
 		} catch (error) {
 			console.error("Failed to regenerate message:", error);
@@ -113,7 +99,6 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		}
 	}
 
-	// Auto-scroll to bottom when new messages arrive
 	useEffect(() => {
 		if (autoScroll && messagesEndRef.current) {
 			messagesEndRef.current.scrollIntoView({
@@ -122,7 +107,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			});
 		}
 	});
-	// Detect if user scrolled up
+
 	function handleScroll() {
 		if (!scrollAreaRef.current) return;
 
@@ -149,29 +134,25 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 				<div className="flex-1 overflow-hidden">
 					<ScrollArea ref={scrollAreaRef} className="h-full w-full">
 						<div
-							className="h-full overflow-y-auto px-4"
+							className="h-full overflow-y-auto px-4 space-y-4 max-w-2xl mx-auto py-4"
 							onScroll={handleScroll}
 						>
-							<div className="max-w-2xl mx-auto py-4">
-								<div className="space-y-4">
-									{!messages?.length ? (
-										<div className="flex h-32 items-center justify-center text-muted-foreground">
-											Start a conversation by sending a message
-										</div>
-									) : (
-										messages.map((msg) => (
-											<MessageBubble
-												key={msg._id}
-												message={msg}
-												userId={user?.id || ""}
-												threadId={threadId}
-												onRegenerate={handleRegenerate}
-											/>
-										))
-									)}
-									<div ref={messagesEndRef} className="h-1" />
+							{!messages?.length ? (
+								<div className="flex h-32 items-center justify-center text-muted-foreground">
+									Start a conversation by sending a message
 								</div>
-							</div>
+							) : (
+								messages.map((msg) => (
+									<MessageBubble
+										key={msg._id}
+										message={msg}
+										userId={user?.id || ""}
+										threadId={threadId}
+										onRegenerate={handleRegenerate}
+									/>
+								))
+							)}
+							<div ref={messagesEndRef} className="h-1" />
 						</div>
 					</ScrollArea>
 				</div>

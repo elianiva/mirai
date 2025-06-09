@@ -38,3 +38,7 @@ export function useRemoveMessage() {
 export function useSendMessage() {
 	return useMutation(api.chat.sendMessage);
 }
+
+export function useRegenerateMessage() {
+	return useMutation(api.chat.regenerateMessage);
+}
