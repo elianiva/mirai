@@ -47,10 +47,10 @@ export function ChatListPanel(props: ChatListPanelProps) {
 	) {
 		e.stopPropagation();
 
+		navigate({ to: "/$threadId", params: { threadId: "new" } });
 		toast.promise(removeThread({ id: threadId }), {
 			loading: "Deleting thread...",
 			success: () => {
-				navigate({ to: "/" });
 				return "Thread deleted";
 			},
 			error: "Failed to delete thread",
@@ -60,6 +60,11 @@ export function ChatListPanel(props: ChatListPanelProps) {
 	return (
 		<Sidebar>
 			<SidebarHeader>
+				<div className="py-2">
+					<h1 className="text-4xl text-center font-light font-[Cinzel_Decorative]">
+						Mirai
+					</h1>
+				</div>
 				<Button
 					onClick={handleNewChat}
 					className="w-full flex items-center gap-2"
@@ -85,7 +90,7 @@ export function ChatListPanel(props: ChatListPanelProps) {
 								))}
 							</SidebarMenu>
 						) : !threads || threads.length === 0 ? (
-							<div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+							<div className="flex flex-col items-center justify-center py-8 text-center text-foreground font-serif">
 								<p className="mb-2">No conversations yet</p>
 								<p className="text-sm">Start a new chat to begin</p>
 							</div>
@@ -98,10 +103,13 @@ export function ChatListPanel(props: ChatListPanelProps) {
 											isActive={props.threadId === thread._id}
 										>
 											<Button
-												className={cn("text-left justify-start text-sm font-light", {
-													"text-primary font-bold":
-														props.threadId === thread._id,
-												})}
+												className={cn(
+													"text-left justify-start text-sm font-light",
+													{
+														"text-primary font-bold":
+															props.threadId === thread._id,
+													},
+												)}
 												variant="ghost"
 												type="button"
 												onClick={() => props.onThreadClick(thread._id)}

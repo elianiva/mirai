@@ -18,6 +18,7 @@ import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { authStateFn } from "~/lib/functions/auth";
 import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
+import loraCss from "@fontsource-variable/lora/index.css?url";
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;
@@ -54,7 +55,7 @@ export const Route = createRootRouteWithContext<{
 			},
 			{
 				rel: "stylesheet",
-				href: "https://fonts.googleapis.com/css2?family=Lora:wght@400;700&display=swap",
+				href: loraCss,
 			},
 			{
 				rel: "apple-touch-icon",

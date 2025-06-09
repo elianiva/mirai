@@ -63,7 +63,10 @@ export function Combobox(props: ComboboxProps) {
 					aria-expanded={props.open}
 					className={cn(
 						"w-full justify-between border-none",
-						!props.value && "text-muted-foreground",
+						{
+							"text-muted-foreground": !props.value,
+							"text-foreground": props.value,
+						},
 					)}
 				>
 					<span className="truncate">

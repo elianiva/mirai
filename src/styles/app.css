@@ -29,9 +29,9 @@
   /* Text color variables */
   --color-text-dark: var(--color-rose-pine-text);
   --color-text-medium: var(--color-rose-pine-love);
-  --color-text-muted: var(--color-rose-pine-gold);
+  --color-text-muted: var(--color-rose-pine-muted);
   --color-text-light: var(--color-rose-pine-rose);
-  --color-text-subtle: var(--color-rose-pine-foam);
+  --color-text-subtle: var(--color-rose-pine-subtle);
   --color-text-ring: var(--color-rose-pine-iris);
 
   /* Accent color variables */

@@ -19,10 +19,12 @@ export type ModeData = Doc<"modes">;
 
 export function ModesSettings() {
 	const modes = useModes();
-	
+
 	const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
 	const [showAddForm, setShowAddForm] = useState(false);
-	const [newMode, setNewMode] = useState<Omit<ModeData, "_id" | "_creationTime">>({
+	const [newMode, setNewMode] = useState<
+		Omit<ModeData, "_id" | "_creationTime">
+	>({
 		slug: "",
 		icon: "",
 		name: "",
@@ -60,7 +62,6 @@ export function ModesSettings() {
 
 	function handleAddModeSubmit(e: React.FormEvent) {
 		e.preventDefault();
-		// Reset form after submission
 		setNewMode({
 			slug: "",
 			icon: "",
@@ -75,7 +76,9 @@ export function ModesSettings() {
 	}
 
 	if (selectedModeId) {
-		const selectedMode = modes?.find((mode: ModeData) => mode._id === selectedModeId);
+		const selectedMode = modes?.find(
+			(mode: ModeData) => mode._id === selectedModeId,
+		);
 
 		if (!selectedMode) {
 			return (
@@ -88,7 +91,6 @@ export function ModesSettings() {
 			);
 		}
 
-		// Convert database mode to the format expected by ModeSettings
 		const modeForForm = {
 			id: selectedMode._id,
 			slug: selectedMode.slug,
@@ -118,7 +120,6 @@ export function ModesSettings() {
 							Create a new AI mode with custom behavior and capabilities.
 						</p>
 					</div>
-
 
 					<div className="space-y-2">
 						<Label htmlFor="slug">Slug</Label>
@@ -245,25 +246,21 @@ export function ModesSettings() {
 					Add Mode
 				</Button>
 			</div>
-			{/* Content section with conditional rendering */}
 			{modes === undefined ? (
 				<div className="flex items-center justify-center p-8">
 					<div className="flex flex-col items-center gap-2">
 						<Loader2 className="h-8 w-8 animate-spin text-primary" />
-						<p className="text-sm text-muted-foreground">
-							Loading modes...
-						</p>
+						<p className="text-sm text-muted-foreground">Loading modes...</p>
 					</div>
 				</div>
 			) : modes.length === 0 ? (
 				<Card className="flex flex-col items-center justify-center p-8 text-center">
 					<CardContent className="pt-6">
 						<UserX className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-						<h3 className="mt-4 text-lg font-medium">
-							No modes available
-						</h3>
+						<h3 className="mt-4 text-lg font-medium">No modes available</h3>
 						<p className="mt-2 text-sm text-muted-foreground">
-							You don't have any AI modes yet. Create a mode to get started or run the database seeding.
+							You don't have any AI modes yet. Create a mode to get started or
+							run the database seeding.
 						</p>
 					</CardContent>
 				</Card>
@@ -272,25 +269,23 @@ export function ModesSettings() {
 					{modes.map((mode: ModeData) => (
 						<Card
 							key={mode._id}
-							className="cursor-pointer shadow-none hover:border-primary"
+							className="cursor-pointer shadow-none hover:border-primary flex flex-row items-center justify-between p-3 font-serif"
 							onClick={() => handleModeClick(mode._id)}
 						>
-							<CardHeader className="flex flex-row items-center justify-between p-4">
-								<div className="flex items-center space-x-3">
-									<div className="w-10 h-10 rounded-full border flex items-center justify-center">
-										<span className="text-xl">{mode.icon}</span>
-									</div>
-									<div>
-										<CardTitle className="text-base font-medium">
-											{mode.name}
-										</CardTitle>
-										<CardDescription className="text-xs">
-											{mode.description}
-										</CardDescription>
-									</div>
+							<div className="flex items-center space-x-3">
+								<div className="size-12 text-xl rounded flex items-center justify-center bg-background">
+									{mode.icon}
 								</div>
-								<ChevronRight className="h-5 w-5 text-muted-foreground" />
-							</CardHeader>
+								<div>
+									<CardTitle className="text-base font-medium">
+										{mode.name}
+									</CardTitle>
+									<CardDescription className="text-xs">
+										{mode.description}
+									</CardDescription>
+								</div>
+							</div>
+							<ChevronRight className="h-5 w-5 text-muted-foreground" />
 						</Card>
 					))}
 				</div>

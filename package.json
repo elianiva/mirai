@@ -20,6 +20,7 @@
 		"@convex-dev/agent": "^0.1.6",
 		"@convex-dev/persistent-text-streaming": "^0.2.2",
 		"@convex-dev/react-query": "^0.0.0-alpha.8",
+		"@fontsource-variable/lora": "^5.2.6",
 		"@llm-ui/code": "^0.13.3",
 		"@llm-ui/markdown": "^0.13.3",
 		"@llm-ui/react": "^0.13.3",

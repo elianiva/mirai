@@ -11,6 +11,7 @@
         "@convex-dev/agent": "^0.1.6",
         "@convex-dev/persistent-text-streaming": "^0.2.2",
         "@convex-dev/react-query": "^0.0.0-alpha.8",
+        "@fontsource-variable/lora": "^5.2.6",
         "@llm-ui/code": "^0.13.3",
         "@llm-ui/markdown": "^0.13.3",
         "@llm-ui/react": "^0.13.3",
@@ -230,6 +231,8 @@
     "@floating-ui/react-dom": ["@floating-ui/react-dom@2.1.2", "", { "dependencies": { "@floating-ui/dom": "^1.0.0" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-06okr5cgPzMNBy+Ycse2A6udMi4bqwW/zgBF/rwjcNqWkyr82Mcg8b0vjX8OJpZFy/FKjJmw6wV7t44kK6kW7A=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.9", "", {}, "sha512-MDWhGtE+eHw5JW7lq4qhc5yRLS11ERl1c7Z6Xd0a58DozHES6EnNNwUWbMiG4J9Cgj053Bhk8zvlhFYKVhULwg=="],
+
+    "@fontsource-variable/lora": ["@fontsource-variable/lora@5.2.6", "", {}, "sha512-jBiQEQXX6jUgdOhJwcHaJFXT+Zozu2zMMoqcamdJaHxF3cc+ZBUbvcNpD2vL7J24KypLKwvEIYVaU+FjPdr9MQ=="],
 
     "@ioredis/commands": ["@ioredis/commands@1.2.0", "", {}, "sha512-Sx1pU8EM64o2BrqNpEO1CNLtKQwyhuXuqyfH7oGKCk+1a33d2r5saW8zNwm3j6BTExtjrv2BxTgzzkMwts6vGg=="],
 

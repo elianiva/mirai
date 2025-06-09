@@ -11,6 +11,8 @@ import {
 	type BundledLanguage,
 	bundledLanguages,
 } from "shiki";
+import { Button } from "../ui/button";
+import { CopyIcon } from "lucide-react";
 
 const ESSENTIAL_LANGS: BundledLanguage[] = [
 	"javascript",
@@ -51,7 +53,7 @@ const loadedLanguages = new Set<string>(ESSENTIAL_LANGS);
 const loadingLanguages = new Map<string, Promise<void>>();
 
 const highlighterPromise = createHighlighter({
-	themes: ["github-dark", "github-light"],
+	themes: ["rose-pine-dawn"],
 	langs: ESSENTIAL_LANGS,
 }).then((h) => {
 	highlighterInstance = h;
@@ -144,9 +146,6 @@ export const codeBlock = {
 };
 
 function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
-	const [theme, setTheme] = useState<"github-dark" | "github-light">(
-		"github-dark",
-	);
 	const [highlightedHtml, setHighlightedHtml] = useState<string>("");
 	const [loadingState, setLoadingState] = useState<{
 		isLoading: boolean;
@@ -160,23 +159,6 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 	const language = normalizeLanguage(rawLanguage);
 
 	useEffect(() => {
-		const isDark = document.documentElement.classList.contains("dark");
-		setTheme(isDark ? "github-dark" : "github-light");
-
-		const observer = new MutationObserver(() => {
-			const isDark = document.documentElement.classList.contains("dark");
-			setTheme(isDark ? "github-dark" : "github-light");
-		});
-
-		observer.observe(document.documentElement, {
-			attributes: true,
-			attributeFilter: ["class"],
-		});
-
-		return () => observer.disconnect();
-	}, []);
-
-	useEffect(() => {
 		isMountedRef.current = true;
 		return () => {
 			isMountedRef.current = false;
@@ -187,7 +169,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 	}, []);
 
 	const highlightCode = useCallback(
-		async (codeToHighlight: string, lang: string, currentTheme: string) => {
+		async (codeToHighlight: string, lang: string) => {
 			await highlighterPromise;
 
 			if (!highlighterInstance || !isMountedRef.current) {
@@ -202,7 +184,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 
 				const html = highlighterInstance.codeToHtml(codeToHighlight, {
 					lang: langToUse,
-					theme: currentTheme,
+					theme: "rose-pine-dawn",
 				});
 
 				return html;
@@ -221,7 +203,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 			if (!code) return;
 
 			if (language === "text" || !isLanguageSupported(language)) {
-				const html = await highlightCode(code, "text", theme);
+				const html = await highlightCode(code, "text");
 				if (!cancelled && html) {
 					setHighlightedHtml(html);
 				}
@@ -229,7 +211,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 			}
 
 			if (loadedLanguages.has(language)) {
-				const html = await highlightCode(code, language, theme);
+				const html = await highlightCode(code, language);
 				if (!cancelled && html) {
 					setHighlightedHtml(html);
 				}
@@ -256,13 +238,13 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 
 				if (!cancelled) {
 					if (success) {
-						const html = await highlightCode(code, language, theme);
+						const html = await highlightCode(code, language);
 						if (html) {
 							setHighlightedHtml(html);
 							setLoadingState({ isLoading: false, error: null });
 						}
 					} else {
-						const html = await highlightCode(code, "text", theme);
+						const html = await highlightCode(code, "text");
 						if (html) {
 							setHighlightedHtml(html);
 						}
@@ -278,7 +260,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 				}
 
 				if (!cancelled) {
-					const html = await highlightCode(code, "text", theme);
+					const html = await highlightCode(code, "text");
 					if (html) {
 						setHighlightedHtml(html);
 					}
@@ -295,7 +277,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [code, language, theme, highlightCode]);
+	}, [code, language, highlightCode]);
 
 	const handleCopy = useCallback(async () => {
 		if (!code) return;
@@ -309,13 +291,13 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 
 	if (loadingState.isLoading) {
 		return (
-			<div className="relative my-3 overflow-hidden rounded-lg border">
-				<div className="flex items-center justify-between bg-muted px-4 py-2 border-b">
+			<div className="relative my-3 overflow-hidden rounded-lg">
+				<div className="flex items-center justify-between bg-muted p-2">
 					<span className="text-sm text-muted-foreground">
 						{rawLanguage} (loading syntax highlighting...)
 					</span>
 				</div>
-				<pre className="overflow-x-auto p-4 bg-muted/30">
+				<pre className="overflow-x-auto bg-secondary/30 p-2">
 					<code className="text-sm font-mono">{code}</code>
 				</pre>
 			</div>
@@ -323,9 +305,9 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 	}
 
 	return (
-		<div className="relative my-3 group overflow-hidden rounded-lg border">
-			<div className="flex items-center justify-between bg-muted px-4 py-2 border-b">
-				<span className="text-sm text-muted-foreground">
+		<div className="relative my-3 group overflow-hidden rounded-lg">
+			<div className="flex items-center justify-between bg-muted p-2">
+				<span className="text-sm text-background uppercase font-bold">
 					{rawLanguage}
 					{loadingState.error && ` - ${loadingState.error}`}
 					{!isLanguageSupported(language) &&
@@ -333,17 +315,17 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 						" (unsupported)"}
 				</span>
 				{code && (
-					<button
+					<Button
 						type="button"
 						onClick={handleCopy}
-						className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded hover:bg-background/80 text-xs"
+						size="icon"
 						aria-label="Copy code to clipboard"
 					>
-						Copy
-					</button>
+						<CopyIcon className="size-3" />
+					</Button>
 				)}
 			</div>
-			<div className="text-sm p-4">
+			<div className="text-sm p-2 bg-sidebar">
 				{highlightedHtml ? (
 					<div
 						className="overflow-x-auto [&>pre]:!rounded-none [&>pre]:!m-0"
@@ -351,7 +333,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 						dangerouslySetInnerHTML={{ __html: highlightedHtml }}
 					/>
 				) : (
-					<pre className="overflow-x-auto p-4 bg-muted/30">
+					<pre className="overflow-x-auto p-2 bg-secondary/30">
 						<code className="text-sm font-mono">{code}</code>
 					</pre>
 				)}

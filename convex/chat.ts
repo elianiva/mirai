@@ -161,7 +161,9 @@ export const sendMessage = mutation({
 				modeDefinition: mode.modeDefinition,
 				model: profile.model,
 			},
-			profile,
+			profile: {
+				model: profile.model,
+			},
 			userName: identity.name ?? "User",
 		});
 
@@ -242,7 +244,9 @@ export const regenerateMessage = mutation({
 				modeDefinition: mode.modeDefinition,
 				model: profile.model,
 			},
-			profile,
+			profile: {
+				model: profile.model,
+			},
 			userName: identity.name ?? "User",
 		});
 

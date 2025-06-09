@@ -42,8 +42,6 @@ export const list = query({
 			throw new Error("Not authenticated");
 		}
 
-		const userId = identity.subject;
-
 		const thread = await ctx.db.get(args.threadId);
 		if (!thread) {
 			throw new Error("Thread not found");
@@ -55,16 +53,14 @@ export const list = query({
 			.order("asc")
 			.collect();
 
-		// If no branch specified, return messages from the main branch (no branchId) or active branches
 		if (!args.branchId) {
-			return allMessages.filter(msg =>
-				!msg.branchId || msg.isActiveBranch !== false
+			return allMessages.filter(
+				(msg) => !msg.branchId || msg.isActiveBranch !== false,
 			);
 		}
 
-		// Return messages from the specified branch
-		return allMessages.filter(msg =>
-			msg.branchId === args.branchId && msg.isActiveBranch !== false
+		return allMessages.filter(
+			(msg) => msg.branchId === args.branchId && msg.isActiveBranch !== false,
 		);
 	},
 });

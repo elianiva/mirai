@@ -80,7 +80,7 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 
 					if (isInline) {
 						return (
-							<code className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono">
+							<code className="px-1.5 py-0.5 rounded text-primary bg-secondary/50 text-sm font-mono">
 								{children}
 							</code>
 						);

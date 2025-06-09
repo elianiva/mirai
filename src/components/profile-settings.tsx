@@ -36,95 +36,90 @@ export function ProfileSettings() {
 		setShowCreateForm(true);
 	}
 
-	// Find selected profile if ID is set
-	const selectedProfile = selectedProfileId
-		? allProfiles?.find((profile: ProfileData) => profile._id === selectedProfileId)
-		: undefined;
+	if (selectedProfileId) {
+		const selectedProfile = allProfiles?.find(
+			(profile: ProfileData) => profile._id === selectedProfileId,
+		);
+
+		if (!selectedProfile) {
+			return (
+				<div className="space-y-4">
+					<Button variant="outline" onClick={handleBackClick}>
+						&larr; Back to Profiles
+					</Button>
+					<div>Error: Unknown profile selected.</div>
+				</div>
+			);
+		}
+
+		return <ProfileForm profile={selectedProfile} onBack={handleBackClick} />;
+	}
+
+	if (showCreateForm) {
+		return <ProfileForm onBack={handleBackClick} />;
+	}
 
 	return (
-		<>
-			{selectedProfileId ? (
-				!selectedProfile ? (
-					<div className="space-y-4">
-						<Button variant="outline" onClick={handleBackClick}>
-							&larr; Back to Profiles
-						</Button>
-						<div>Error: Profile not found or still loading.</div>
-					</div>
-				) : (
-					<ProfileForm profile={selectedProfile} onBack={handleBackClick} />
-				)
-			) : showCreateForm ? (
-				<ProfileForm onBack={handleBackClick} />
-			) : (
-				<div className="space-y-6">
-					{/* Header section with title and create button */}
-					<div className="flex justify-between items-center">
-						<div>
-							<h3 className="text-xl font-semibold">Profile Settings</h3>
-							<p className="text-sm text-muted-foreground">
-								Manage and customize your AI profiles.
-							</p>
-						</div>
-						<Button
-							onClick={handleShowCreateForm}
-							className="flex items-center gap-1"
-						>
-							<Plus className="h-4 w-4" />
-							Create Profile
-						</Button>
-					</div>
+		<div className="space-y-6">
+			<div className="flex justify-between items-center">
+				<div>
+					<h3 className="text-xl font-semibold">Profile Settings</h3>
+					<p className="text-sm text-muted-foreground">
+						Manage and customize your AI profiles.
+					</p>
+				</div>
+				<Button
+					onClick={handleShowCreateForm}
+					className="flex items-center gap-1"
+				>
+					<Plus className="h-4 w-4" />
+					Create Profile
+				</Button>
+			</div>
 
-					{/* Content section with conditional rendering using ternary operators */}
-					{allProfiles === undefined ? (
-						<div className="flex items-center justify-center p-8">
-							<div className="flex flex-col items-center gap-2">
-								<Loader2 className="h-8 w-8 animate-spin text-primary" />
-								<p className="text-sm text-muted-foreground">
-									Loading profiles...
-								</p>
-							</div>
-						</div>
-					) : allProfiles.length === 0 ? (
-						<Card className="flex flex-col items-center justify-center p-8 text-center">
-							<CardContent className="pt-6">
-								<UserX className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-								<h3 className="mt-4 text-lg font-medium">
-									No profiles available
-								</h3>
-								<p className="mt-2 text-sm text-muted-foreground">
-									You don't have any AI profiles yet. Create a profile to get
-									started.
-								</p>
-							</CardContent>
+			{allProfiles === undefined ? (
+				<div className="flex items-center justify-center p-8">
+					<div className="flex flex-col items-center gap-2">
+						<Loader2 className="h-8 w-8 animate-spin text-primary" />
+						<p className="text-sm text-muted-foreground">Loading profiles...</p>
+					</div>
+				</div>
+			) : allProfiles.length === 0 ? (
+				<Card className="flex flex-col items-center justify-center p-8 text-center">
+					<CardContent className="pt-6">
+						<UserX className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+						<h3 className="mt-4 text-lg font-medium">No profiles available</h3>
+						<p className="mt-2 text-sm text-muted-foreground">
+							You don't have any AI profiles yet. Create a profile to get
+							started.
+						</p>
+					</CardContent>
+				</Card>
+			) : (
+				<div className="flex flex-col gap-2">
+					{allProfiles.map((profile: ProfileData) => (
+						<Card
+							key={profile._id}
+							className="cursor-pointer shadow-none hover:border-primary font-serif"
+							onClick={() => handleProfileClick(profile._id)}
+						>
+							<CardHeader className="flex flex-row items-center justify-between p-4">
+								<div className="flex items-center space-x-3">
+									<div>
+										<CardTitle className="text-base font-medium">
+											{profile.name}
+										</CardTitle>
+										<CardDescription className="text-xs">
+											{profile.description}
+										</CardDescription>
+									</div>
+								</div>
+								<ChevronRight className="h-5 w-5 text-muted-foreground" />
+							</CardHeader>
 						</Card>
-					) : (
-						<div className="flex flex-col gap-2">
-							{allProfiles.map((profile: ProfileData) => (
-								<Card
-									key={profile._id}
-									className="cursor-pointer shadow-none hover:border-primary"
-									onClick={() => handleProfileClick(profile._id)}
-								>
-									<CardHeader className="flex flex-row items-center justify-between p-4">
-										<div className="flex items-center space-x-3">
-											<div>
-												<CardTitle className="text-base font-medium">
-													{profile.name}
-												</CardTitle>
-												<CardDescription className="text-xs">
-													{profile.description}
-												</CardDescription>
-											</div>
-										</div>
-										<ChevronRight className="h-5 w-5 text-muted-foreground" />
-									</CardHeader>
-								</Card>
-							))}
-						</div>
-					)}
+					))}
 				</div>
 			)}
-		</>
+		</div>
 	);
 }

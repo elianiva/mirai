@@ -21,7 +21,7 @@ export function UserProfileSection() {
 
 	return (
 		<>
-			<div className="mt-auto flex items-center justify-between border-t p-4">
+			<div className="mt-auto flex items-center justify-between p-4 bg-background">
 				<div className="flex items-center gap-2">
 					<Avatar className="border">
 						<AvatarImage

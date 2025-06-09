@@ -178,7 +178,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 					<EmptyState userName={user?.firstName ?? undefined} />
 				) : (
 					<ScrollArea ref={scrollAreaRef} className="h-full w-full">
-						<div className="relative px-4 space-y-4 max-w-2xl mx-auto py-4">
+						<div className="relative px-4 space-y-4 max-w-screen-md mx-auto py-4">
 							{messages?.map((msg, index) => (
 								<div key={msg._id}>
 									<MessageBubble
