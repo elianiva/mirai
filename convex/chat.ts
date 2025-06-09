@@ -300,7 +300,7 @@ export const generateThreadTitle = internalAction({
 			const { text } = await generateText({
 				model: getChatModel("google/gemini-2.0-flash-lite-001"),
 				system:
-					"You are a helpful assistant that generates concise, descriptive titles for chat conversations. Generate a title that captures the main topic or intent of the user's message. Keep it under 50 characters and make it clear and informative.",
+					"You are a helpful assistant that generates concise, descriptive titles for chat conversations. Generate a title that captures the main topic or intent of the user's message. Keep it under 50 characters and make it clear and informative. Do not use any markdown syntax.",
 				prompt: `Generate a concise title for a conversation that starts with this message: "${message}"`,
 			});
 

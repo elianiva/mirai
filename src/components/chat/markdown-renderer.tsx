@@ -24,7 +24,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(
 	});
 
 	return (
-		<div className="prose prose-sm dark:prose-invert max-w-none">
+		<div className="prose prose-sm dark:prose-invert max-w-none font-serif">
 			{blockMatches.map((blockMatch) => {
 				const Component = blockMatch.block.component;
 				return <Component key={`${blockMatch.startIndex}-${blockMatch.endIndex}`} blockMatch={blockMatch} />;

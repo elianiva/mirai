@@ -1,8 +1,20 @@
-import { ScrollArea } from "~/components/ui/scroll-area";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarGroup,
+	SidebarGroupContent,
+	SidebarGroupLabel,
+	SidebarHeader,
+	SidebarMenu,
+	SidebarMenuAction,
+	SidebarMenuButton,
+	SidebarMenuItem,
+	SidebarMenuSkeleton,
+} from "~/components/ui/sidebar";
 import { UserProfileSection } from "./user-profile-section";
-import { useUser } from "~/lib/query/user";
 import { Button } from "~/components/ui/button";
-import { Plus, Loader2, Trash2, Menu } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
 import { useThreads } from "~/lib/query/threads";
@@ -12,13 +24,11 @@ import { toast } from "sonner";
 type ChatListPanelProps = {
 	threadId: Id<"threads"> | undefined;
 	onThreadClick: (threadId: Id<"threads">) => void;
-	onToggleCollapse: () => void;
 };
 
 export function ChatListPanel(props: ChatListPanelProps) {
 	const navigate = useNavigate();
 
-	const { data: user } = useUser();
 	const threads = useThreads();
 	const removeThread = useRemoveThread();
 	const isLoading = threads === undefined;
@@ -47,69 +57,67 @@ export function ChatListPanel(props: ChatListPanelProps) {
 	}
 
 	return (
-		<div className="flex h-full flex-col">
-			<div className="p-4">
-				<div className="flex items-center gap-2">
-					<Button
-						onClick={props.onToggleCollapse}
-						variant="secondary"
-						size="sm"
-						className="h-10 w-10 p-0 shrink-0"
-					>
-						<Menu className="h-4 w-4" />
-					</Button>
-					<Button
-						onClick={handleNewChat}
-						className="flex-1 flex items-center gap-2"
-					>
-						<Plus className="h-4 w-4" />
-						New Chat
-					</Button>
-				</div>
-			</div>
+		<Sidebar>
+			<SidebarHeader className="bg-(--color-sidebar)">
+				<Button
+					onClick={handleNewChat}
+					className="w-full flex items-center gap-2"
+				>
+					New Chat
+				</Button>
+			</SidebarHeader>
 
-			<ScrollArea className="flex-grow px-4">
-				<h2 className="mb-4 text-sm font-semibold text-muted-foreground">
-					Your Conversations
-				</h2>
+			<SidebarContent className="bg-(--color-sidebar)">
+				<SidebarGroup>
+					<SidebarGroupLabel>Your Conversations</SidebarGroupLabel>
+					<SidebarGroupContent>
+						{isLoading ? (
+							<SidebarMenu>
+								{Array.from({ length: 5 }, (_, index) => (
+									<SidebarMenuItem
+										key={`loading-skeleton-${Date.now()}-${index}`}
+									>
+										<SidebarMenuSkeleton />
+									</SidebarMenuItem>
+								))}
+							</SidebarMenu>
+						) : !threads || threads.length === 0 ? (
+							<div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+								<p className="mb-2">No conversations yet</p>
+								<p className="text-sm">Start a new chat to begin</p>
+							</div>
+						) : (
+							<SidebarMenu>
+								{threads.map((thread) => (
+									<SidebarMenuItem key={thread._id}>
+										<SidebarMenuButton
+											asChild
+											isActive={props.threadId === thread._id}
+										>
+											<button
+												type="button"
+												onClick={() => props.onThreadClick(thread._id)}
+											>
+												<span>{thread.title || "New Chat"}</span>
+											</button>
+										</SidebarMenuButton>
+										<SidebarMenuAction
+											showOnHover
+											onClick={(e) => handleDeleteThread(thread._id, e)}
+										>
+											<Trash2 className="h-4 w-4" />
+										</SidebarMenuAction>
+									</SidebarMenuItem>
+								))}
+							</SidebarMenu>
+						)}
+					</SidebarGroupContent>
+				</SidebarGroup>
+			</SidebarContent>
 
-				{isLoading ? (
-					<div className="flex items-center justify-center py-8">
-						<Loader2 className="h-6 w-6 animate-spin text-primary" />
-					</div>
-				) : !threads || threads.length === 0 ? (
-					<div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-						<p className="mb-2">No conversations yet</p>
-						<p className="text-sm">Start a new chat to begin</p>
-					</div>
-				) : (
-					<div className="space-y-2">
-						{threads.map((thread) => (
-							<button
-								type="button"
-								key={thread._id}
-								className={`group flex w-full items-center justify-between rounded-md border p-3 hover:bg-accent text-left ${
-									props.threadId === thread._id ? "bg-accent" : ""
-								}`}
-								onClick={() => props.onThreadClick(thread._id)}
-								aria-pressed={props.threadId === thread._id}
-							>
-								<div className="truncate">{thread.title || "New Chat"}</div>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-									onClick={(e) => handleDeleteThread(thread._id, e)}
-								>
-									<Trash2 className="h-4 w-4" />
-								</Button>
-							</button>
-						))}
-					</div>
-				)}
-			</ScrollArea>
-
-			<UserProfileSection />
-		</div>
+			<SidebarFooter>
+				<UserProfileSection />
+			</SidebarFooter>
+		</Sidebar>
 	);
 }

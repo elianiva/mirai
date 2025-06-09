@@ -1,20 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { ScrollArea } from "~/components/ui/scroll-area";
-import type { Id } from "convex/_generated/dataModel";
-import { useUser } from "~/lib/query/user";
 import { useNavigate } from "@tanstack/react-router";
-import { useThread } from "~/lib/query/threads";
-import { ChatInput } from "./chat-input";
-import { useModes } from "~/lib/query/mode";
-import {
-	useMessages,
-	useSendMessage,
-	useRemoveMessage,
-	useRegenerateMessage,
-} from "~/lib/query/messages";
-import { MarkdownRenderer } from "./markdown-renderer";
-import { Button } from "~/components/ui/button";
+import type { Id } from "convex/_generated/dataModel";
 import { RefreshCw, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -22,8 +10,20 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "~/components/ui/dialog";
-import { ModeSelector } from "./mode-selector";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import {
+	useMessages,
+	useRegenerateMessage,
+	useRemoveMessage,
+	useSendMessage,
+} from "~/lib/query/messages";
+import { useModes } from "~/lib/query/mode";
+import { useThread } from "~/lib/query/threads";
+import { useUser } from "~/lib/query/user";
 import { cn } from "~/lib/utils";
+import { ChatInput } from "./chat-input";
+import { MarkdownRenderer } from "./markdown-renderer";
+import { ModeSelector } from "./mode-selector";
 
 type ChatAreaPanelProps = {
 	threadId: Id<"threads">;
@@ -45,6 +45,8 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const [autoScroll, setAutoScroll] = useState(true);
+	const prevMessageCountRef = useRef(0);
+	const isInitialMount = useRef(true);
 
 	const thread = useThread(threadId);
 	const { data: user } = useUser();
@@ -99,74 +101,90 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		}
 	}
 
+	// Scroll to bottom when new messages arrive or autoScroll is enabled
 	useEffect(() => {
-		if (autoScroll && messagesEndRef.current) {
-			messagesEndRef.current.scrollIntoView({
-				behavior: "smooth",
-				block: "end",
+		const currentMessageCount = messages?.length || 0;
+		const hasNewMessage = currentMessageCount > prevMessageCountRef.current;
+		const lastMessage = messages?.[messages.length - 1];
+		const isStreaming = lastMessage?.metadata?.isStreaming;
+
+		// Scroll on initial mount, when new messages arrive, or when streaming
+		if (
+			(isInitialMount.current && currentMessageCount > 0) ||
+			(hasNewMessage && autoScroll) ||
+			(isStreaming && autoScroll)
+		) {
+			// Use requestAnimationFrame to ensure DOM has updated
+			requestAnimationFrame(() => {
+				const scrollContainer = scrollAreaRef.current?.querySelector(
+					'[data-slot="scroll-area-viewport"]',
+				) as HTMLElement | null;
+
+				if (scrollContainer) {
+					scrollContainer.scrollTop = scrollContainer.scrollHeight;
+				}
 			});
+
+			if (isInitialMount.current) {
+				isInitialMount.current = false;
+			}
 		}
-	});
 
-	function handleScroll() {
-		if (!scrollAreaRef.current) return;
+		prevMessageCountRef.current = currentMessageCount;
+	}, [messages, autoScroll]);
 
-		const scrollContainer = scrollAreaRef.current.querySelector(
+	// Handle scroll detection
+	useEffect(() => {
+		const scrollContainer = scrollAreaRef.current?.querySelector(
 			'[data-slot="scroll-area-viewport"]',
-		);
+		) as HTMLElement | null;
+
 		if (!scrollContainer) return;
 
-		const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-		const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+		function handleScroll() {
+			if (!scrollContainer) return;
+			const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+			const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
+			setAutoScroll(isAtBottom);
+		}
 
-		setAutoScroll(isAtBottom);
-	}
+		scrollContainer.addEventListener("scroll", handleScroll);
+		return () => scrollContainer.removeEventListener("scroll", handleScroll);
+	}, []);
 
 	return (
-		<div className="flex h-full flex-col overflow-hidden">
-			<div className="h-full w-full mx-auto flex flex-col overflow-hidden">
-				<div className="px-4 py-3 border-b flex-shrink-0">
-					<h2 className="text-lg font-semibold">
-						{thread?.title || "New Chat"}
-					</h2>
-				</div>
-
-				<div className="flex-1 overflow-hidden">
-					<ScrollArea ref={scrollAreaRef} className="h-full w-full">
-						<div
-							className="h-full overflow-y-auto px-4 space-y-4 max-w-2xl mx-auto py-4"
-							onScroll={handleScroll}
-						>
-							{!messages?.length ? (
-								<div className="flex h-32 items-center justify-center text-muted-foreground">
-									Start a conversation by sending a message
-								</div>
-							) : (
-								messages.map((msg) => (
-									<MessageBubble
-										key={msg._id}
-										message={msg}
-										userId={user?.id || ""}
-										threadId={threadId}
-										onRegenerate={handleRegenerate}
-									/>
-								))
-							)}
-							<div ref={messagesEndRef} className="h-1" />
-						</div>
-					</ScrollArea>
-				</div>
-
-				<div className="flex-shrink-0 pb-4">
-					<ChatInput
-						message={message}
-						onMessageChange={setMessage}
-						onSendMessage={handleSendMessage}
-						isLoading={isLoading}
-						selectedModeId={selectedModeId}
-						onModeSelect={setSelectedModeId}
-					/>
-				</div>
+		<div className="flex flex-col h-full bg-(--color-surface)">
+			<div className="flex-1 min-h-0">
+				<ScrollArea ref={scrollAreaRef} className="h-full w-full">
+					<div className="px-4 space-y-4 max-w-2xl mx-auto py-4">
+						{!messages?.length ? (
+							<div className="flex h-32 items-center justify-center text-muted-foreground">
+								Start a conversation by sending a message
+							</div>
+						) : (
+							messages.map((msg) => (
+								<MessageBubble
+									key={msg._id}
+									message={msg}
+									userId={user?.id || ""}
+									threadId={threadId}
+									onRegenerate={handleRegenerate}
+								/>
+							))
+						)}
+						<div ref={messagesEndRef} className="h-4" />
+					</div>
+				</ScrollArea>
+			</div>
+			<div className="flex-shrink-0">
+				<ChatInput
+					message={message}
+					onMessageChange={setMessage}
+					onSendMessage={handleSendMessage}
+					isLoading={isLoading}
+					selectedModeId={selectedModeId}
+					onModeSelect={setSelectedModeId}
+				/>
 			</div>
 		</div>
 	);
@@ -218,10 +236,8 @@ function MessageBubble(props: MessageBubbleProps) {
 			className={`group flex flex-col ${isUser ? "items-end" : "items-start"} w-full`}
 		>
 			{isUser ? (
-				<div className="relative max-w-md rounded-2xl px-4 py-2.5 bg-primary text-primary-foreground">
-					<div className="whitespace-pre-wrap break-words text-sm">
-						{props.message.content}
-					</div>
+				<div className="relative max-w-md rounded-2xl px-4 py-2.5 bg-primary text-primary-foreground whitespace-pre-wrap break-words text-sm font-serif">
+					{props.message.content}
 				</div>
 			) : (
 				<div className="w-full">
@@ -231,7 +247,7 @@ function MessageBubble(props: MessageBubbleProps) {
 							isStreaming={isStreaming}
 						/>
 					) : (
-						<span className="text-muted-foreground italic text-sm">
+						<span className="text-muted-foreground italic text-sm font-serif">
 							{isStreaming ? "Generating response..." : "No content"}
 						</span>
 					)}

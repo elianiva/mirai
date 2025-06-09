@@ -1,14 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { authUserFn } from "~/lib/functions/auth";
-import { Collapsible, CollapsibleContent } from "~/components/ui/collapsible";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "~/components/ui/sidebar";
 import { ChatListPanel } from "~/components/chat/chat-list-panel";
 import { ChatAreaPanel } from "~/components/chat/chat-area-panel";
 import { userQueryOptions } from "~/lib/query/user";
+import { useThread } from "~/lib/query/threads";
 import type { Id } from "convex/_generated/dataModel";
 import { Authenticated, Unauthenticated } from "convex/react";
-import { Button } from "~/components/ui/button";
-import { useState } from "react";
-import { Menu } from "lucide-react";
 
 export const Route = createFileRoute("/$threadId")({
 	component: ThreadPage,
@@ -27,7 +25,10 @@ export const Route = createFileRoute("/$threadId")({
 export function ThreadPage() {
 	const params = Route.useParams();
 	const navigate = Route.useNavigate();
-	const [leftPanelOpen, setLeftPanelOpen] = useState(true);
+	const threadId = params.threadId === "new"
+		? ("new" as Id<"threads">)
+		: (params.threadId as Id<"threads">);
+	const thread = useThread(threadId);
 
 	return (
 		<>
@@ -44,46 +45,30 @@ export function ThreadPage() {
 				</div>
 			</Unauthenticated>
 			<Authenticated>
-				<div className="flex h-full w-full">
-					<Collapsible
-						open={leftPanelOpen}
-						onOpenChange={setLeftPanelOpen}
-						className="h-full"
-					>
-						<CollapsibleContent className="h-full data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left duration-300">
-							<div className="w-80 h-full border-r">
-								<ChatListPanel
-									threadId={params.threadId as Id<"threads">}
-									onThreadClick={(threadId) => {
-										navigate({ to: "/$threadId", params: { threadId } });
-									}}
-									onToggleCollapse={() => setLeftPanelOpen(false)}
-								/>
-							</div>
-						</CollapsibleContent>
-						{!leftPanelOpen && (
-							<div className="h-full w-12 border-r bg-background flex items-start justify-center pt-3">
-								<Button
-									onClick={() => setLeftPanelOpen(true)}
-									variant="secondary"
-									size="sm"
-									className="h-10 w-10 p-0"
-								>
-									<Menu className="h-4 w-4" />
-								</Button>
-							</div>
-						)}
-					</Collapsible>
-
-					<div className="flex-1 h-full">
-						<ChatAreaPanel
-							threadId={params.threadId === "new" ? "new" as Id<"threads"> : params.threadId as Id<"threads">}
-							onThreadClick={(threadId) => {
-								navigate({ to: "/$threadId", params: { threadId } });
-							}}
-						/>
-					</div>
-				</div>
+				<SidebarProvider className="h-full">
+					<ChatListPanel
+						threadId={threadId}
+						onThreadClick={(threadId) => {
+							navigate({ to: "/$threadId", params: { threadId } });
+						}}
+					/>
+					<SidebarInset className="flex flex-col h-full">
+						<header className="flex h-14 shrink-0 items-center gap-2 px-4">
+							<SidebarTrigger className="-ml-1" />
+							<h1 className="text-lg font-semibold font-serif">
+								{thread?.title || "New Chat"}
+							</h1>
+						</header>
+						<div className="flex flex-1 flex-col min-h-0">
+							<ChatAreaPanel
+								threadId={threadId}
+								onThreadClick={(threadId) => {
+									navigate({ to: "/$threadId", params: { threadId } });
+								}}
+							/>
+						</div>
+					</SidebarInset>
+				</SidebarProvider>
 			</Authenticated>
 		</>
 	);

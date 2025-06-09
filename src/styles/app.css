@@ -1,4 +1,4 @@
-@import "tailwindcss" source("../");
+@import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -41,38 +41,83 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Rosé Pine Dawn Color Palette */
+  --color-base: #faf4ed;
+  --color-surface: #fffaf3;
+  --color-overlay: #f2e9e1;
+  --color-muted: #9893a5;
+  --color-subtle: #797593;
+  --color-text: #575279;
+  --color-love: #b4637a;
+  --color-gold: #ea9d34;
+  --color-rose: #d7827e;
+  --color-pine: #286983;
+  --color-foam: #56949f;
+  --color-iris: #907aa9;
+  --color-highlight-low: #f4ede8;
+  --color-highlight-med: #dfdad9;
+  --color-highlight-high: #cecacd;
+
+  /* Legacy color variables for compatibility */
+  --color-base-light: var(--color-base);
+  --color-base-medium: var(--color-overlay);
+  --color-border-muted: var(--color-highlight-high);
+
+  /* Text color variables */
+  --color-text-dark: oklch(0.145 0 0);
+  --color-text-medium: oklch(0.205 0 0);
+  --color-text-muted: oklch(0.556 0 0);
+  --color-text-light: oklch(0.985 0 0);
+  --color-text-subtle: oklch(0.97 0 0);
+  --color-text-ring: oklch(0.708 0 0);
+
+  /* Accent color variables */
+  --color-destructive: oklch(0.577 0.245 27.325);
+
+  /* Chart color variables */
+  --color-chart-gold: oklch(0.646 0.222 41.116);
+  --color-chart-teal: oklch(0.6 0.118 184.704);
+  --color-chart-blue: oklch(0.398 0.07 227.392);
+  --color-chart-green: oklch(0.828 0.189 84.429);
+  --color-chart-orange: oklch(0.769 0.188 70.08);
+
+  /* Sidebar color variables */
+  --color-sidebar: var(--color-base);
+
+  --radius: 0;
+  --background: var(--color-base-light);
+  --foreground: var(--color-text-dark);
+  --card: var(--color-base-light);
+  --card-foreground: var(--color-text-dark);
+  --popover: var(--color-base-light);
+  --popover-foreground: var(--color-text-dark);
+  --primary: var(--color-text-medium);
+  --primary-foreground: var(--color-text-light);
+  --secondary: var(--color-overlay);
+  --secondary-foreground: var(--color-muted);
+  --muted: var(--color-text-subtle);
+  --muted-foreground: var(--color-text-muted);
+  --accent: var(--color-text-subtle);
+  --accent-foreground: var(--color-text-medium);
+  --destructive: var(--color-destructive);
+  --border: var(--color-border-muted);
+  --input: var(--color-border-muted);
+  --ring: var(--color-text-ring);
+  --chart-1: var(--color-chart-gold);
+  --chart-2: var(--color-chart-teal);
+  --chart-3: var(--color-chart-blue);
+  --chart-4: var(--color-chart-green);
+  --chart-5: var(--color-chart-orange);
+  --sidebar: var(--color-text-light);
+  --sidebar-foreground: var(--color-text-dark);
+  --sidebar-primary: var(--color-text-medium);
+  --sidebar-primary-foreground: var(--color-text-light);
+  --sidebar-accent: var(--color-text-subtle);
+  --sidebar-accent-foreground: var(--color-text-medium);
+  --sidebar-border: var(--color-border-muted);
+  --sidebar-ring: var(--color-text-ring);
+
+  --font-serif: "PT Serif", serif;
 }
 
 @layer base {
@@ -89,4 +134,15 @@
     width: var(--radix-popover-trigger-width);
     max-height: var(--radix-popover-content-available-height);
   }
+}
+
+.dark {
+  --sidebar: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }

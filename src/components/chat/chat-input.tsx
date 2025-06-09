@@ -27,14 +27,14 @@ export function ChatInput(props: ChatInputProps) {
 
 	return (
 		<div className="mt-4 px-4">
-			<div className="relative mx-auto max-w-4xl rounded-2xl border bg-background shadow-sm transition-all duration-200 focus-within:shadow-md">
+			<div className="relative mx-auto max-w-4xl bg-(--color-base) transition-all duration-200">
 				<div className="flex items-center gap-3 p-4">
 					<div className="flex-1">
 						<Textarea
 							value={props.message}
 							onChange={(e) => props.onMessageChange(e.target.value)}
 							placeholder="Type your message here..."
-							className="placeholder:text-neutral-400 resize-none border-0 bg-transparent p-2 text-sm shadow-none focus-visible:ring-0"
+							className="font-serif placeholder:text-neutral-400 resize-none border-0 bg-transparent p-2 text-sm shadow-none focus-visible:ring-0"
 							onKeyDown={handleKeyDown}
 							rows={3}
 						/>
@@ -42,18 +42,18 @@ export function ChatInput(props: ChatInputProps) {
 				</div>
 
 				{/* Bottom Section with Mode Display and Helper Text */}
-				<div className="border-t bg-muted/30 px-4 py-2">
+				<div className="bg-(--color-overlay) px-4 py-2">
 					<div className="flex items-center justify-between text-xs text-muted-foreground">
 						<div className="flex items-center gap-2">
 							<ModeSelector
 								selectedModeId={props.selectedModeId}
 								onModeSelect={props.onModeSelect || (() => {})}
 							/>
-							<Button variant="outline" size="sm">
+							<Button variant="outline" size="sm" className="border-none">
 								<GlobeIcon className="size-4" />
 								Search
 							</Button>
-							<Button variant="outline" size="sm">
+							<Button variant="outline" size="sm" className="border-none">
 								<PaperclipIcon className="size-4" />
 								Attach
 							</Button>
