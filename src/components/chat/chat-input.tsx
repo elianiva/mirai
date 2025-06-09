@@ -31,7 +31,7 @@ export function ChatInput(props: ChatInputProps) {
 				value={props.message}
 				onChange={(e) => props.onMessageChange(e.target.value)}
 				placeholder="Type your message here..."
-				className="rounded-lg font-serif placeholder:text-neutral-400 resize-none border-0 bg-transparent p-4 text-sm shadow-none focus-visible:ring-0"
+				className="font-serif placeholder:text-neutral-400 resize-none border-0 bg-transparent p-4 text-sm shadow-none focus-visible:ring-0"
 				onKeyDown={handleKeyDown}
 				rows={3}
 			/>
@@ -52,7 +52,7 @@ export function ChatInput(props: ChatInputProps) {
 						</Button>
 					</div>
 					<div
-						className={cn("rounded-none border-2", {
+						className={cn("rounded border-2", {
 							"border-foreground/50": !canSend,
 							"border-foreground": canSend,
 						})}
@@ -61,7 +61,7 @@ export function ChatInput(props: ChatInputProps) {
 							onClick={props.onSendMessage}
 							disabled={!canSend}
 							size="sm"
-							className="size-8 rounded-none p-0 border-2 border-overlay"
+							className="size-8 rounded p-0 border-2 border-overlay"
 						>
 							<ArrowUpIcon className="size-4" />
 						</Button>

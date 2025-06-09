@@ -62,10 +62,10 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 					</h3>
 				),
 				ul: ({ children }) => (
-					<ul className="list-disc list-inside mb-3 space-y-1">{children}</ul>
+					<ul className="list-disc list-outside mb-3 space-y-1">{children}</ul>
 				),
 				ol: ({ children }) => (
-					<ol className="list-decimal list-inside mb-3 space-y-1">
+					<ol className="list-decimal list-outside mb-3 space-y-1">
 						{children}
 					</ol>
 				),
