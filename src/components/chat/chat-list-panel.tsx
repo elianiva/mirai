@@ -20,6 +20,7 @@ import type { Id } from "convex/_generated/dataModel";
 import { useThreads } from "~/lib/query/threads";
 import { useRemoveThread } from "~/lib/query/threads";
 import { toast } from "sonner";
+import { cn } from "~/lib/utils";
 
 type ChatListPanelProps = {
 	threadId: Id<"threads"> | undefined;
@@ -58,7 +59,7 @@ export function ChatListPanel(props: ChatListPanelProps) {
 
 	return (
 		<Sidebar>
-			<SidebarHeader className="bg-(--color-sidebar)">
+			<SidebarHeader>
 				<Button
 					onClick={handleNewChat}
 					className="w-full flex items-center gap-2"
@@ -67,9 +68,11 @@ export function ChatListPanel(props: ChatListPanelProps) {
 				</Button>
 			</SidebarHeader>
 
-			<SidebarContent className="bg-(--color-sidebar)">
+			<SidebarContent>
 				<SidebarGroup>
-					<SidebarGroupLabel>Your Conversations</SidebarGroupLabel>
+					<SidebarGroupLabel className="font-serif font-semibold text-base">
+						Your Conversations
+					</SidebarGroupLabel>
 					<SidebarGroupContent>
 						{isLoading ? (
 							<SidebarMenu>
@@ -94,18 +97,23 @@ export function ChatListPanel(props: ChatListPanelProps) {
 											asChild
 											isActive={props.threadId === thread._id}
 										>
-											<button
+											<Button
+												className={cn("text-left justify-start text-sm font-light", {
+													"text-primary font-bold":
+														props.threadId === thread._id,
+												})}
+												variant="ghost"
 												type="button"
 												onClick={() => props.onThreadClick(thread._id)}
 											>
 												<span>{thread.title || "New Chat"}</span>
-											</button>
+											</Button>
 										</SidebarMenuButton>
 										<SidebarMenuAction
 											showOnHover
 											onClick={(e) => handleDeleteThread(thread._id, e)}
 										>
-											<Trash2 className="h-4 w-4" />
+											<Trash2 className="h-4 w-4 text-primary-foreground" />
 										</SidebarMenuAction>
 									</SidebarMenuItem>
 								))}

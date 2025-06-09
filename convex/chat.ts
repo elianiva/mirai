@@ -5,18 +5,80 @@ import {
 	internalQuery,
 	mutation,
 	query,
+	type QueryCtx,
 } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { getChatModel } from "../src/lib/ai";
+import { buildSystemPrompt, getChatModel } from "../src/lib/ai";
 import { streamText, generateText } from "ai";
+
+async function getActiveBranchMessages(
+	ctx: QueryCtx,
+	threadId: Id<"threads">,
+	currentBranchId?: string,
+) {
+	const allMessages = await ctx.db
+		.query("messages")
+		.withIndex("by_thread", (q) => q.eq("threadId", threadId))
+		.order("asc")
+		.collect();
+
+	if (!currentBranchId) {
+		return allMessages;
+	}
+
+	const activeBranchMessages: typeof allMessages = [];
+	const messageMap = new Map(allMessages.map((msg) => [msg._id, msg]));
+
+	const branchMessages = allMessages.filter(
+		(msg) => msg.branchId === currentBranchId && msg.isActiveBranch !== false,
+	);
+
+	for (const msg of branchMessages) {
+		let currentMsg = msg;
+		const ancestors = [];
+
+		while (currentMsg.parentMessageId) {
+			const parent = messageMap.get(currentMsg.parentMessageId);
+			if (!parent) break;
+
+			if (parent.branchId !== currentBranchId) {
+				ancestors.unshift(parent);
+				let ancestor = parent;
+				while (ancestor.parentMessageId) {
+					const grandParent = messageMap.get(ancestor.parentMessageId);
+					if (!grandParent) break;
+					ancestors.unshift(grandParent);
+					ancestor = grandParent;
+				}
+				break;
+			}
+
+			currentMsg = parent;
+		}
+
+		for (const ancestor of ancestors) {
+			if (!activeBranchMessages.find((m) => m._id === ancestor._id)) {
+				activeBranchMessages.push(ancestor);
+			}
+		}
+
+		if (!activeBranchMessages.find((m) => m._id === msg._id)) {
+			activeBranchMessages.push(msg);
+		}
+	}
+
+	return activeBranchMessages.sort((a, b) => a._creationTime - b._creationTime);
+}
 
 export const sendMessage = mutation({
 	args: {
 		threadId: v.optional(v.id("threads")),
 		modeId: v.string(),
 		message: v.string(),
+		parentMessageId: v.optional(v.id("messages")),
+		branchId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -24,7 +86,7 @@ export const sendMessage = mutation({
 			throw new Error("Unauthorized");
 		}
 
-		let { message, modeId, threadId } = args;
+		let { message, modeId, threadId, parentMessageId, branchId } = args;
 
 		const mode = await ctx.db.get(modeId as Id<"modes">);
 		if (!mode) {
@@ -48,12 +110,32 @@ export const sendMessage = mutation({
 			});
 		}
 
-		await ctx.db.insert("messages", {
+		if (parentMessageId && !branchId) {
+			branchId = `branch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		}
+
+		if (parentMessageId && branchId) {
+			const siblingMessages = await ctx.db
+				.query("messages")
+				.withIndex("by_parent", (q) => q.eq("parentMessageId", parentMessageId))
+				.collect();
+
+			for (const sibling of siblingMessages) {
+				if (sibling.branchId !== branchId) {
+					await ctx.db.patch(sibling._id, { isActiveBranch: false });
+				}
+			}
+		}
+
+		const userMessageId = await ctx.db.insert("messages", {
 			threadId,
 			senderId: identity.subject,
 			content: message,
 			type: "user",
 			metadata: { modeId },
+			parentMessageId,
+			branchId,
+			isActiveBranch: true,
 		});
 
 		const messageId = await ctx.runMutation(
@@ -61,19 +143,29 @@ export const sendMessage = mutation({
 			{
 				threadId,
 				modeId,
+				parentMessageId: userMessageId,
+				branchId,
 			},
 		);
+
+		const pastMessages = await getActiveBranchMessages(ctx, threadId, branchId);
 
 		await ctx.scheduler.runAfter(0, api.chat.streamResponse, {
 			threadId,
 			messageId,
-			messages: [{ role: "user", content: message }],
-			modeId,
-			profileModel: profile.model,
-			systemPrompt: mode.modeDefinition,
+			messages: pastMessages.map((msg) => ({
+				role: msg.type as "user" | "assistant",
+				content: msg.content,
+			})),
+			mode: {
+				modeDefinition: mode.modeDefinition,
+				model: profile.model,
+			},
+			profile,
+			userName: identity.name ?? "User",
 		});
 
-		return { threadId };
+		return { threadId, branchId };
 	},
 });
 
@@ -90,32 +182,29 @@ export const regenerateMessage = mutation({
 
 		const { messageId, modeId } = args;
 
-		// Get the message to regenerate
 		const messageToRegenerate = await ctx.db.get(messageId);
 		if (!messageToRegenerate || messageToRegenerate.type !== "assistant") {
 			throw new Error("Invalid message to regenerate");
 		}
 
-		// Get the thread
 		const thread = await ctx.db.get(messageToRegenerate.threadId);
 		if (!thread) {
 			throw new Error("Thread not found");
 		}
 
-		// Get all messages in the thread up to this point
 		const allMessages = await ctx.db
 			.query("messages")
-			.withIndex("by_thread", (q) => q.eq("threadId", messageToRegenerate.threadId))
+			.withIndex("by_thread", (q) =>
+				q.eq("threadId", messageToRegenerate.threadId),
+			)
 			.order("asc")
 			.collect();
 
-		// Find the index of the message to regenerate
 		const messageIndex = allMessages.findIndex((msg) => msg._id === messageId);
 		if (messageIndex === -1) {
 			throw new Error("Message not found in thread");
 		}
 
-		// Build conversation history up to (but not including) the message to regenerate
 		const conversationHistory = [];
 		for (let i = 0; i < messageIndex; i++) {
 			const msg = allMessages[i];
@@ -127,7 +216,6 @@ export const regenerateMessage = mutation({
 			}
 		}
 
-		// Get mode and profile
 		const mode = await ctx.db.get(modeId as Id<"modes">);
 		if (!mode) {
 			throw new Error("Mode not found");
@@ -138,7 +226,6 @@ export const regenerateMessage = mutation({
 			throw new Error("Profile not found");
 		}
 
-		// Clear the existing message content and mark as streaming
 		await ctx.db.patch(messageId, {
 			content: "",
 			metadata: {
@@ -147,14 +234,16 @@ export const regenerateMessage = mutation({
 			},
 		});
 
-		// Schedule the streaming response
 		await ctx.scheduler.runAfter(0, api.chat.streamResponse, {
 			threadId: messageToRegenerate.threadId,
 			messageId,
 			messages: conversationHistory,
-			modeId,
-			profileModel: profile.model,
-			systemPrompt: mode.modeDefinition,
+			mode: {
+				modeDefinition: mode.modeDefinition,
+				model: profile.model,
+			},
+			profile,
+			userName: identity.name ?? "User",
 		});
 
 		return { success: true };
@@ -171,24 +260,26 @@ export const streamResponse = action({
 				content: v.string(),
 			}),
 		),
-		modeId: v.string(),
-		profileModel: v.string(),
-		systemPrompt: v.string(),
+		mode: v.object({
+			modeDefinition: v.string(),
+			model: v.string(),
+		}),
+		profile: v.object({
+			model: v.string(),
+		}),
+		userName: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const {
-			threadId,
-			messageId,
-			messages,
-			modeId,
-			profileModel,
-			systemPrompt,
-		} = args;
+		const { messageId, userName, messages, profile, mode } = args;
 
 		try {
 			const { textStream } = streamText({
-				model: getChatModel(profileModel),
-				system: systemPrompt,
+				model: getChatModel(profile.model),
+				system: buildSystemPrompt({
+					user_name: userName,
+					model: mode.model,
+					mode_definition: mode.modeDefinition,
+				}),
 				messages,
 			});
 
@@ -227,9 +318,11 @@ export const createStreamingMessage = internalMutation({
 	args: {
 		threadId: v.id("threads"),
 		modeId: v.string(),
+		parentMessageId: v.optional(v.id("messages")),
+		branchId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		const { threadId, modeId } = args;
+		const { threadId, modeId, parentMessageId, branchId } = args;
 
 		const messageId = await ctx.db.insert("messages", {
 			threadId,
@@ -240,6 +333,9 @@ export const createStreamingMessage = internalMutation({
 				modeId,
 				isStreaming: true,
 			},
+			parentMessageId,
+			branchId,
+			isActiveBranch: true,
 		});
 
 		return messageId;
@@ -322,11 +418,143 @@ export const updateThreadTitle = internalMutation({
 	handler: async (ctx, args) => {
 		const { threadId, title } = args;
 
-		// Ensure title is not too long
 		const finalTitle = title.length > 50 ? `${title.slice(0, 47)}...` : title;
 
 		await ctx.db.patch(threadId, {
 			title: finalTitle,
 		});
+	},
+});
+
+export const createBranch = mutation({
+	args: {
+		parentMessageId: v.id("messages"),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Unauthorized");
+		}
+
+		const parentMessage = await ctx.db.get(args.parentMessageId);
+		if (!parentMessage) {
+			throw new Error("Parent message not found");
+		}
+
+		const branchId = `branch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+		const allMessages = await ctx.db
+			.query("messages")
+			.withIndex("by_thread", (q) => q.eq("threadId", parentMessage.threadId))
+			.order("asc")
+			.collect();
+
+		const parentIndex = allMessages.findIndex(
+			(msg) => msg._id === args.parentMessageId,
+		);
+		const messagesToBranch = allMessages.slice(parentIndex + 1);
+
+		for (const msg of messagesToBranch) {
+			await ctx.db.insert("messages", {
+				threadId: msg.threadId,
+				senderId: msg.senderId,
+				content: msg.content,
+				type: msg.type,
+				metadata: msg.metadata,
+				parentMessageId:
+					msg._id === messagesToBranch[0]._id
+						? args.parentMessageId
+						: undefined,
+				branchId,
+				isActiveBranch: true,
+			});
+		}
+
+		for (const msg of messagesToBranch) {
+			await ctx.db.patch(msg._id, { isActiveBranch: false });
+		}
+
+		return { branchId, threadId: parentMessage.threadId };
+	},
+});
+
+export const switchBranch = mutation({
+	args: {
+		threadId: v.id("threads"),
+		branchId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Unauthorized");
+		}
+
+		const { threadId, branchId } = args;
+
+		const allMessages = await ctx.db
+			.query("messages")
+			.withIndex("by_thread", (q) => q.eq("threadId", threadId))
+			.collect();
+
+		for (const msg of allMessages) {
+			if (msg.branchId && msg.branchId !== branchId) {
+				await ctx.db.patch(msg._id, { isActiveBranch: false });
+			} else if (msg.branchId === branchId) {
+				await ctx.db.patch(msg._id, { isActiveBranch: true });
+			}
+		}
+
+		return { success: true };
+	},
+});
+
+export const getBranches = query({
+	args: {
+		threadId: v.id("threads"),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Unauthorized");
+		}
+
+		const messages = await ctx.db
+			.query("messages")
+			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+			.collect();
+
+		const branchMap = new Map<
+			string,
+			{
+				branchId: string;
+				parentMessageId: Id<"messages">;
+				firstMessage: (typeof messages)[0];
+				messageCount: number;
+				isActive: boolean;
+			}
+		>();
+
+		for (const msg of messages) {
+			if (msg.branchId && !branchMap.has(msg.branchId)) {
+				const branchMessages = messages.filter(
+					(m) => m.branchId === msg.branchId,
+				);
+				const firstBranchMessage = branchMessages.find(
+					(m) => m.type === "user",
+				);
+
+				if (firstBranchMessage?.parentMessageId) {
+					branchMap.set(msg.branchId, {
+						branchId: msg.branchId,
+						parentMessageId: firstBranchMessage.parentMessageId,
+						firstMessage: firstBranchMessage,
+						messageCount: branchMessages.length,
+						isActive: msg.isActiveBranch !== false,
+					});
+				}
+			}
+		}
+
+		return Array.from(branchMap.values());
 	},
 });

@@ -54,7 +54,7 @@ export const Route = createRootRouteWithContext<{
 			},
 			{
 				rel: "stylesheet",
-				href: "https://fonts.googleapis.com/css2?family=PT+Serif:wght@400;700&display=swap",
+				href: "https://fonts.googleapis.com/css2?family=Lora:wght@400;700&display=swap",
 			},
 			{
 				rel: "apple-touch-icon",

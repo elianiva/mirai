@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
-import { RefreshCw, Trash2 } from "lucide-react";
+import { GitBranch, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
@@ -24,6 +24,11 @@ import { cn } from "~/lib/utils";
 import { ChatInput } from "./chat-input";
 import { MarkdownRenderer } from "./markdown-renderer";
 import { ModeSelector } from "./mode-selector";
+import { BranchIndicator } from "./branch-indicator";
+import { BranchTimeline } from "./branch-timeline";
+import { useMutation } from "convex/react";
+import { api } from "~/../convex/_generated/api";
+import { EmptyState } from "./empty-state";
 
 type ChatAreaPanelProps = {
 	threadId: Id<"threads">;
@@ -35,6 +40,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const navigate = useNavigate();
 	const modes = useModes();
 	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
+	const [currentBranchId, setCurrentBranchId] = useState<string>();
 
 	if (!selectedModeId && modes?.[0]?._id) {
 		setSelectedModeId(modes[0]._id);
@@ -54,6 +60,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const sendMessage = useSendMessage();
 	const messages = useMessages(threadId);
 	const regenerateMessage = useRegenerateMessage();
+	const createBranch = useMutation(api.chat.createBranch);
 
 	async function handleSendMessage() {
 		if (!message.trim() || isLoading || !selectedModeId) {
@@ -67,10 +74,15 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 				threadId: threadId === "new" ? undefined : threadId,
 				modeId: selectedModeId,
 				message: message.trim(),
+				branchId: currentBranchId,
 			});
 
 			if (threadId === "new" && result.threadId) {
 				navigate({ to: "/$threadId", params: { threadId: result.threadId } });
+			}
+
+			if (result.branchId) {
+				setCurrentBranchId(result.branchId);
 			}
 
 			setMessage("");
@@ -153,28 +165,61 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	}, []);
 
 	return (
-		<div className="flex flex-col h-full bg-(--color-surface)">
+		<div className="flex flex-col h-full bg-background">
+			{threadId !== "new" && (
+				<BranchTimeline
+					threadId={threadId}
+					currentBranchId={currentBranchId}
+					onBranchSwitch={setCurrentBranchId}
+				/>
+			)}
 			<div className="flex-1 min-h-0">
-				<ScrollArea ref={scrollAreaRef} className="h-full w-full">
-					<div className="px-4 space-y-4 max-w-2xl mx-auto py-4">
-						{!messages?.length ? (
-							<div className="flex h-32 items-center justify-center text-muted-foreground">
-								Start a conversation by sending a message
-							</div>
-						) : (
-							messages.map((msg) => (
-								<MessageBubble
-									key={msg._id}
-									message={msg}
-									userId={user?.id || ""}
-									threadId={threadId}
-									onRegenerate={handleRegenerate}
-								/>
-							))
-						)}
-						<div ref={messagesEndRef} className="h-4" />
-					</div>
-				</ScrollArea>
+				{!messages?.length ? (
+					<EmptyState userName={user?.firstName ?? undefined} />
+				) : (
+					<ScrollArea ref={scrollAreaRef} className="h-full w-full">
+						<div className="relative px-4 space-y-4 max-w-2xl mx-auto py-4">
+							{messages?.map((msg, index) => (
+								<div key={msg._id}>
+									<MessageBubble
+										message={msg}
+										userId={user?.id || ""}
+										threadId={threadId}
+										onRegenerate={handleRegenerate}
+										onCreateBranch={async (parentMessageId) => {
+											setIsLoading(true);
+											try {
+												const result = await createBranch({
+													parentMessageId,
+												});
+
+												if (result.branchId) {
+													setCurrentBranchId(result.branchId);
+												}
+											} catch (error) {
+												console.error("Failed to create branch:", error);
+											} finally {
+												setIsLoading(false);
+											}
+										}}
+									/>
+									{/* Show branch indicator after assistant messages */}
+									{msg.type === "assistant" && index < messages.length - 1 && (
+										<div className="ml-4 mt-1">
+											<BranchIndicator
+												messageId={msg._id}
+												threadId={threadId}
+												currentBranchId={currentBranchId}
+												onBranchSwitch={setCurrentBranchId}
+											/>
+										</div>
+									)}
+								</div>
+							))}
+							<div ref={messagesEndRef} className="h-4" />
+						</div>
+					</ScrollArea>
+				)}
 			</div>
 			<div className="flex-shrink-0">
 				<ChatInput
@@ -205,6 +250,7 @@ type MessageBubbleProps = {
 	userId: string;
 	threadId: Id<"threads">;
 	onRegenerate: (messageId: Id<"messages">, modeId: Id<"modes">) => void;
+	onCreateBranch?: (parentMessageId: Id<"messages">) => void;
 };
 
 function MessageBubble(props: MessageBubbleProps) {
@@ -236,7 +282,7 @@ function MessageBubble(props: MessageBubbleProps) {
 			className={`group flex flex-col ${isUser ? "items-end" : "items-start"} w-full`}
 		>
 			{isUser ? (
-				<div className="relative max-w-md rounded-2xl px-4 py-2.5 bg-primary text-primary-foreground whitespace-pre-wrap break-words text-sm font-serif">
+				<div className="prose prose-sm relative px-4 py-2 rounded-md bg-primary text-background whitespace-pre-wrap break-words text-base font-serif">
 					{props.message.content}
 				</div>
 			) : (
@@ -254,9 +300,9 @@ function MessageBubble(props: MessageBubbleProps) {
 
 					{isStreaming && !props.message.content && (
 						<div className="mt-2 flex items-center gap-1">
-							<div className="h-1.5 w-1.5 rounded-full bg-current opacity-75 animate-pulse" />
-							<div className="h-1.5 w-1.5 rounded-full bg-current opacity-75 animate-pulse [animation-delay:0.2s]" />
-							<div className="h-1.5 w-1.5 rounded-full bg-current opacity-75 animate-pulse [animation-delay:0.4s]" />
+							<div className="size-1.5 rounded-full bg-current opacity-75 animate-pulse" />
+							<div className="size-1.5 rounded-full bg-current opacity-75 animate-pulse [animation-delay:0.2s]" />
+							<div className="size-1.5 rounded-full bg-current opacity-75 animate-pulse [animation-delay:0.4s]" />
 						</div>
 					)}
 				</div>
@@ -273,14 +319,26 @@ function MessageBubble(props: MessageBubbleProps) {
 					)}
 				>
 					{!isUser && (
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-7 px-2 text-xs"
-							onClick={() => setShowRegenerateDialog(true)}
-						>
-							<RefreshCw className="size-3" />
-						</Button>
+						<>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-7 px-2 text-xs"
+								onClick={() => setShowRegenerateDialog(true)}
+							>
+								<RefreshCw className="size-3" />
+							</Button>
+							{props.onCreateBranch && (
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-7 px-2 text-xs"
+									onClick={() => props.onCreateBranch?.(props.message._id)}
+								>
+									<GitBranch className="size-3" />
+								</Button>
+							)}
+						</>
 					)}
 					<Button
 						variant="ghost"

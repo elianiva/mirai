@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { authUserFn } from "~/lib/functions/auth";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "~/components/ui/sidebar";
+import {
+	SidebarProvider,
+	SidebarInset,
+	SidebarTrigger,
+} from "~/components/ui/sidebar";
 import { ChatListPanel } from "~/components/chat/chat-list-panel";
 import { ChatAreaPanel } from "~/components/chat/chat-area-panel";
 import { userQueryOptions } from "~/lib/query/user";
@@ -25,9 +29,10 @@ export const Route = createFileRoute("/$threadId")({
 export function ThreadPage() {
 	const params = Route.useParams();
 	const navigate = Route.useNavigate();
-	const threadId = params.threadId === "new"
-		? ("new" as Id<"threads">)
-		: (params.threadId as Id<"threads">);
+	const threadId =
+		params.threadId === "new"
+			? ("new" as Id<"threads">)
+			: (params.threadId as Id<"threads">);
 	const thread = useThread(threadId);
 
 	return (
@@ -53,8 +58,8 @@ export function ThreadPage() {
 						}}
 					/>
 					<SidebarInset className="flex flex-col h-full">
-						<header className="flex h-14 shrink-0 items-center gap-2 px-4">
-							<SidebarTrigger className="-ml-1" />
+						<header className="flex h-14 shrink-0 items-center gap-2 px-4 bg-transparent backdrop-blur-lg">
+							<SidebarTrigger />
 							<h1 className="text-lg font-semibold font-serif">
 								{thread?.title || "New Chat"}
 							</h1>

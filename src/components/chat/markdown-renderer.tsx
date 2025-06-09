@@ -24,10 +24,15 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(
 	});
 
 	return (
-		<div className="prose prose-sm dark:prose-invert max-w-none font-serif">
+		<div className="prose prose-sm max-w-none font-serif text-(--color-text)">
 			{blockMatches.map((blockMatch) => {
 				const Component = blockMatch.block.component;
-				return <Component key={`${blockMatch.startIndex}-${blockMatch.endIndex}`} blockMatch={blockMatch} />;
+				return (
+					<Component
+						key={`${blockMatch.startIndex}-${blockMatch.endIndex}`}
+						blockMatch={blockMatch}
+					/>
+				);
 			})}
 		</div>
 	);
@@ -116,9 +121,7 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 						</table>
 					</div>
 				),
-				thead: ({ children }) => (
-					<thead className="bg-muted">{children}</thead>
-				),
+				thead: ({ children }) => <thead className="bg-muted">{children}</thead>,
 				tbody: ({ children }) => (
 					<tbody className="divide-y divide-border">{children}</tbody>
 				),
@@ -128,9 +131,7 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 						{children}
 					</th>
 				),
-				td: ({ children }) => (
-					<td className="px-4 py-2 text-sm">{children}</td>
-				),
+				td: ({ children }) => <td className="px-4 py-2 text-sm">{children}</td>,
 				hr: () => <hr className="my-4 border-border" />,
 				strong: ({ children }) => (
 					<strong className="font-semibold">{children}</strong>

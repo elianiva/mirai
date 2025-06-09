@@ -26,53 +26,45 @@ export function ChatInput(props: ChatInputProps) {
 		props.message.trim() && !props.isLoading && props.selectedModeId;
 
 	return (
-		<div className="mt-4 px-4">
-			<div className="relative mx-auto max-w-4xl bg-(--color-base) transition-all duration-200">
-				<div className="flex items-center gap-3 p-4">
-					<div className="flex-1">
-						<Textarea
-							value={props.message}
-							onChange={(e) => props.onMessageChange(e.target.value)}
-							placeholder="Type your message here..."
-							className="font-serif placeholder:text-neutral-400 resize-none border-0 bg-transparent p-2 text-sm shadow-none focus-visible:ring-0"
-							onKeyDown={handleKeyDown}
-							rows={3}
+		<div className="relative mx-auto max-w-4xl bg-sidebar border-4 border-secondary/50 border-b-0 transition-all duration-200">
+			<Textarea
+				value={props.message}
+				onChange={(e) => props.onMessageChange(e.target.value)}
+				placeholder="Type your message here..."
+				className="rounded-lg font-serif placeholder:text-neutral-400 resize-none border-0 bg-transparent p-4 text-sm shadow-none focus-visible:ring-0"
+				onKeyDown={handleKeyDown}
+				rows={3}
+			/>
+			<div className="p-2">
+				<div className="flex items-center justify-between text-xs text-muted-foreground">
+					<div className="flex items-center gap-2">
+						<ModeSelector
+							selectedModeId={props.selectedModeId}
+							onModeSelect={props.onModeSelect || (() => {})}
 						/>
+						<Button variant="outline" size="sm" className="border-none">
+							<GlobeIcon className="size-4" />
+							Search
+						</Button>
+						<Button variant="outline" size="sm" className="border-none">
+							<PaperclipIcon className="size-4" />
+							Attach
+						</Button>
 					</div>
-				</div>
-
-				{/* Bottom Section with Mode Display and Helper Text */}
-				<div className="bg-(--color-overlay) px-4 py-2">
-					<div className="flex items-center justify-between text-xs text-muted-foreground">
-						<div className="flex items-center gap-2">
-							<ModeSelector
-								selectedModeId={props.selectedModeId}
-								onModeSelect={props.onModeSelect || (() => {})}
-							/>
-							<Button variant="outline" size="sm" className="border-none">
-								<GlobeIcon className="size-4" />
-								Search
-							</Button>
-							<Button variant="outline" size="sm" className="border-none">
-								<PaperclipIcon className="size-4" />
-								Attach
-							</Button>
-						</div>
-						<div
-							className={cn("rounded-full border-2", {
-								"border-primary/50": !canSend,
-								"border-primary": canSend,
-							})}
+					<div
+						className={cn("rounded-none border-2", {
+							"border-foreground/50": !canSend,
+							"border-foreground": canSend,
+						})}
+					>
+						<Button
+							onClick={props.onSendMessage}
+							disabled={!canSend}
+							size="sm"
+							className="size-8 rounded-none p-0 border-2 border-overlay"
 						>
-							<Button
-								onClick={props.onSendMessage}
-								disabled={!canSend}
-								size="sm"
-								className="size-8 rounded-full p-0 border-2 border-white"
-							>
-								<ArrowUpIcon className="size-4" />
-							</Button>
-						</div>
+							<ArrowUpIcon className="size-4" />
+						</Button>
 					</div>
 				</div>
 			</div>

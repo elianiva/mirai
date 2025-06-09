@@ -34,6 +34,7 @@ export const create = mutation({
 export const list = query({
 	args: {
 		threadId: v.id("threads"),
+		branchId: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -48,11 +49,23 @@ export const list = query({
 			throw new Error("Thread not found");
 		}
 
-		return await ctx.db
+		const allMessages = await ctx.db
 			.query("messages")
 			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
 			.order("asc")
 			.collect();
+
+		// If no branch specified, return messages from the main branch (no branchId) or active branches
+		if (!args.branchId) {
+			return allMessages.filter(msg =>
+				!msg.branchId || msg.isActiveBranch !== false
+			);
+		}
+
+		// Return messages from the specified branch
+		return allMessages.filter(msg =>
+			msg.branchId === args.branchId && msg.isActiveBranch !== false
+		);
 	},
 });
 

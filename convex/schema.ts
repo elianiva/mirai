@@ -35,7 +35,14 @@ const schema = defineSchema({
 		content: v.string(),
 		type: v.string(),
 		metadata: v.optional(v.any()),
-	}).index("by_thread", ["threadId"]),
+		// Branching fields
+		parentMessageId: v.optional(v.id("messages")),
+		branchId: v.optional(v.string()),
+		isActiveBranch: v.optional(v.boolean()),
+	})
+		.index("by_thread", ["threadId"])
+		.index("by_parent", ["parentMessageId"])
+		.index("by_branch", ["threadId", "branchId"]),
 });
 
 export default schema;
