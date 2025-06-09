@@ -28,7 +28,6 @@ export function ThreadPage() {
 	const params = Route.useParams();
 	const navigate = Route.useNavigate();
 	const [leftPanelOpen, setLeftPanelOpen] = useState(true);
-	const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
 	return (
 		<>
