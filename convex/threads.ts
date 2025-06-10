@@ -87,6 +87,31 @@ export const updateTitle = mutation({
 	},
 });
 
+export const renameThread = mutation({
+	args: {
+		id: v.id("threads"),
+		title: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Not authenticated");
+		}
+
+		const thread = await ctx.db.get(args.id);
+
+		if (!thread) {
+			throw new Error("Thread not found");
+		}
+
+		await ctx.db.patch(args.id, {
+			title: args.title,
+		});
+
+		return args.id;
+	},
+});
+
 export const remove = mutation({
 	args: {
 		id: v.id("threads"),

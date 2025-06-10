@@ -122,7 +122,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body className="h-full w-full">
 				{children}
-				<Toaster />
+				<Toaster position="top-right" />
 				<TanStackRouterDevtools position="bottom-right" />
 				<Scripts />
 			</body>

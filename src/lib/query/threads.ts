@@ -2,6 +2,8 @@ import type { Id } from "convex/_generated/dataModel";
 import { z } from "zod";
 import { api } from "~/../convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import { useMutation as useReactQueryMutation, useQueryClient } from "@tanstack/react-query";
+import { useConvexMutation } from "@convex-dev/react-query";
 
 export const listThreadsSchema = z.object({});
 
@@ -25,6 +27,13 @@ export const removeThreadSchema = z.object({
 
 export type RemoveThreadVariables = z.infer<typeof removeThreadSchema>;
 
+export const renameThreadSchema = z.object({
+	id: z.custom<Id<"threads">>(),
+	title: z.string(),
+});
+
+export type RenameThreadVariables = z.infer<typeof renameThreadSchema>;
+
 export function useThreads() {
 	return useQuery(api.threads.list, {});
 }
@@ -39,4 +48,16 @@ export function useCreateThread() {
 
 export function useRemoveThread() {
 	return useMutation(api.threads.remove);
+}
+
+export function useRenameThread() {
+	const queryClient = useQueryClient();
+	const convexMutation = useConvexMutation(api.threads.renameThread);
+	
+	return useReactQueryMutation({
+		mutationFn: convexMutation,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["threads"] });
+		},
+	});
 }
