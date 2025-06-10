@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 export function AccountSettings() {
 	const { data: user } = useUser();
-	const accountSettings = useAccountSettings();
+	const { data: accountSettings } = useAccountSettings();
 	const updateAccountSettings = useUpdateAccountSettings();
 
 	const form = useForm({

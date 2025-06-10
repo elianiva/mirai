@@ -33,7 +33,7 @@ export function ThreadPage() {
 		params.threadId === "new"
 			? ("new" as Id<"threads">)
 			: (params.threadId as Id<"threads">);
-	const thread = useThread(threadId);
+		const { data: thread } = useThread(threadId);
 
 	return (
 		<>

@@ -18,7 +18,7 @@ import { useModes } from "~/lib/query/mode";
 export type ModeData = Doc<"modes">;
 
 export function ModesSettings() {
-	const modes = useModes();
+	const { data: modes } = useModes();
 
 	const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
 	const [showAddForm, setShowAddForm] = useState(false);

@@ -1,4 +1,5 @@
-import { useQuery as useTanstackQuery } from "@tanstack/react-query";
+import { useQuery as useReactQuery } from "@tanstack/react-query";
+import { convexQuery } from "@convex-dev/react-query";
 import type { Id } from "convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "~/../convex/_generated/api";
@@ -14,12 +15,63 @@ export const profileFormSchema = z.object({
 	topK: z.number(),
 });
 
+export const getProfileOptionsSchema = z.object({});
+
+export type GetProfileOptionsVariables = z.infer<typeof getProfileOptionsSchema>;
+
+export const getProfileByIdSchema = z.object({
+	id: z.custom<Id<"profiles">>(),
+});
+
+export type GetProfileByIdVariables = z.infer<typeof getProfileByIdSchema>;
+
+export const listProfilesSchema = z.object({});
+
+export type ListProfilesVariables = z.infer<typeof listProfilesSchema>;
+
+export const createProfileSchema = z.object({
+	slug: z.string(),
+	name: z.string(),
+	description: z.string(),
+	model: z.string(),
+	temperature: z.number(),
+	topP: z.number(),
+	topK: z.number(),
+});
+
+export type CreateProfileVariables = z.infer<typeof createProfileSchema>;
+
+export const updateProfileSchema = z.object({
+	id: z.custom<Id<"profiles">>(),
+	slug: z.string().optional(),
+	name: z.string().optional(),
+	description: z.string().optional(),
+	model: z.string().optional(),
+	temperature: z.number().optional(),
+	topP: z.number().optional(),
+	topK: z.number().optional(),
+});
+
+export type UpdateProfileVariables = z.infer<typeof updateProfileSchema>;
+
 export function useProfileOptions() {
-	return useQuery(api.profileOptions.getProfileOptions, {});
+	return useReactQuery(convexQuery(api.profileOptions.getProfileOptions, {}));
 }
 
 export function useProfile(id: Id<"profiles">) {
-	return useQuery(api.profileOptions.getProfileById, { id });
+	return useReactQuery(
+		convexQuery(api.profileOptions.getProfileById, id !== "new" ? { id } : "skip"),
+	);
+}
+
+export function useProfiles() {
+	return useReactQuery(convexQuery(api.profiles.list, {}));
+}
+
+export function useProfileById(id: Id<"profiles">) {
+	return useReactQuery(
+		convexQuery(api.profiles.get, id !== "new" ? { id } : "skip"),
+	);
 }
 
 export type OpenRouterModel = {
@@ -28,7 +80,7 @@ export type OpenRouterModel = {
 };
 
 export function useOpenRouterModels() {
-	return useTanstackQuery({
+	return useReactQuery({
 		queryKey: ["openrouter-models"],
 		queryFn: async (): Promise<OpenRouterModel[]> => {
 			try {

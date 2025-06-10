@@ -12,20 +12,14 @@ type ProfileSelectorProps = {
 
 export function ProfileSelector(props: ProfileSelectorProps) {
 	const [open, setOpen] = useState(false);
-	const profiles = useProfileOptions();
+	const { data: profiles } = useProfileOptions();
 
-	// Transform profiles data to match the Option[] type expected by Combobox
 	const profileOptions =
 		profiles?.map((profile: Profile) => ({
 			value: profile._id as string,
 			label: profile.name,
 			slug: profile.slug,
 		})) || [];
-
-	// Find selected profile
-	const selectedProfile = profiles?.find(
-		(profile: Profile) => profile._id === props.selectedProfileId,
-	);
 
 	const handleProfileChange = (value: string) => {
 		props.onProfileSelect(value as Id<"profiles">);

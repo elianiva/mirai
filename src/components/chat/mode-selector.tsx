@@ -12,7 +12,7 @@ type ModeSelectorProps = {
 
 export function ModeSelector(props: ModeSelectorProps) {
 	const [open, setOpen] = useState(false);
-	const modes = useModes();
+	const { data: modes } = useModes();
 
 	const modeOptions =
 		modes?.map((mode: Mode) => ({
