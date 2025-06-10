@@ -63,3 +63,7 @@ export function useSendMessage() {
 export function useRegenerateMessage() {
 	return useMutation(api.chat.regenerateMessage);
 }
+
+export function useStopStreaming() {
+	return useMutation(api.chat.stopStreaming);
+}

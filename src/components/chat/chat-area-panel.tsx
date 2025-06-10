@@ -7,18 +7,21 @@ import {
 	useSendMessage,
 } from "~/lib/query/messages";
 import { useModes } from "~/lib/query/mode";
-import { useThread } from "~/lib/query/threads";
 import { useUser } from "~/lib/query/user";
+import { useChat } from "~/lib/hooks/use-chat";
 import { ChatInput } from "./chat-input";
 import { BranchTimeline } from "./branch-timeline";
 import { useMutation } from "convex/react";
 import { api } from "~/../convex/_generated/api";
 import { EmptyState } from "./empty-state";
 import { MessageList } from "./message-list";
+import { retrieveAndDecrypt } from "~/lib/utils/crypto";
 
 type ChatAreaPanelProps = {
 	threadId: Id<"threads">;
 	onThreadClick: (threadId: Id<"threads">) => void;
+	isStreaming?: boolean;
+	onStopStreaming: () => void;
 };
 
 export function ChatAreaPanel(props: ChatAreaPanelProps) {
@@ -37,13 +40,18 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const [autoScroll, setAutoScroll] = useState(true);
 
 	const { data: user } = useUser();
+	const { stopStreaming } = useChat({
+		modeId: selectedModeId,
+		threadId: threadId !== "new" ? threadId : undefined,
+		branchId: currentBranchId,
+	});
 
 	const sendMessage = useSendMessage();
 	const messages = useMessages(threadId);
 	const regenerateMessage = useRegenerateMessage();
 	const createBranch = useMutation(api.chat.createBranch);
 
-	async function handleSendMessage() {
+	async function handleSendMessage(openrouterKey?: string) {
 		if (!message.trim() || isLoading || !selectedModeId) {
 			return;
 		}
@@ -56,6 +64,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 				modeId: selectedModeId,
 				message: message.trim(),
 				branchId: currentBranchId,
+				openrouterKey,
 			});
 
 			if (threadId === "new" && result.threadId) {
@@ -83,9 +92,19 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		setIsLoading(true);
 		setAutoScroll(true);
 		try {
+			let openrouterKey: string | null = null;
+			if (user?.id) {
+				try {
+					openrouterKey = await retrieveAndDecrypt(user.id);
+				} catch (error) {
+					console.debug("No OpenRouter key found or failed to decrypt");
+				}
+			}
+
 			await regenerateMessage({
 				messageId: messageId,
 				modeId: modeId,
+				openrouterKey: openrouterKey || undefined,
 			});
 		} catch (error) {
 			console.error("Failed to regenerate message:", error);
@@ -142,9 +161,12 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 					message={message}
 					onMessageChange={setMessage}
 					onSendMessage={handleSendMessage}
+					onStopStreaming={stopStreaming}
 					isLoading={isLoading}
+					isStreaming={props.isStreaming ?? false}
 					selectedModeId={selectedModeId}
 					onModeSelect={setSelectedModeId}
+					userId={user?.id}
 				/>
 			</div>
 		</div>

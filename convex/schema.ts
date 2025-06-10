@@ -35,7 +35,6 @@ const schema = defineSchema({
 		content: v.string(),
 		type: v.string(),
 		metadata: v.optional(v.any()),
-		// Branching fields
 		parentMessageId: v.optional(v.id("messages")),
 		branchId: v.optional(v.string()),
 		isActiveBranch: v.optional(v.boolean()),

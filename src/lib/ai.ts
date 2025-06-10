@@ -7,9 +7,9 @@ export const openrouter = createOpenRouter({
 
 const SYSTEM_PROMPT = `
 <system_info>
-Date: ${new Date().toISOString()}
-User: @user_name (@user_role)
-Model: @model
+Today is ${new Date().toISOString()}
+You are currently interacting with @user_name
+You are an LLM model called @model
 </system_info>
 
 <mode_definition>
@@ -21,9 +21,9 @@ Model: @model
 </ai_behavior>
 
 <rules>
-- Prefer short and concise responses when possible.
+- Prefer concise responses when possible.
 - Follow the mode definition provided.
-- Use the information in <system_info> to guide your response.
+- Always use the information in <system_info> to guide your response.
 - Adapt your behavior according to the <ai_behavior> section.
 - Avoid overusing emojis and em-dashes.
 </rules>
@@ -31,7 +31,6 @@ Model: @model
 
 type PromptExtra = {
 	user_name: string;
-	user_role: string;
 	model: string;
 	mode_definition: string;
 	ai_behavior: string;

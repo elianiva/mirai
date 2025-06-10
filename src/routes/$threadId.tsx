@@ -9,6 +9,7 @@ import { ChatListPanel } from "~/components/chat/chat-list-panel";
 import { ChatAreaPanel } from "~/components/chat/chat-area-panel";
 import { userQueryOptions } from "~/lib/query/user";
 import { useThread } from "~/lib/query/threads";
+import { useMessages } from "~/lib/query/messages";
 import type { Id } from "convex/_generated/dataModel";
 import { Authenticated, Unauthenticated } from "convex/react";
 
@@ -37,6 +38,9 @@ export function ThreadPage() {
 			? ("new" as Id<"threads">)
 			: (params.threadId as Id<"threads">);
 	const thread = useThread(threadId);
+	const messages = useMessages(threadId);
+	const isStreaming =
+		messages?.some((msg) => msg.metadata?.isStreaming) ?? false;
 
 	return (
 		<>
@@ -62,15 +66,15 @@ export function ThreadPage() {
 					/>
 					<SidebarInset className="relative flex flex-col h-full">
 						<header className="z-10 absolute top-0 left-0 right-0 flex h-14 shrink-0 items-center gap-2 px-4 bg-background">
-							<div className="absolute top-full left-0 right-0 h-10 bg-gradient-to-b from-background to-transparent z-10 " />
 							<SidebarTrigger />
 							<h1 className="text-lg font-semibold font-serif">
 								{thread?.title || "New Chat"}
 							</h1>
 						</header>
-						<div className="flex flex-1 flex-col min-h-0 mt-16">
+						<div className="flex flex-1 flex-col min-h-0 mt-14">
 							<ChatAreaPanel
 								threadId={threadId}
+								isStreaming={isStreaming}
 								onThreadClick={(threadId) => {
 									navigate({ to: "/$threadId", params: { threadId } });
 								}}

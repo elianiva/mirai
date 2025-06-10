@@ -12,7 +12,7 @@ type ProfileSelectorProps = {
 
 export function ProfileSelector(props: ProfileSelectorProps) {
 	const [open, setOpen] = useState(false);
-	const { data: profiles } = useProfileOptions();
+	const profiles = useProfileOptions();
 
 	const profileOptions =
 		profiles?.map((profile: Profile) => ({

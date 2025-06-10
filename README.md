@@ -26,6 +26,7 @@ You might be better off using these chat clients, they are proven to work well a
 ## How to use
 
 If you still want to use this, you need to self-host this yourself. I designed it to be single user only because I don't want to deal with securely storing user's API key and I don't want to pay other people's usage :p
+
 Even though it's BYOK, if people use this, I may have to pay for the convex instance or clerk, which I don't want. There's no such thing as free lunch lol.
 
 Thankfully, it's super easy to do!

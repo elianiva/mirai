@@ -11,27 +11,56 @@ import {
 import { updateAccountSettingsSchema } from "~/lib/functions/account-settings";
 import { useUser } from "~/lib/query/user";
 import { toast } from "sonner";
+import { encryptAndStore, retrieveAndDecrypt } from "~/lib/utils/crypto";
+import { useEffect, useState } from "react";
 
 export function AccountSettings() {
 	const { data: user } = useUser();
 	const accountSettings = useAccountSettings();
 	const updateAccountSettings = useUpdateAccountSettings();
 
+	const [openrouterKey, setOpenrouterKey] = useState<string>("");
+
+	useEffect(() => {
+		async function loadOpenrouterKey() {
+			try {
+				const key = await retrieveAndDecrypt(user?.id || "");
+				if (key) {
+					setOpenrouterKey(key);
+				}
+			} catch (error) {
+				// Silently handle decryption errors (e.g., no key stored)
+				console.debug("No OpenRouter key found or failed to decrypt");
+			}
+		}
+		if (user?.id) {
+			loadOpenrouterKey();
+		}
+	}, [user?.id]);
+
 	const form = useForm({
 		defaultValues: {
 			name: accountSettings?.name ?? user?.firstName ?? "",
 			role: accountSettings?.role ?? "",
 			behavior: accountSettings?.behavior ?? "",
+			openrouterKey: "" as string | undefined,
 		},
-		onSubmit: ({ value }) => {
-			toast.promise(updateAccountSettings(value), {
+		onSubmit: async ({ value }) => {
+			if (value.openrouterKey) {
+				await encryptAndStore(user?.id || "", value.openrouterKey);
+			} else {
+				localStorage.removeItem("openrouter-key");
+			}
+
+			toast.promise(updateAccountSettings({
+				name: value.name,
+				role: value.role,
+				behavior: value.behavior,
+			}), {
 				loading: "Saving...",
 				success: "Account settings saved",
 				error: "Failed to save account settings",
 			});
-		},
-		validators: {
-			onChange: updateAccountSettingsSchema,
 		},
 	});
 
@@ -59,6 +88,11 @@ export function AccountSettings() {
 					<Skeleton className="h-24 w-full" />
 					<Skeleton className="h-3 w-80" />
 				</div>
+				<div className="space-y-2">
+					<Skeleton className="h-4 w-48" />
+					<Skeleton className="h-10 w-full" />
+					<Skeleton className="h-3 w-96" />
+				</div>
 				<Skeleton className="h-10 w-32" />
 			</div>
 		);
@@ -85,11 +119,9 @@ export function AccountSettings() {
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
 							/>
-							{!field.state.meta.isValid ? (
+							{field.state.meta.errors.length > 0 ? (
 								<em className="text-xs text-destructive my-0">
-									{field.state.meta.errors
-										.map((error) => error?.message)
-										.join(", ")}
+									{field.state.meta.errors.join(", ")}
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground">
@@ -113,11 +145,9 @@ export function AccountSettings() {
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="e.g., Software Engineer, Designer, Student"
 							/>
-							{!field.state.meta.isValid ? (
+							{field.state.meta.errors.length > 0 ? (
 								<em className="text-xs text-destructive my-0">
-									{field.state.meta.errors
-										.map((error) => error?.message)
-										.join(", ")}
+									{field.state.meta.errors.join(", ")}
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground">
@@ -145,16 +175,44 @@ export function AccountSettings() {
 								placeholder="e.g., Be concise and to the point. Prefer examples in Python."
 								rows={5}
 							/>
-							{!field.state.meta.isValid ? (
+							{field.state.meta.errors.length > 0 ? (
 								<em className="text-xs text-destructive my-0">
-									{field.state.meta.errors
-										.map((error) => error?.message)
-										.join(", ")}
+									{field.state.meta.errors.join(", ")}
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground">
 								Provide a global instruction for how the AI should generally
 								behave.
+							</p>
+						</>
+					)}
+				/>
+			</div>
+			<div className="space-y-2">
+				<form.Field
+					name="openrouterKey"
+					children={(field) => (
+						<>
+							<Label htmlFor={field.name}>OpenRouter Key (Optional)</Label>
+							<Input
+								id={field.name}
+								name={field.name}
+								type="password"
+								value={openrouterKey}
+								onBlur={field.handleBlur}
+								onChange={(e) => {
+									setOpenrouterKey(e.target.value);
+									field.handleChange(e.target.value);
+								}}
+								placeholder="sk-or-..."
+							/>
+							{field.state.meta.errors.length > 0 ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors.join(", ")}
+								</em>
+							) : null}
+							<p className="text-xs text-muted-foreground">
+								Your OpenRouter API key. Stored encrypted in your browser. If not provided, the default environment key will be used.
 							</p>
 						</>
 					)}

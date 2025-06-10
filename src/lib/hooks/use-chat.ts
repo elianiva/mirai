@@ -1,15 +1,53 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import type { Id } from "convex/_generated/dataModel";
 import type { Message } from "ai";
+import { useSendMessage, useStopStreaming } from "../query/chat";
+import { useMessages } from "../query/messages";
 
 type UseChatProps = {
 	modeId?: Id<"modes">;
 	onError?: (error: Error) => void;
 	onStream?: (content: string) => void;
+	threadId?: Id<"threads">;
+	parentMessageId?: Id<"messages">;
+	branchId?: string;
 };
 
 export function useChat(props: UseChatProps) {
 	const [isLoading, setIsLoading] = useState(false);
+	const currentStreamingMessageRef = useRef<Id<"messages"> | null>(null);
+	
+	const sendMessageMutation = useSendMessage();
+	const stopStreamingMutation = useStopStreaming();
+	
+	// Watch messages to determine streaming status
+	const messages = useMessages(
+		props.threadId && props.threadId !== "new" ? props.threadId : ("new" as Id<"threads">),
+		props.branchId
+	);
+	
+	// Derive streaming status from messages
+	const isStreaming = messages?.some((msg) => msg.metadata?.isStreaming) ?? false;
+	
+	// Track the currently streaming message for stop functionality
+	useEffect(() => {
+		const streamingMessage = messages?.find((msg) => msg.metadata?.isStreaming);
+		if (streamingMessage) {
+			currentStreamingMessageRef.current = streamingMessage._id;
+		} else {
+			currentStreamingMessageRef.current = null;
+		}
+	}, [messages]);
+	
+	// Call onStream callback when streaming content changes
+	useEffect(() => {
+		if (isStreaming && props.onStream) {
+			const streamingMessage = messages?.find((msg) => msg.metadata?.isStreaming);
+			if (streamingMessage?.content) {
+				props.onStream(streamingMessage.content);
+			}
+		}
+	}, [messages, isStreaming, props.onStream]);
 
 	const sendMessage = useCallback(
 		async (messages: Message[]) => {
@@ -19,42 +57,22 @@ export function useChat(props: UseChatProps) {
 
 			try {
 				setIsLoading(true);
-				const response = await fetch("/api/chat", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						messages,
-						modeId: props.modeId,
-					}),
+
+				// Get the last user message content
+				const lastUserMessage = messages.filter(msg => msg.role === "user").pop();
+				if (!lastUserMessage) {
+					throw new Error("No user message found");
+				}
+
+				const result = await sendMessageMutation({
+					threadId: props.threadId,
+					modeId: props.modeId,
+					message: lastUserMessage.content,
+					parentMessageId: props.parentMessageId,
+					branchId: props.branchId,
 				});
 
-				if (!response.ok) {
-					throw new Error("Failed to send message");
-				}
-
-				const data = response.body;
-				if (!data) {
-					throw new Error("No response data");
-				}
-
-				const reader = data.getReader();
-				const decoder = new TextDecoder();
-				let done = false;
-				let content = "";
-
-				while (!done) {
-					const { value, done: doneReading } = await reader.read();
-					done = doneReading;
-					const chunk = decoder.decode(value);
-					content += chunk;
-
-					// Send chunk for real-time updates
-					if (chunk && props.onStream) {
-						props.onStream(content);
-					}
-				}
-
-				return content;
+				return result;
 			} catch (error) {
 				if (error instanceof Error) {
 					props.onError?.(error);
@@ -64,11 +82,28 @@ export function useChat(props: UseChatProps) {
 				setIsLoading(false);
 			}
 		},
-		[props.modeId, props.onError, props.onStream],
+		[props.modeId, props.threadId, props.parentMessageId, props.branchId, props.onError, sendMessageMutation],
 	);
+
+	const stopStreaming = useCallback(async () => {
+		if (currentStreamingMessageRef.current) {
+			try {
+				await stopStreamingMutation({
+					messageId: currentStreamingMessageRef.current,
+				});
+			} catch (error) {
+				console.error("Failed to stop streaming:", error);
+				if (error instanceof Error) {
+					props.onError?.(error);
+				}
+			}
+		}
+	}, [stopStreamingMutation, props.onError]);
 
 	return {
 		sendMessage,
+		stopStreaming,
 		isLoading,
+		isStreaming,
 	};
 }

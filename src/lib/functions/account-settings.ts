@@ -5,6 +5,7 @@ export const updateAccountSettingsSchema = z.object({
 	name: z.string().min(1),
 	role: z.string(),
 	behavior: z.string(),
+	openrouterKey: z.string().optional(),
 });
 
 export const accountSettingsApi = {

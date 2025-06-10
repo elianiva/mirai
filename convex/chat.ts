@@ -79,6 +79,7 @@ export const sendMessage = mutation({
 		message: v.string(),
 		parentMessageId: v.optional(v.id("messages")),
 		branchId: v.optional(v.string()),
+		openrouterKey: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -86,7 +87,14 @@ export const sendMessage = mutation({
 			throw new Error("Unauthorized");
 		}
 
-		let { message, modeId, threadId, parentMessageId, branchId } = args;
+		let {
+			message,
+			modeId,
+			threadId,
+			parentMessageId,
+			branchId,
+			openrouterKey,
+		} = args;
 
 		const mode = await ctx.db.get(modeId as Id<"modes">);
 		if (!mode) {
@@ -165,6 +173,7 @@ export const sendMessage = mutation({
 				model: profile.model,
 			},
 			userName: identity.name ?? "User",
+			openrouterKey,
 		});
 
 		return { threadId, branchId };
@@ -175,6 +184,7 @@ export const regenerateMessage = mutation({
 	args: {
 		messageId: v.id("messages"),
 		modeId: v.string(),
+		openrouterKey: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -182,7 +192,7 @@ export const regenerateMessage = mutation({
 			throw new Error("Unauthorized");
 		}
 
-		const { messageId, modeId } = args;
+		const { messageId, modeId, openrouterKey } = args;
 
 		const messageToRegenerate = await ctx.db.get(messageId);
 		if (!messageToRegenerate || messageToRegenerate.type !== "assistant") {
@@ -248,6 +258,7 @@ export const regenerateMessage = mutation({
 				model: profile.model,
 			},
 			userName: identity.name ?? "User",
+			openrouterKey,
 		});
 
 		return { success: true };
@@ -272,19 +283,21 @@ export const streamResponse = action({
 			model: v.string(),
 		}),
 		userName: v.string(),
+		openrouterKey: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const { messageId, userName, messages, profile, mode } = args;
 
 		try {
 			// Fetch account settings
-			const accountSettings = await ctx.runQuery(api.accountSettings.getAccountSettings);
+			const accountSettings = await ctx.runQuery(
+				api.accountSettings.getAccountSettings,
+			);
 
 			const { textStream } = streamText({
 				model: getChatModel(profile.model),
 				system: buildSystemPrompt({
 					user_name: accountSettings.name,
-					user_role: accountSettings.role,
 					model: mode.model,
 					mode_definition: mode.modeDefinition,
 					ai_behavior: accountSettings.behavior,
@@ -295,6 +308,18 @@ export const streamResponse = action({
 			let fullContent = "";
 
 			for await (const textPart of textStream) {
+				const streamingStatus = await ctx.runQuery(
+					internal.chat.getStreamingStatus,
+					{
+						messageId,
+					},
+				);
+
+				if (!streamingStatus?.isStreaming) {
+					textStream.cancel();
+					break;
+				}
+
 				fullContent += textPart;
 
 				await ctx.runMutation(internal.chat.updateStreamingMessage, {
@@ -375,6 +400,36 @@ export const finalizeStreamingMessage = internalMutation({
 				isStreaming: false,
 			},
 		});
+	},
+});
+
+export const stopStreaming = mutation({
+	args: {
+		messageId: v.id("messages"),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Unauthorized");
+		}
+
+		const message = await ctx.db.get(args.messageId);
+		if (!message) {
+			throw new Error("Message not found");
+		}
+
+		if (!message.metadata?.isStreaming) {
+			return { success: false, reason: "Message is not streaming" };
+		}
+
+		await ctx.db.patch(args.messageId, {
+			metadata: {
+				...message.metadata,
+				isStreaming: false,
+			},
+		});
+
+		return { success: true };
 	},
 });
 

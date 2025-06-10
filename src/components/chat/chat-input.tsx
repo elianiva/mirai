@@ -1,24 +1,53 @@
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import type { Id } from "convex/_generated/dataModel";
-import { Paperclip, ArrowUpIcon, PaperclipIcon, GlobeIcon } from "lucide-react";
+import {
+	Paperclip,
+	ArrowUpIcon,
+	PaperclipIcon,
+	GlobeIcon,
+	SquareIcon,
+} from "lucide-react";
 import { ModeSelector } from "./mode-selector";
 import { cn } from "~/lib/utils";
+import { useEffect, useState } from "react";
+import { retrieveAndDecrypt } from "~/lib/utils/crypto";
 
 type ChatInputProps = {
 	message: string;
 	onMessageChange: (message: string) => void;
-	onSendMessage: () => void;
+	onSendMessage: (openrouterKey?: string) => void;
+	onStopStreaming: () => void;
 	isLoading: boolean;
+	isStreaming: boolean;
 	selectedModeId?: Id<"modes">;
 	onModeSelect?: (modeId: Id<"modes">) => void;
+	userId?: string;
 };
 
 export function ChatInput(props: ChatInputProps) {
+	const [openrouterKey, setOpenrouterKey] = useState<string | null>(null);
+
+	useEffect(() => {
+		async function loadOpenrouterKey() {
+			if (!props.userId) return;
+
+			try {
+				const decryptedKey = await retrieveAndDecrypt(props.userId);
+				setOpenrouterKey(decryptedKey);
+			} catch (error) {
+				console.debug("No OpenRouter key found or failed to decrypt");
+				setOpenrouterKey(null);
+			}
+		}
+
+		loadOpenrouterKey();
+	}, [props.userId]);
+
 	function handleKeyDown(e: React.KeyboardEvent) {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
-			props.onSendMessage();
+			props.onSendMessage(openrouterKey || undefined);
 		}
 	}
 
@@ -26,8 +55,7 @@ export function ChatInput(props: ChatInputProps) {
 		props.message.trim() && !props.isLoading && props.selectedModeId;
 
 	return (
-		<div className="relative mx-auto max-w-4xl bg-sidebar border-4 border-secondary/50 border-b-0 transition-all duration-200">
-			<div className="absolute bottom-[calc(100%+4px)] left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent z-10 " />
+		<div className="mx-auto max-w-4xl bg-sidebar border-4 border-secondary/50 border-b-0 transition-all duration-200">
 			<Textarea
 				value={props.message}
 				onChange={(e) => props.onMessageChange(e.target.value)}
@@ -44,10 +72,6 @@ export function ChatInput(props: ChatInputProps) {
 							onModeSelect={props.onModeSelect || (() => {})}
 						/>
 						<Button variant="outline" size="sm" className="border-none">
-							<GlobeIcon className="size-4" />
-							Search
-						</Button>
-						<Button variant="outline" size="sm" className="border-none">
 							<PaperclipIcon className="size-4" />
 							Attach
 						</Button>
@@ -59,12 +83,20 @@ export function ChatInput(props: ChatInputProps) {
 						})}
 					>
 						<Button
-							onClick={props.onSendMessage}
-							disabled={!canSend}
+							onClick={() =>
+								props.isStreaming
+									? props.onStopStreaming()
+									: props.onSendMessage(openrouterKey || undefined)
+							}
+							disabled={!canSend && !props.isStreaming}
 							size="sm"
 							className="size-8 rounded p-0 border-2 border-overlay"
 						>
-							<ArrowUpIcon className="size-4" />
+							{props.isLoading || props.isStreaming ? (
+								<SquareIcon className="size-4 fill-background" />
+							) : (
+								<ArrowUpIcon className="size-4" />
+							)}
 						</Button>
 					</div>
 				</div>
