@@ -277,12 +277,17 @@ export const streamResponse = action({
 		const { messageId, userName, messages, profile, mode } = args;
 
 		try {
+			// Fetch account settings
+			const accountSettings = await ctx.runQuery(api.accountSettings.getAccountSettings);
+
 			const { textStream } = streamText({
 				model: getChatModel(profile.model),
 				system: buildSystemPrompt({
-					user_name: userName,
+					user_name: accountSettings.name,
+					user_role: accountSettings.role,
 					model: mode.model,
 					mode_definition: mode.modeDefinition,
+					ai_behavior: accountSettings.behavior,
 				}),
 				messages,
 			});

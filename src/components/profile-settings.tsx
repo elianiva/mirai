@@ -6,8 +6,9 @@ import {
 	CardTitle,
 } from "~/components/ui/card";
 import { useState } from "react";
-import { ChevronRight, Loader2, Plus, UserX } from "lucide-react";
+import { ChevronRight, Plus, UserX } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import { Skeleton } from "~/components/ui/skeleton";
 import { ProfileForm } from "./profile-form";
 import { useProfileOptions } from "~/lib/query/profile";
 import type { Doc } from "convex/_generated/dataModel";
@@ -78,11 +79,20 @@ export function ProfileSettings() {
 			</div>
 
 			{allProfiles === undefined ? (
-				<div className="flex items-center justify-center p-8">
-					<div className="flex flex-col items-center gap-2">
-						<Loader2 className="h-8 w-8 animate-spin text-primary" />
-						<p className="text-sm text-muted-foreground">Loading profiles...</p>
-					</div>
+				<div className="flex flex-col gap-2">
+					{Array.from({ length: 3 }, () => crypto.randomUUID()).map((id) => (
+						<Card key={id} className="shadow-none">
+							<CardHeader className="flex flex-row items-center justify-between p-4">
+								<div className="flex items-center space-x-3 flex-1">
+									<div className="flex-1">
+										<Skeleton className="h-4 w-32 mb-2" />
+										<Skeleton className="h-3 w-48" />
+									</div>
+								</div>
+								<Skeleton className="h-5 w-5" />
+							</CardHeader>
+						</Card>
+					))}
 				</div>
 			) : allProfiles.length === 0 ? (
 				<Card className="flex flex-col items-center justify-center p-8 text-center">

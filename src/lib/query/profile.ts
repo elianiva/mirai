@@ -1,9 +1,14 @@
 import { useQuery as useReactQuery } from "@tanstack/react-query";
 import { convexQuery } from "@convex-dev/react-query";
-import type { Id } from "convex/_generated/dataModel";
+import type { Doc, Id } from "convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "~/../convex/_generated/api";
 import { z } from "zod";
+import { useEffect, useState } from "react";
+import {
+	loadFromLocalStorage,
+	saveToLocalStorage,
+} from "../local-storage-sync";
 
 export const profileFormSchema = z.object({
 	slug: z.string().min(1, "Slug is required"),
@@ -57,7 +62,19 @@ export const updateProfileSchema = z.object({
 export type UpdateProfileVariables = z.infer<typeof updateProfileSchema>;
 
 export function useProfileOptions() {
-	return useQuery(api.profileOptions.getProfileOptions, {});
+	const [cachedData, setCachedData] = useState(() =>
+		loadFromLocalStorage<Doc<"profiles">[]>("profile-options-data"),
+	);
+	const result = useQuery(api.profileOptions.getProfileOptions, {});
+
+	useEffect(() => {
+		if (result !== undefined) {
+			saveToLocalStorage("profile-options-data", result);
+			setCachedData(result);
+		}
+	}, [result]);
+
+	return result !== undefined ? result : cachedData;
 }
 
 export function useProfile(id: Id<"profiles">) {

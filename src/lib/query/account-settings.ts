@@ -1,6 +1,12 @@
+import type { Doc } from "convex/_generated/dataModel";
 import { z } from "zod";
 import { api } from "~/../convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import {
+	loadFromLocalStorage,
+	saveToLocalStorage,
+} from "../local-storage-sync";
 
 export const getAccountSettingsSchema = z.object({});
 
@@ -17,7 +23,19 @@ export type UpdateAccountSettingsVariables = z.infer<
 >;
 
 export function useAccountSettings() {
-	return useQuery(api.accountSettings.getAccountSettings, {});
+	const [cachedData, setCachedData] = useState(() =>
+		loadFromLocalStorage<Doc<"accountSettings"> | { name: string; role: string; behavior: string }>("account-settings-data"),
+	);
+	const result = useQuery(api.accountSettings.getAccountSettings, {});
+
+	useEffect(() => {
+		if (result !== undefined) {
+			saveToLocalStorage("account-settings-data", result);
+			setCachedData(result);
+		}
+	}, [result]);
+
+	return result !== undefined ? result : cachedData;
 }
 
 export function useUpdateAccountSettings() {

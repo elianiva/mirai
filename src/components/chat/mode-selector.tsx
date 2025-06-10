@@ -36,6 +36,7 @@ export function ModeSelector(props: ModeSelectorProps) {
 			placeholder="Select mode..."
 			emptyMessage="No modes found"
 			className="w-full"
+			triggerClassName="bg-background"
 			size="sm"
 		/>
 	);

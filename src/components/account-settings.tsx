@@ -3,6 +3,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
+import { Skeleton } from "~/components/ui/skeleton";
 import {
 	useAccountSettings,
 	useUpdateAccountSettings,
@@ -34,6 +35,35 @@ export function AccountSettings() {
 		},
 	});
 
+	if (accountSettings === undefined) {
+		return (
+			<div className="space-y-4 font-serif">
+				<div>
+					<h3 className="text-xl font-semibold">Account Settings</h3>
+					<p className="text-sm text-muted-foreground">
+						Manage your account details here.
+					</p>
+				</div>
+				<div className="space-y-2">
+					<Skeleton className="h-4 w-48" />
+					<Skeleton className="h-10 w-full" />
+					<Skeleton className="h-3 w-64" />
+				</div>
+				<div className="space-y-2">
+					<Skeleton className="h-4 w-32" />
+					<Skeleton className="h-10 w-full" />
+					<Skeleton className="h-3 w-72" />
+				</div>
+				<div className="space-y-2">
+					<Skeleton className="h-4 w-56" />
+					<Skeleton className="h-24 w-full" />
+					<Skeleton className="h-3 w-80" />
+				</div>
+				<Skeleton className="h-10 w-32" />
+			</div>
+		);
+	}
+
 	return (
 		<form onSubmit={form.handleSubmit} className="space-y-4 font-serif">
 			<div>
@@ -55,14 +85,16 @@ export function AccountSettings() {
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground">
 								Enter how you'd like the AI to address you.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -81,15 +113,17 @@ export function AccountSettings() {
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="e.g., Software Engineer, Designer, Student"
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground">
 								Let the AI know your role or profession for more tailored
 								interactions.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -111,15 +145,17 @@ export function AccountSettings() {
 								placeholder="e.g., Be concise and to the point. Prefer examples in Python."
 								rows={5}
 							/>
+							{!field.state.meta.isValid ? (
+								<em className="text-xs text-destructive my-0">
+									{field.state.meta.errors
+										.map((error) => error?.message)
+										.join(", ")}
+								</em>
+							) : null}
 							<p className="text-xs text-muted-foreground">
 								Provide a global instruction for how the AI should generally
 								behave.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>

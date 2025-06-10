@@ -32,6 +32,7 @@ type ComboboxProps = {
 	placeholder?: string;
 	emptyMessage?: string;
 	className?: string;
+	triggerClassName?: string;
 	size?: "sm" | "lg" | "default" | "icon" | null;
 };
 
@@ -56,13 +57,14 @@ export function Combobox(props: ComboboxProps) {
 		<Popover open={props.open} onOpenChange={props.setOpen}>
 			<PopoverTrigger asChild>
 				<Button
-					variant="outline"
+					variant="secondary"
 					size={props.size}
 					// biome-ignore lint/a11y/useSemanticElements: we need this for searchable options
 					role="combobox"
 					aria-expanded={props.open}
 					className={cn(
 						"w-full justify-between border-none",
+						props.triggerClassName,
 						{
 							"text-muted-foreground": !props.value,
 							"text-foreground": props.value,

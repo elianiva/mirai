@@ -1,7 +1,12 @@
-import type { Id } from "convex/_generated/dataModel";
+import type { Doc, Id } from "convex/_generated/dataModel";
 import { z } from "zod";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "~/../convex/_generated/api";
+import { useEffect, useState } from "react";
+import {
+	loadFromLocalStorage,
+	saveToLocalStorage,
+} from "../local-storage-sync";
 
 export const getModesSchema = z.object({});
 
@@ -42,7 +47,19 @@ export type UpdateModeSettingsVariables = z.infer<
 >;
 
 export function useModes() {
-	return useQuery(api.modes.get, {});
+	const [cachedData, setCachedData] = useState(() =>
+		loadFromLocalStorage<Doc<"modes">[]>("modes-data"),
+	);
+	const result = useQuery(api.modes.get, {});
+
+	useEffect(() => {
+		if (result !== undefined) {
+			saveToLocalStorage("modes-data", result);
+			setCachedData(result);
+		}
+	}, [result]);
+
+	return result !== undefined ? result : cachedData;
 }
 
 export function useMode(id: Id<"modes">) {
