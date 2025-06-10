@@ -17,10 +17,10 @@ Model: @model
 </mode_definition>
 
 <rules>
-- Always use the user's first name when addressing them.
 - Prefer short and concise responses when possible.
 - Follow the mode definition provided.
 - Use the information in <system_info> to guide your response.
+- Avoid overusing emojis and em-dashes.
 </rules>
 `;
 

@@ -27,13 +27,14 @@ export function ChatInput(props: ChatInputProps) {
 
 	return (
 		<div className="relative mx-auto max-w-4xl bg-sidebar border-4 border-secondary/50 border-b-0 transition-all duration-200">
+			<div className="absolute bottom-[calc(100%+4px)] left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent z-10 " />
 			<Textarea
 				value={props.message}
 				onChange={(e) => props.onMessageChange(e.target.value)}
 				placeholder="Type your message here..."
 				className="font-serif placeholder:text-neutral-400 resize-none border-0 bg-transparent p-4 text-sm shadow-none focus-visible:ring-0"
 				onKeyDown={handleKeyDown}
-				rows={3}
+				rows={2}
 			/>
 			<div className="p-2">
 				<div className="flex items-center justify-between text-xs text-muted-foreground">

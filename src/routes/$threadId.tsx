@@ -57,8 +57,9 @@ export function ThreadPage() {
 							navigate({ to: "/$threadId", params: { threadId } });
 						}}
 					/>
-					<SidebarInset className="flex flex-col h-full">
-						<header className="flex h-14 shrink-0 items-center gap-2 px-4 bg-transparent backdrop-blur-lg">
+					<SidebarInset className="relative flex flex-col h-full">
+						<header className="z-10 absolute top-0 left-0 right-0 flex h-14 shrink-0 items-center gap-2 px-4 bg-background">
+							<div className="absolute top-full left-0 right-0 h-20 bg-gradient-to-b from-background to-transparent z-10 " />
 							<SidebarTrigger />
 							<h1 className="text-lg font-semibold font-serif">
 								{thread?.title || "New Chat"}
