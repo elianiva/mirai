@@ -1,7 +1,12 @@
-import type { Id } from "convex/_generated/dataModel";
+import type { Doc, Id } from "convex/_generated/dataModel";
 import { z } from "zod";
 import { api } from "~/../convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import {
+	loadFromLocalStorage,
+	saveToLocalStorage,
+} from "../local-storage-sync";
 
 export const listMessagesSchema = z.object({
 	threadId: z.custom<Id<"threads">>(),
@@ -34,10 +39,34 @@ export const removeMessageSchema = z.object({
 export type RemoveMessageVariables = z.infer<typeof removeMessageSchema>;
 
 export function useMessages(threadId: Id<"threads">, branchId?: string) {
-	return useQuery(
+	const cacheKey = `messages-data-${threadId}${branchId ? `-${branchId}` : ""}`;
+
+	const [cachedData, setCachedData] = useState<Doc<"messages">[] | undefined>(
+		undefined,
+	);
+
+	useEffect(() => {
+		if (threadId !== "new") {
+			const newCachedData = loadFromLocalStorage<Doc<"messages">[]>(cacheKey);
+			setCachedData(newCachedData);
+		} else {
+			setCachedData(undefined);
+		}
+	}, [threadId, cacheKey]);
+
+	const result = useQuery(
 		api.messages.list,
 		threadId !== "new" ? { threadId, branchId } : "skip",
 	);
+
+	useEffect(() => {
+		if (result !== undefined && threadId !== "new") {
+			saveToLocalStorage<Doc<"messages">[]>(cacheKey, result);
+			setCachedData(result);
+		}
+	}, [result, threadId, cacheKey]);
+
+	return result !== undefined ? result : cachedData;
 }
 
 export function useCreateMessage() {

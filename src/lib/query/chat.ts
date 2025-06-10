@@ -37,7 +37,9 @@ export const regenerateMessageSchema = z.object({
 	modeId: z.string(),
 });
 
-export type RegenerateMessageVariables = z.infer<typeof regenerateMessageSchema>;
+export type RegenerateMessageVariables = z.infer<
+	typeof regenerateMessageSchema
+>;
 
 export function useCreateBranch() {
 	return useMutation(api.chat.createBranch);
@@ -48,7 +50,10 @@ export function useSwitchBranch() {
 }
 
 export function useBranches(threadId: Id<"threads">) {
-	return useQuery(api.chat.getBranches, { threadId });
+	return useQuery(
+		api.chat.getBranches,
+		threadId !== "new" ? { threadId } : "skip",
+	);
 }
 
 export function useSendMessage() {

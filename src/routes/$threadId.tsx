@@ -14,15 +14,18 @@ import { Authenticated, Unauthenticated } from "convex/react";
 
 export const Route = createFileRoute("/$threadId")({
 	component: ThreadPage,
-	beforeLoad: () => authUserFn(),
+	beforeLoad: async ({ context }) => {
+		const cachedUser = context.queryClient.getQueryData(
+			userQueryOptions.queryKey,
+		);
+		if (cachedUser) return cachedUser;
+		return authUserFn();
+	},
 	loader: async ({ context }) => {
-		context.queryClient.setQueryData(userQueryOptions.queryKey, {
-			id: context.id,
-			email: context.email,
-			firstName: context.firstName,
-			lastName: context.lastName,
-			imageUrl: context.imageUrl,
-		});
+		const userData = context;
+		if (userData?.id) {
+			context.queryClient.setQueryData?.(userQueryOptions.queryKey, userData);
+		}
 	},
 });
 
@@ -59,13 +62,13 @@ export function ThreadPage() {
 					/>
 					<SidebarInset className="relative flex flex-col h-full">
 						<header className="z-10 absolute top-0 left-0 right-0 flex h-14 shrink-0 items-center gap-2 px-4 bg-background">
-							<div className="absolute top-full left-0 right-0 h-20 bg-gradient-to-b from-background to-transparent z-10 " />
+							<div className="absolute top-full left-0 right-0 h-10 bg-gradient-to-b from-background to-transparent z-10 " />
 							<SidebarTrigger />
 							<h1 className="text-lg font-semibold font-serif">
 								{thread?.title || "New Chat"}
 							</h1>
 						</header>
-						<div className="flex flex-1 flex-col min-h-0">
+						<div className="flex flex-1 flex-col min-h-0 mt-16">
 							<ChatAreaPanel
 								threadId={threadId}
 								onThreadClick={(threadId) => {
