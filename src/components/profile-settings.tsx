@@ -15,7 +15,7 @@ import type { Doc } from "convex/_generated/dataModel";
 export type ProfileData = Doc<"profiles">;
 
 export function ProfileSettings() {
-	const { data: allProfiles } = useProfileOptions();
+	const allProfiles = useProfileOptions();
 	const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
 		null,
 	);

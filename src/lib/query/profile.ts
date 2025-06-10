@@ -17,7 +17,9 @@ export const profileFormSchema = z.object({
 
 export const getProfileOptionsSchema = z.object({});
 
-export type GetProfileOptionsVariables = z.infer<typeof getProfileOptionsSchema>;
+export type GetProfileOptionsVariables = z.infer<
+	typeof getProfileOptionsSchema
+>;
 
 export const getProfileByIdSchema = z.object({
 	id: z.custom<Id<"profiles">>(),
@@ -55,23 +57,19 @@ export const updateProfileSchema = z.object({
 export type UpdateProfileVariables = z.infer<typeof updateProfileSchema>;
 
 export function useProfileOptions() {
-	return useReactQuery(convexQuery(api.profileOptions.getProfileOptions, {}));
+	return useQuery(api.profileOptions.getProfileOptions, {});
 }
 
 export function useProfile(id: Id<"profiles">) {
-	return useReactQuery(
-		convexQuery(api.profileOptions.getProfileById, id !== "new" ? { id } : "skip"),
-	);
+	return useQuery(api.profileOptions.getProfileById, { id });
 }
 
 export function useProfiles() {
-	return useReactQuery(convexQuery(api.profiles.list, {}));
+	return useQuery(api.profiles.list, {});
 }
 
 export function useProfileById(id: Id<"profiles">) {
-	return useReactQuery(
-		convexQuery(api.profiles.get, id !== "new" ? { id } : "skip"),
-	);
+	return useQuery(api.profiles.get, { id });
 }
 
 export type OpenRouterModel = {

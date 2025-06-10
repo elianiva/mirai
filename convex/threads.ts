@@ -53,7 +53,6 @@ export const getById = query({
 export const list = query({
 	handler: async (ctx) => {
 		const identity = await ctx.auth.getUserIdentity();
-
 		if (!identity) {
 			throw new Error("Not authenticated");
 		}

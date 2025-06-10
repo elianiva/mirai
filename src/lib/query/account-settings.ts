@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { api } from "~/../convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
-import { useQuery as useReactQuery } from "@tanstack/react-query";
-import { convexQuery } from "@convex-dev/react-query";
 
 export const getAccountSettingsSchema = z.object({});
 
@@ -19,7 +17,7 @@ export type UpdateAccountSettingsVariables = z.infer<
 >;
 
 export function useAccountSettings() {
-	return useReactQuery(convexQuery(api.accountSettings.getAccountSettings, {}));
+	return useQuery(api.accountSettings.getAccountSettings, {});
 }
 
 export function useUpdateAccountSettings() {

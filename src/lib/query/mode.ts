@@ -1,8 +1,6 @@
 import type { Id } from "convex/_generated/dataModel";
 import { z } from "zod";
 import { useMutation, useQuery } from "convex/react";
-import { useQuery as useReactQuery } from "@tanstack/react-query";
-import { convexQuery } from "@convex-dev/react-query";
 import { api } from "~/../convex/_generated/api";
 
 export const getModesSchema = z.object({});
@@ -44,13 +42,11 @@ export type UpdateModeSettingsVariables = z.infer<
 >;
 
 export function useModes() {
-	return useReactQuery(convexQuery(api.modes.get, {}));
+	return useQuery(api.modes.get, {});
 }
 
 export function useMode(id: Id<"modes">) {
-	return useReactQuery(
-		convexQuery(api.modes.getById, id !== "new" ? { id } : "skip"),
-	);
+	return useQuery(api.modes.getById, { id });
 }
 
 export function useCreateMode() {

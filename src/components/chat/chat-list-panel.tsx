@@ -30,7 +30,8 @@ type ChatListPanelProps = {
 export function ChatListPanel(props: ChatListPanelProps) {
 	const navigate = useNavigate();
 
-	const { data: threads, isLoading } = useThreads();
+	const threads = useThreads();
+	const isLoading = threads === undefined;
 	const removeThread = useRemoveThread();
 
 	function handleNewChat() {

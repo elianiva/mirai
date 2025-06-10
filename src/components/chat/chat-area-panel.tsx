@@ -24,7 +24,7 @@ type ChatAreaPanelProps = {
 export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const threadId = props.threadId;
 	const navigate = useNavigate();
-	const { data: modes } = useModes();
+	const modes = useModes();
 	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
 	const [currentBranchId, setCurrentBranchId] = useState<string>();
 
@@ -36,11 +36,10 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [autoScroll, setAutoScroll] = useState(true);
 
-	const { data: thread } = useThread(threadId);
 	const { data: user } = useUser();
 
 	const sendMessage = useSendMessage();
-	const { data: messages } = useMessages(threadId);
+	const messages = useMessages(threadId);
 	const regenerateMessage = useRegenerateMessage();
 	const createBranch = useMutation(api.chat.createBranch);
 

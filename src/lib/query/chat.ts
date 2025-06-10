@@ -1,9 +1,7 @@
 import type { Id } from "convex/_generated/dataModel";
 import { z } from "zod";
 import { api } from "~/../convex/_generated/api";
-import { useMutation } from "convex/react";
-import { useQuery as useReactQuery } from "@tanstack/react-query";
-import { convexQuery } from "@convex-dev/react-query";
+import { useMutation, useQuery } from "convex/react";
 
 export const createBranchSchema = z.object({
 	parentMessageId: z.custom<Id<"messages">>(),
@@ -50,9 +48,7 @@ export function useSwitchBranch() {
 }
 
 export function useBranches(threadId: Id<"threads">) {
-	return useReactQuery(
-		convexQuery(api.chat.getBranches, threadId !== "new" ? { threadId } : "skip"),
-	);
+	return useQuery(api.chat.getBranches, { threadId });
 }
 
 export function useSendMessage() {

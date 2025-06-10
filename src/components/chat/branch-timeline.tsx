@@ -42,11 +42,13 @@ export function BranchTimeline(props: BranchTimelineProps) {
 				</Button>
 
 				{/* Branch indicators */}
-				{branches.map((branch: any, index: number) => (
+				{branches.map((branch, index) => (
 					<div key={branch.branchId} className="flex items-center">
 						<div className="w-4 h-px bg-border" />
 						<Button
-							variant={props.currentBranchId === branch.branchId ? "default" : "ghost"}
+							variant={
+								props.currentBranchId === branch.branchId ? "default" : "ghost"
+							}
 							size="sm"
 							className="h-7 px-3 text-xs gap-1"
 							onClick={() => handleBranchSwitch(branch.branchId)}
