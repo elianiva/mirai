@@ -35,7 +35,12 @@ const schema = defineSchema({
 		senderId: v.string(),
 		content: v.string(),
 		type: v.string(),
-		metadata: v.optional(v.any()),
+		metadata: v.optional(v.object({
+			isStreaming: v.optional(v.boolean()),
+			modeId: v.optional(v.string()),
+			profileId: v.optional(v.string()),
+			reasoning: v.optional(v.string()),
+		})),
 		parentMessageId: v.optional(v.id("messages")),
 		branchId: v.optional(v.string()),
 		isActiveBranch: v.optional(v.boolean()),

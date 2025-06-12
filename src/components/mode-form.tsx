@@ -81,7 +81,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 			}}
 			className="space-y-4"
 		>
-			<div>
+			<div className="font-serif">
 				<h3 className="text-xl font-semibold">
 					{props.mode?.name ? props.mode.name : "New Mode"}
 				</h3>
@@ -111,7 +111,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								Visual identifier for the mode. Can be an emoji or path to an
 								image file.
 							</p>
@@ -141,7 +141,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								Unique identifier used in URLs and API calls. Should be
 								lowercase with hyphens.
 							</p>
@@ -179,7 +179,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								Display name for the mode shown in the UI and mode selector.
 							</p>
 						</>
@@ -209,7 +209,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								Brief explanation of the mode's purpose and capabilities shown
 								to users.
 							</p>
@@ -235,7 +235,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								Determines which AI profile/personality to use when operating in
 								this mode.
 							</p>
@@ -266,7 +266,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								Core instructions that define how the AI should behave, respond,
 								and process information in this mode.
 							</p>
@@ -297,7 +297,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								Guidelines for users about optimal situations to use this mode
 								for best results.
 							</p>
@@ -328,7 +328,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								Supplementary directives that further refine the AI's behavior
 								or provide context-specific guidance.
 							</p>

@@ -4,19 +4,31 @@ import { useRemoveMessage } from "~/lib/query/messages";
 import { MarkdownRenderer } from "./markdown-renderer";
 import { MessageActions } from "./message-actions";
 import { RegenerateDialog } from "./regenerate-dialog";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "~/components/ui/collapsible";
+import { ChevronRightIcon } from "lucide-react";
+import { cn } from "~/lib/utils";
+
+type MessageMetadata = {
+	isStreaming?: boolean;
+	modeId?: string;
+	profileId?: Id<"profiles">;
+	reasoning?: string;
+};
+
+type MessageWithMetadata = {
+	_id: Id<"messages">;
+	content: string;
+	type: string;
+	senderId: string;
+	metadata?: MessageMetadata;
+};
 
 type MessageBubbleProps = {
-	message: {
-		_id: Id<"messages">;
-		content: string;
-		type: string;
-		senderId: string;
-		metadata?: {
-			isStreaming?: boolean;
-			modeId?: string;
-			profileId?: Id<"profiles">;
-		};
-	};
+	message: MessageWithMetadata;
 	userId: string;
 	threadId: Id<"threads">;
 	onRegenerate: (messageId: Id<"messages">, modeId: Id<"modes">) => void;
@@ -26,6 +38,7 @@ type MessageBubbleProps = {
 export function MessageBubble(props: MessageBubbleProps) {
 	const isUser = props.message.type === "user";
 	const isStreaming = props.message.metadata?.isStreaming;
+	const [showReasoning, setShowReasoning] = useState(false);
 	const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
 	const removeMessage = useRemoveMessage();
 
@@ -52,6 +65,27 @@ export function MessageBubble(props: MessageBubbleProps) {
 				</div>
 			) : (
 				<div className="w-full">
+					{props.message.metadata?.reasoning && (
+						<div className="mb-4">
+							<Collapsible open={showReasoning} onOpenChange={setShowReasoning}>
+								<CollapsibleTrigger className="flex items-center gap-1 text-sm font-serif font-medium">
+									<ChevronRightIcon
+										className={cn("size-4 transition-transform duration-200", {
+											"rotate-90": showReasoning,
+										})}
+									/>
+									<span>Reasoning</span>
+								</CollapsibleTrigger>
+								<CollapsibleContent className="p-4 bg-sidebar mt-2 text-sm data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+									<MarkdownRenderer
+										content={props.message.metadata.reasoning}
+										isStreaming={isStreaming}
+									/>
+								</CollapsibleContent>
+							</Collapsible>
+						</div>
+					)}
+
 					{props.message.content ? (
 						<MarkdownRenderer
 							content={props.message.content}
@@ -77,7 +111,11 @@ export function MessageBubble(props: MessageBubbleProps) {
 				<MessageActions
 					isUser={isUser}
 					onRegenerate={() => setShowRegenerateDialog(true)}
-					onCreateBranch={props.onCreateBranch ? () => props.onCreateBranch?.(props.message._id) : undefined}
+					onCreateBranch={
+						props.onCreateBranch
+							? () => props.onCreateBranch?.(props.message._id)
+							: undefined
+					}
 					onRemove={handleRemove}
 				/>
 			)}

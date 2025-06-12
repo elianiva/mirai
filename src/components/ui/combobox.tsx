@@ -21,6 +21,7 @@ export type Option = {
 	value: string;
 	label: string;
 	slug?: string;
+	icon?: React.ReactNode;
 };
 
 type ComboboxProps = {
@@ -71,11 +72,20 @@ export function Combobox(props: ComboboxProps) {
 						},
 					)}
 				>
-					<span className="truncate">
-						{props.value
-							? props.options.find((option) => option.value === props.value)
-									?.label || props.value
-							: props.placeholder}
+					<span className="truncate flex items-center gap-2 font-serif">
+						{props.value &&
+							(() => {
+								const selectedOption = props.options.find(
+									(option) => option.value === props.value,
+								);
+								return (
+									<>
+										{selectedOption?.icon}
+										{selectedOption?.label || props.value}
+									</>
+								);
+							})()}
+						{!props.value && props.placeholder}
 					</span>
 					<ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
 				</Button>
@@ -83,7 +93,7 @@ export function Combobox(props: ComboboxProps) {
 			<PopoverContent
 				className={cn("popover-content-full p-0", props.className)}
 			>
-				<Command className="w-full">
+				<Command className="w-full font-serif">
 					<CommandInput
 						placeholder={props.placeholder}
 						value={searchQuery}
@@ -110,7 +120,10 @@ export function Combobox(props: ComboboxProps) {
 									) : (
 										<div className="size-4 shrink-0" />
 									)}
-									<span className="truncate flex-1">{option.label}</span>
+									<span className="truncate flex-1 flex items-center gap-2">
+										{option.icon}
+										<span>{option.label}</span>
+									</span>
 									<span className="text-xs text-muted-foreground truncate text-right">
 										{option.slug || option.value}
 									</span>

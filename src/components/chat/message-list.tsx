@@ -14,6 +14,7 @@ type MessageListProps = {
 			isStreaming?: boolean;
 			modeId?: string;
 			profileId?: Id<"profiles">;
+			reasoning?: string;
 		};
 	}>;
 	userId: string;

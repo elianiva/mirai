@@ -83,10 +83,6 @@ async function loadLanguageIfNeeded(lang: string): Promise<boolean> {
 	}
 
 	if (!highlighterInstance) {
-		await highlighterPromise;
-	}
-
-	if (!highlighterInstance) {
 		console.error("Highlighter instance not available");
 		return false;
 	}
@@ -162,8 +158,6 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 
 	const highlightCode = useCallback(
 		async (codeToHighlight: string, lang: string) => {
-			await highlighterPromise;
-
 			if (!highlighterInstance || !isMountedRef.current) {
 				return "";
 			}

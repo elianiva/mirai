@@ -2,132 +2,156 @@
 
 @custom-variant dark (&:is(.dark *));
 
-
 @theme inline {
-  /* Rosé Pine Dawn Color Palette */
-  --color-rose-pine-base: hsl(32deg, 57%, 95%);
-  --color-rose-pine-surface: hsl(35deg, 100%, 98%);
-  --color-rose-pine-overlay: hsl(33deg, 43%, 91%);
-  --color-rose-pine-muted: hsl(257deg, 9%, 61%);
-  --color-rose-pine-subtle: hsl(248deg, 12%, 52%);
-  --color-rose-pine-text: hsl(248deg, 19%, 40%);
-  --color-rose-pine-love: hsl(343deg, 35%, 55%);
-  --color-rose-pine-gold: hsl(35deg, 81%, 56%);
-  --color-rose-pine-rose: hsl(3deg, 53%, 67%);
-  --color-rose-pine-pine: hsl(197deg, 53%, 34%);
-  --color-rose-pine-foam: hsl(189deg, 30%, 48%);
-  --color-rose-pine-iris: hsl(268deg, 21%, 57%);
-  --color-rose-pine-highlight-low: hsl(25deg, 35%, 93%);
-  --color-rose-pine-highlight-med: hsl(10deg, 9%, 86%);
-  --color-rose-pine-highlight-high: hsl(315deg, 4%, 80%);
+	/* Rosé Pine Dawn Color Palette */
+	--color-rose-pine-base: hsl(32deg, 57%, 95%);
+	--color-rose-pine-surface: hsl(35deg, 100%, 98%);
+	--color-rose-pine-overlay: hsl(33deg, 43%, 91%);
+	--color-rose-pine-muted: hsl(257deg, 9%, 61%);
+	--color-rose-pine-subtle: hsl(248deg, 12%, 52%);
+	--color-rose-pine-text: hsl(248deg, 19%, 40%);
+	--color-rose-pine-love: hsl(343deg, 35%, 55%);
+	--color-rose-pine-gold: hsl(35deg, 81%, 56%);
+	--color-rose-pine-rose: hsl(3deg, 53%, 67%);
+	--color-rose-pine-pine: hsl(197deg, 53%, 34%);
+	--color-rose-pine-foam: hsl(189deg, 30%, 48%);
+	--color-rose-pine-iris: hsl(268deg, 21%, 57%);
+	--color-rose-pine-highlight-low: hsl(25deg, 35%, 93%);
+	--color-rose-pine-highlight-med: hsl(10deg, 9%, 86%);
+	--color-rose-pine-highlight-high: hsl(315deg, 4%, 80%);
 
-  /* Legacy color variables for compatibility */
-  --color-base-light: var(--color-rose-pine-base);
-  --color-base-medium: var(--color-rose-pine-overlay);
-  --color-border-muted: var(--color-rose-pine-highlight-high);
+	/* Legacy color variables for compatibility */
+	--color-base-light: var(--color-rose-pine-base);
+	--color-base-medium: var(--color-rose-pine-overlay);
+	--color-border-muted: var(--color-rose-pine-highlight-high);
 
-  /* Text color variables */
-  --color-text-dark: var(--color-rose-pine-text);
-  --color-text-medium: var(--color-rose-pine-love);
-  --color-text-muted: var(--color-rose-pine-muted);
-  --color-text-light: var(--color-rose-pine-rose);
-  --color-text-subtle: var(--color-rose-pine-subtle);
-  --color-text-ring: var(--color-rose-pine-iris);
+	/* Text color variables */
+	--color-text-dark: var(--color-rose-pine-text);
+	--color-text-medium: var(--color-rose-pine-love);
+	--color-text-muted: var(--color-rose-pine-muted);
+	--color-text-light: var(--color-rose-pine-rose);
+	--color-text-subtle: var(--color-rose-pine-subtle);
+	--color-text-ring: var(--color-rose-pine-iris);
 
-  /* Accent color variables */
-  --color-destructive: var(--color-rose-pine-pine);
+	/* Accent color variables */
+	--color-destructive: var(--color-rose-pine-pine);
 
-  /* Chart color variables */
-  --color-chart-gold: var(--color-rose-pine-gold);
-  --color-chart-teal: var(--color-rose-pine-foam);
-  --color-chart-blue: var(--color-rose-pine-iris);
-  --color-chart-green: var(--color-rose-pine-pine);
-  --color-chart-orange: var(--color-rose-pine-rose);
+	/* Chart color variables */
+	--color-chart-gold: var(--color-rose-pine-gold);
+	--color-chart-teal: var(--color-rose-pine-foam);
+	--color-chart-blue: var(--color-rose-pine-iris);
+	--color-chart-green: var(--color-rose-pine-pine);
+	--color-chart-orange: var(--color-rose-pine-rose);
 
-  /* Sidebar color variables */
-  --color-sidebar: var(--color-rose-pine-base);
+	/* Sidebar color variables */
+	--color-sidebar: var(--color-rose-pine-base);
 
-  --radius: 0.25rem;
-  --background: var(--color-rose-pine-surface);
-  --foreground: var(--color-text-dark);
-  --card: var(--color-rose-pine-base);
-  --card-foreground: var(--color-text-dark);
-  --popover: var(--color-rose-pine-base);
-  --popover-foreground: var(--color-text-dark);
-  --primary: var(--color-text-medium);
-  --primary-foreground: var(--color-text-light);
-  --secondary: var(--color-rose-pine-overlay);
-  --secondary-foreground: var(--color-muted);
-  --muted: var(--color-text-subtle);
-  --muted-foreground: var(--color-text-muted);
-  --accent: var(--color-rose-pine-overlay);
-  --accent-foreground: var(--color-text);
-  --destructive: var(--color-rose-pine-rose);
-  --border: var(--color-border-muted);
-  --input: var(--color-border-muted);
-  --ring: var(--color-text-ring);
-  --chart-1: var(--color-chart-gold);
-  --chart-2: var(--color-chart-teal);
-  --chart-3: var(--color-chart-blue);
-  --chart-4: var(--color-chart-green);
-  --chart-5: var(--color-chart-orange);
+	--radius: 0.25rem;
+	--background: var(--color-rose-pine-surface);
+	--foreground: var(--color-text-dark);
+	--card: var(--color-rose-pine-base);
+	--card-foreground: var(--color-text-dark);
+	--popover: var(--color-rose-pine-base);
+	--popover-foreground: var(--color-text-dark);
+	--primary: var(--color-text-medium);
+	--primary-foreground: var(--color-text-light);
+	--secondary: var(--color-rose-pine-overlay);
+	--secondary-foreground: var(--color-muted);
+	--muted: var(--color-text-subtle);
+	--muted-foreground: var(--color-text-muted);
+	--accent: var(--color-rose-pine-overlay);
+	--accent-foreground: var(--color-text);
+	--destructive: var(--color-rose-pine-rose);
+	--border: var(--color-border-muted);
+	--input: var(--color-border-muted);
+	--ring: var(--color-text-ring);
+	--chart-1: var(--color-chart-gold);
+	--chart-2: var(--color-chart-teal);
+	--chart-3: var(--color-chart-blue);
+	--chart-4: var(--color-chart-green);
+	--chart-5: var(--color-chart-orange);
 
-  --font-serif: "Lora", serif;
-  --font-mono: "Space Mono", monospace;
+	--font-serif: "Lora", serif;
+	--font-mono: "Space Mono", monospace;
 
-  /* Radius variables */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+	/* Radius variables */
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
 
-  /* Theme color variables */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
+	/* Theme color variables */
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
 
-  --sidebar: var(--color-rose-pine-overlay);
-  --sidebar-foreground: var(--color-text);
-  --sidebar-primary: var(--color-text);
-  --sidebar-primary-foreground: var(--color-text-light);
-  --sidebar-accent: var(--color-rose-pine-overlay);
-  --sidebar-accent-foreground: var(--color-text);
-  --sidebar-border: var(--color-rose-pine-overlay);
-  --sidebar-ring: var(--color-text);
+	--sidebar: var(--color-rose-pine-overlay);
+	--sidebar-foreground: var(--color-text);
+	--sidebar-primary: var(--color-text);
+	--sidebar-primary-foreground: var(--color-text-light);
+	--sidebar-accent: var(--color-rose-pine-overlay);
+	--sidebar-accent-foreground: var(--color-text);
+	--sidebar-border: var(--color-rose-pine-overlay);
+	--sidebar-ring: var(--color-text);
+
+	--animate-collapsible-down: animate-down 0.2s ease-in-out;
+	--animate-collapsible-up: animate-up 0.2s ease-in-out;
+
+	@keyframes animate-down {
+		from {
+			height: 0;
+			opacity: 0;
+		}
+		to {
+			height: var(--radix-collapsible-content-height);
+			opacity: 1;
+		}
+	}
+
+	@keyframes animate-up {
+		from {
+			height: var(--radix-collapsible-content-height);
+			opacity: 1;
+		}
+		to {
+			opacity: 0;
+			height: 0;
+		}
+	}
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
 }
 
 @layer utilities {
-  .popover-content-full {
-    width: var(--radix-popover-trigger-width);
-    max-height: var(--radix-popover-content-available-height);
-  }
+	.popover-content-full {
+		width: var(--radix-popover-trigger-width);
+		max-height: var(--radix-popover-content-available-height);
+	}
 }

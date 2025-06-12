@@ -49,7 +49,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
 		<Dialog open={props.isOpen} onOpenChange={props.onOpenChange}>
 			<DialogContent className="sm:max-w-4xl h-4/5 flex flex-col p-0">
 				<div className="flex flex-1 overflow-hidden">
-					<nav className="w-60 bg-secondary p-4 space-y-1 overflow-y-auto">
+					<nav className="w-60 bg-sidebar p-4 space-y-1 overflow-y-auto">
 						{NAV_ITEMS.map((item) => (
 							<Button
 								key={item.id}

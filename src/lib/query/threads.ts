@@ -86,10 +86,6 @@ export function useThread(id: Id<"threads"> | undefined) {
 	return result !== undefined ? result : cachedData;
 }
 
-export function useCreateThread() {
-	return useMutation(api.threads.create);
-}
-
 export function useRemoveThread() {
 	return useMutation(api.threads.remove);
 }

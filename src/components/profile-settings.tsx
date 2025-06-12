@@ -63,7 +63,7 @@ export function ProfileSettings() {
 	return (
 		<div className="space-y-6">
 			<div className="flex justify-between items-center">
-				<div>
+				<div className="font-serif">
 					<h3 className="text-xl font-semibold">Profile Settings</h3>
 					<p className="text-sm text-muted-foreground">
 						Manage and customize your AI profiles.

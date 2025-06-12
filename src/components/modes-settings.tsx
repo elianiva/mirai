@@ -236,7 +236,7 @@ export function ModesSettings() {
 	return (
 		<div className="space-y-6">
 			<div className="flex justify-between items-center">
-				<div>
+				<div className="font-serif">
 					<h3 className="text-xl font-semibold">Modes Settings</h3>
 					<p className="text-sm text-muted-foreground">
 						Customize the behavior and capabilities of different AI modes.

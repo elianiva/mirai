@@ -70,7 +70,7 @@ export function ProfileForm(props: ProfileFormProps) {
 			}}
 			className="space-y-4"
 		>
-			<div>
+			<div className="font-serif">
 				<h3 className="text-xl font-semibold">
 					{props.profile?.name ? props.profile.name : "New Profile"}
 				</h3>
@@ -105,7 +105,7 @@ export function ProfileForm(props: ProfileFormProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								A unique identifier for this profile (lowercase, no spaces).
 							</p>
 						</>
@@ -146,7 +146,7 @@ export function ProfileForm(props: ProfileFormProps) {
 										.join(", ")}
 								</em>
 							) : null}
-							<p className="text-xs text-muted-foreground mt-1">
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								A unique name to identify this profile.
 							</p>
 						</>
@@ -166,14 +166,14 @@ export function ProfileForm(props: ProfileFormProps) {
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
 							/>
-							<p className="text-xs text-muted-foreground mt-1">
-								Optional details about this profile's purpose or configuration.
-							</p>
 							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
 								<em className="text-xs text-destructive">
 									{field.state.meta.errors.join(", ")}
 								</em>
 							) : null}
+							<p className="text-xs text-muted-foreground mt-1 font-serif">
+								Optional details about this profile's purpose or configuration.
+							</p>
 						</>
 					)}
 				/>
@@ -220,16 +220,16 @@ export function ProfileForm(props: ProfileFormProps) {
 								value={[field.state.value]}
 								onValueChange={(value) => field.handleChange(value[0])}
 							/>
-							<p className="text-xs text-muted-foreground">
+							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
+								<em className="text-xs text-destructive font-serif">
+									{field.state.meta.errors.join(", ")}
+								</em>
+							) : null}
+							<p className="text-xs text-muted-foreground font-serif">
 								Controls randomness in responses. Higher values (0.7-1.0)
 								produce more creative outputs, while lower values (0.1-0.5) make
 								responses more focused and deterministic.
 							</p>
-							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
-								<em className="text-xs text-destructive">
-									{field.state.meta.errors.join(", ")}
-								</em>
-							) : null}
 						</>
 					)}
 				/>
@@ -253,11 +253,6 @@ export function ProfileForm(props: ProfileFormProps) {
 								value={[field.state.value]}
 								onValueChange={(value) => field.handleChange(value[0])}
 							/>
-							<p className="text-xs text-muted-foreground">
-								Nucleus sampling parameter. The model considers tokens
-								comprising the top P probability mass (0.0-1.0). Lower values
-								make output more focused, higher values allow more variety.
-							</p>
 							{!field.state.meta.isValid ? (
 								<em className="text-xs text-destructive my-0">
 									{field.state.meta.errors
@@ -265,6 +260,11 @@ export function ProfileForm(props: ProfileFormProps) {
 										.join(", ")}
 								</em>
 							) : null}
+							<p className="text-xs text-muted-foreground font-serif">
+								Nucleus sampling parameter. The model considers tokens
+								comprising the top P probability mass (0.0-1.0). Lower values
+								make output more focused, higher values allow more variety.
+							</p>
 						</>
 					)}
 				/>
@@ -286,11 +286,6 @@ export function ProfileForm(props: ProfileFormProps) {
 								value={[field.state.value]}
 								onValueChange={(value) => field.handleChange(value[0])}
 							/>
-							<p className="text-xs text-muted-foreground">
-								Limits token selection to the top K most likely tokens. Higher
-								values (40-50) allow more diversity, while lower values produce
-								more focused responses.
-							</p>
 							{!field.state.meta.isValid ? (
 								<em className="text-xs text-destructive my-0">
 									{field.state.meta.errors
@@ -298,6 +293,11 @@ export function ProfileForm(props: ProfileFormProps) {
 										.join(", ")}
 								</em>
 							) : null}
+							<p className="text-xs text-muted-foreground font-serif">
+								Limits token selection to the top K most likely tokens. Higher
+								values (40-50) allow more diversity, while lower values produce
+								more focused responses.
+							</p>
 						</>
 					)}
 				/>

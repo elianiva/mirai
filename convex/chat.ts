@@ -11,7 +11,7 @@ import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { buildSystemPrompt, getChatModel } from "../src/lib/ai";
-import { streamText, generateText } from "ai";
+import { streamText, generateText, smoothStream } from "ai";
 
 async function getActiveBranchMessages(
 	ctx: QueryCtx,
@@ -96,6 +96,10 @@ export const sendMessage = mutation({
 			openrouterKey,
 		} = args;
 
+		if (!openrouterKey) {
+			throw new Error("OpenRouter API key is required");
+		}
+
 		const mode = await ctx.db.get(modeId as Id<"modes">);
 		if (!mode) {
 			throw new Error("Mode not found");
@@ -115,6 +119,7 @@ export const sendMessage = mutation({
 			await ctx.scheduler.runAfter(0, internal.chat.generateThreadTitle, {
 				threadId,
 				message,
+				openrouterKey,
 			});
 		}
 
@@ -171,6 +176,9 @@ export const sendMessage = mutation({
 			},
 			profile: {
 				model: profile.model,
+				topP: profile.topP,
+				topK: profile.topK,
+				temperature: profile.temperature,
 			},
 			userName: identity.name ?? "User",
 			openrouterKey,
@@ -243,6 +251,8 @@ export const regenerateMessage = mutation({
 			metadata: {
 				modeId,
 				isStreaming: true,
+				profileId: undefined,
+				reasoning: undefined,
 			},
 		});
 
@@ -256,6 +266,9 @@ export const regenerateMessage = mutation({
 			},
 			profile: {
 				model: profile.model,
+				topP: profile.topP,
+				topK: profile.topK,
+				temperature: profile.temperature,
 			},
 			userName: identity.name ?? "User",
 			openrouterKey,
@@ -281,6 +294,9 @@ export const streamResponse = action({
 		}),
 		profile: v.object({
 			model: v.string(),
+			topP: v.number(),
+			topK: v.number(),
+			temperature: v.number(),
 		}),
 		userName: v.string(),
 		openrouterKey: v.optional(v.string()),
@@ -291,14 +307,17 @@ export const streamResponse = action({
 		try {
 			// Check if OpenRouter key is required for this model
 			if (!args.openrouterKey || args.openrouterKey.trim() === "") {
-				throw new Error("OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.");
+				throw new Error(
+					"OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.",
+				);
 			}
 
 			const accountSettings = await ctx.runQuery(
 				api.accountSettings.getAccountSettings,
 			);
 
-			const { textStream } = streamText({
+			const abortController = new AbortController();
+			const { fullStream } = streamText({
 				model: getChatModel(profile.model, args.openrouterKey),
 				system: buildSystemPrompt({
 					user_name: accountSettings.name || userName,
@@ -307,46 +326,73 @@ export const streamResponse = action({
 					ai_behavior: accountSettings.behavior,
 				}),
 				messages,
+				topP: profile.topP,
+				topK: profile.topK,
+				temperature: profile.temperature,
+				abortSignal: abortController.signal,
+				experimental_transform: smoothStream({
+					delayInMs: 1000, // throttle to 1 second between chunks
+				}),
 			});
 
 			let fullContent = "";
-
-			for await (const textPart of textStream) {
-				const streamingStatus = await ctx.runQuery(
+			let reasoning = "";
+			for await (const part of fullStream) {
+				// TODO: there should be a better way of doing this? not sure
+				//       ideally using AbortSignal but i'm not entirely sure how to do that
+				const streamStatus = await ctx.runQuery(
 					internal.chat.getStreamingStatus,
 					{
 						messageId,
 					},
 				);
-
-				if (!streamingStatus?.isStreaming) {
-					textStream.cancel();
+				if (streamStatus?.isStreaming === false) {
+					abortController.abort();
+					await ctx.runMutation(internal.chat.finalizeStreamingMessage, {
+						messageId,
+						content: fullContent,
+					});
 					break;
 				}
 
-				fullContent += textPart;
-
-				await ctx.runMutation(internal.chat.updateStreamingMessage, {
-					messageId,
-					content: fullContent,
-				});
+				if (part.type === "text-delta" || part.type === "reasoning") {
+					if (part.type === "text-delta") {
+						fullContent += part.textDelta;
+					}
+					if (part.type === "reasoning") {
+						reasoning += part.textDelta;
+					}
+					await ctx.runMutation(internal.chat.updateStreamingMessage, {
+						messageId,
+						content: fullContent,
+						reasoning,
+					});
+				}
+				if (part.type === "finish") {
+					let content = "";
+					if (part.finishReason === "content-filter") {
+						content = "Sorry, the content was filtered by the model.";
+					}
+					if (part.finishReason === "error") {
+						content =
+							"Sorry, I encountered an error while generating a response.";
+					}
+					if (part.finishReason === "stop") {
+						content = fullContent;
+					}
+					await ctx.runMutation(internal.chat.finalizeStreamingMessage, {
+						messageId,
+						content,
+						reasoning,
+					});
+				}
 			}
-
-			await ctx.runMutation(internal.chat.finalizeStreamingMessage, {
-				messageId,
-				content: fullContent,
-			});
 		} catch (error) {
 			console.error("Streaming error:", error);
-
-			await ctx.runMutation(internal.chat.updateStreamingMessage, {
-				messageId,
-				content: "Sorry, I encountered an error while generating a response.",
-			});
-
 			await ctx.runMutation(internal.chat.finalizeStreamingMessage, {
 				messageId,
 				content: "Sorry, I encountered an error while generating a response.",
+				reasoning: undefined,
 			});
 		}
 	},
@@ -370,6 +416,8 @@ export const createStreamingMessage = internalMutation({
 			metadata: {
 				modeId,
 				isStreaming: true,
+				profileId: undefined,
+				reasoning: undefined,
 			},
 			parentMessageId,
 			branchId,
@@ -384,10 +432,15 @@ export const updateStreamingMessage = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		content: v.string(),
+		reasoning: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.messageId, {
 			content: args.content,
+			metadata: {
+				isStreaming: true,
+				reasoning: args.reasoning,
+			},
 		});
 	},
 });
@@ -396,12 +449,14 @@ export const finalizeStreamingMessage = internalMutation({
 	args: {
 		messageId: v.id("messages"),
 		content: v.string(),
+		reasoning: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		await ctx.db.patch(args.messageId, {
 			content: args.content,
 			metadata: {
 				isStreaming: false,
+				reasoning: args.reasoning,
 			},
 		});
 	},
@@ -456,20 +511,22 @@ export const generateThreadTitle = internalAction({
 	args: {
 		threadId: v.id("threads"),
 		message: v.string(),
+		openrouterKey: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const { threadId, message } = args;
-
 		try {
 			const { text } = await generateText({
-				model: getChatModel("google/gemini-2.0-flash-lite-001"),
+				model: getChatModel(
+					"google/gemini-2.0-flash-lite-001",
+					args.openrouterKey,
+				),
 				system:
 					"You are a helpful assistant that generates concise, descriptive titles for chat conversations. Generate a title that captures the main topic or intent of the user's message. Keep it under 50 characters and make it clear and informative. Do not use any markdown syntax.",
-				prompt: `Generate a concise title for a conversation that starts with this message: "${message}"`,
+				prompt: `Generate a concise title for a conversation that starts with this message: "${args.message}"`,
 			});
 
 			await ctx.runMutation(internal.chat.updateThreadTitle, {
-				threadId,
+				threadId: args.threadId,
 				title: text.trim(),
 			});
 		} catch (error) {
@@ -534,7 +591,7 @@ export const createBranch = mutation({
 		const activeBranchMessages = await getActiveBranchMessages(
 			ctx,
 			parentMessage.threadId,
-			parentMessage.branchId
+			parentMessage.branchId,
 		);
 
 		// Find the parent message index in the active branch
@@ -553,7 +610,7 @@ export const createBranch = mutation({
 		// Copy messages to the new thread
 		for (let i = 0; i < messagesToCopy.length; i++) {
 			const msg = messagesToCopy[i];
-			
+
 			// Determine the parent message ID for the copied message
 			let newParentMessageId: Id<"messages"> | undefined;
 			if (msg.parentMessageId && messageIdMap.has(msg.parentMessageId)) {
@@ -585,7 +642,7 @@ export const createBranch = mutation({
 		return {
 			branchId,
 			threadId: newThreadId,
-			branchMetadata
+			branchMetadata,
 		};
 	},
 });
