@@ -32,6 +32,7 @@ export const createModeSchema = z.object({
 export type CreateModeVariables = z.infer<typeof createModeSchema>;
 
 export const updateModeSettingsSchema = z.object({
+	id: z.custom<Id<"modes">>(),
 	slug: z.string(),
 	icon: z.string(),
 	name: z.string(),

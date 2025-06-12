@@ -20,6 +20,7 @@ export const create = mutation({
 
 export const update = mutation({
 	args: {
+		id: v.id("modes"),
 		slug: v.string(),
 		icon: v.string(),
 		name: v.string(),
@@ -32,7 +33,7 @@ export const update = mutation({
 	handler: async (ctx, args) => {
 		const existingMode = await ctx.db
 			.query("modes")
-			.filter((q) => q.eq(q.field("slug"), args.slug))
+			.filter((q) => q.eq(q.field("_id"), args.id))
 			.first();
 
 		let id: Id<"modes"> | undefined;

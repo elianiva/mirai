@@ -289,7 +289,6 @@ export const streamResponse = action({
 		const { messageId, userName, messages, profile, mode } = args;
 
 		try {
-			// Fetch account settings
 			const accountSettings = await ctx.runQuery(
 				api.accountSettings.getAccountSettings,
 			);
@@ -297,7 +296,7 @@ export const streamResponse = action({
 			const { textStream } = streamText({
 				model: getChatModel(profile.model),
 				system: buildSystemPrompt({
-					user_name: accountSettings.name,
+					user_name: accountSettings.name || userName,
 					model: mode.model,
 					mode_definition: mode.modeDefinition,
 					ai_behavior: accountSettings.behavior,

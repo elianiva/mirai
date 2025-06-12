@@ -29,7 +29,6 @@ export function AccountSettings() {
 					setOpenrouterKey(key);
 				}
 			} catch (error) {
-				// Silently handle decryption errors (e.g., no key stored)
 				console.debug("No OpenRouter key found or failed to decrypt");
 			}
 		}
@@ -52,15 +51,18 @@ export function AccountSettings() {
 				localStorage.removeItem("openrouter-key");
 			}
 
-			toast.promise(updateAccountSettings({
-				name: value.name,
-				role: value.role,
-				behavior: value.behavior,
-			}), {
-				loading: "Saving...",
-				success: "Account settings saved",
-				error: "Failed to save account settings",
-			});
+			toast.promise(
+				updateAccountSettings({
+					name: value.name,
+					role: value.role,
+					behavior: value.behavior,
+				}),
+				{
+					loading: "Saving...",
+					success: "Account settings saved",
+					error: "Failed to save account settings",
+				},
+			);
 		},
 	});
 
@@ -212,7 +214,7 @@ export function AccountSettings() {
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground">
-								Your OpenRouter API key. Stored encrypted in your browser. If not provided, the default environment key will be used.
+								Your OpenRouter API key. Stored encrypted in your browser.
 							</p>
 						</>
 					)}

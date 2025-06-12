@@ -16,20 +16,20 @@ type UseChatProps = {
 export function useChat(props: UseChatProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const currentStreamingMessageRef = useRef<Id<"messages"> | null>(null);
-	
+
 	const sendMessageMutation = useSendMessage();
 	const stopStreamingMutation = useStopStreaming();
-	
-	// Watch messages to determine streaming status
+
 	const messages = useMessages(
-		props.threadId && props.threadId !== "new" ? props.threadId : ("new" as Id<"threads">),
-		props.branchId
+		props.threadId && props.threadId !== "new"
+			? props.threadId
+			: ("new" as Id<"threads">),
+		props.branchId,
 	);
-	
-	// Derive streaming status from messages
-	const isStreaming = messages?.some((msg) => msg.metadata?.isStreaming) ?? false;
-	
-	// Track the currently streaming message for stop functionality
+
+	const isStreaming =
+		messages?.some((msg) => msg.metadata?.isStreaming) ?? false;
+
 	useEffect(() => {
 		const streamingMessage = messages?.find((msg) => msg.metadata?.isStreaming);
 		if (streamingMessage) {
@@ -38,11 +38,12 @@ export function useChat(props: UseChatProps) {
 			currentStreamingMessageRef.current = null;
 		}
 	}, [messages]);
-	
-	// Call onStream callback when streaming content changes
+
 	useEffect(() => {
 		if (isStreaming && props.onStream) {
-			const streamingMessage = messages?.find((msg) => msg.metadata?.isStreaming);
+			const streamingMessage = messages?.find(
+				(msg) => msg.metadata?.isStreaming,
+			);
 			if (streamingMessage?.content) {
 				props.onStream(streamingMessage.content);
 			}
@@ -58,8 +59,9 @@ export function useChat(props: UseChatProps) {
 			try {
 				setIsLoading(true);
 
-				// Get the last user message content
-				const lastUserMessage = messages.filter(msg => msg.role === "user").pop();
+				const lastUserMessage = messages
+					.filter((msg) => msg.role === "user")
+					.pop();
 				if (!lastUserMessage) {
 					throw new Error("No user message found");
 				}
@@ -82,7 +84,14 @@ export function useChat(props: UseChatProps) {
 				setIsLoading(false);
 			}
 		},
-		[props.modeId, props.threadId, props.parentMessageId, props.branchId, props.onError, sendMessageMutation],
+		[
+			props.modeId,
+			props.threadId,
+			props.parentMessageId,
+			props.branchId,
+			props.onError,
+			sendMessageMutation,
+		],
 	);
 
 	const stopStreaming = useCallback(async () => {

@@ -194,7 +194,6 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 		const loadAndHighlight = async () => {
 			if (!code) return;
 
-			// Handle unsupported languages immediately
 			if (language === "text" || !isLanguageSupported(language)) {
 				const html = await highlightCode(code, "text");
 				if (!cancelled && html) {
@@ -203,7 +202,6 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 				return;
 			}
 
-			// Handle already loaded languages
 			if (loadedLanguages.has(language)) {
 				const html = await highlightCode(code, language);
 				if (!cancelled && html) {
@@ -212,14 +210,13 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 				return;
 			}
 
-			// Load new language
 			setIsLoading(true);
-			
+
 			try {
 				const success = await loadLanguageIfNeeded(language);
 				const langToUse = success ? language : "text";
 				const html = await highlightCode(code, langToUse);
-				
+
 				if (!cancelled && html) {
 					setHighlightedHtml(html);
 				}
@@ -265,9 +262,11 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 	return (
 		<div className="relative my-3 group overflow-hidden rounded-lg">
 			<div className="flex items-center justify-between bg-muted p-2">
-				<span className={`text-sm leading-none uppercase font-bold ${
-					isLoading ? "text-muted-foreground" : "text-background"
-				}`}>
+				<span
+					className={`text-sm leading-none uppercase font-bold ${
+						isLoading ? "text-muted-foreground" : "text-background"
+					}`}
+				>
 					{getHeaderText()}
 				</span>
 				{code && !isLoading && (

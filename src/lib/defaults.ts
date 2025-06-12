@@ -1,4 +1,3 @@
-// Default profiles to prevent invalid application state and for database seeding
 export const DEFAULT_PROFILES = [
 	{
 		name: "Balanced",
@@ -29,7 +28,6 @@ export const DEFAULT_PROFILES = [
 	},
 ];
 
-// Default modes to prevent invalid application state and for database seeding
 export const DEFAULT_MODES = [
 	{
 		slug: "general",

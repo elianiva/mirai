@@ -165,7 +165,6 @@ export function ModeSettings(props: ModeSettingsProps) {
 									const nameValue = e.target.value;
 									field.handleChange(nameValue);
 
-									// Auto-update the slug field with a slugified version of the name
 									if (nameValue) {
 										const slugifiedName = slugify(nameValue);
 										form.setFieldValue("slug", slugifiedName);

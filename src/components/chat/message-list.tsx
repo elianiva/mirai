@@ -32,20 +32,17 @@ export function MessageList(props: MessageListProps) {
 	const prevMessageCountRef = useRef(0);
 	const isInitialMount = useRef(true);
 
-	// Scroll to bottom when new messages arrive or autoScroll is enabled
 	useEffect(() => {
 		const currentMessageCount = props.messages?.length || 0;
 		const hasNewMessage = currentMessageCount > prevMessageCountRef.current;
 		const lastMessage = props.messages?.[props.messages.length - 1];
 		const isStreaming = lastMessage?.metadata?.isStreaming;
 
-		// Scroll on initial mount, when new messages arrive, or when streaming
 		if (
 			(isInitialMount.current && currentMessageCount > 0) ||
 			(hasNewMessage && props.autoScroll) ||
 			(isStreaming && props.autoScroll)
 		) {
-			// Use requestAnimationFrame to ensure DOM has updated
 			requestAnimationFrame(() => {
 				const scrollContainer = scrollAreaRef.current?.querySelector(
 					'[data-slot="scroll-area-viewport"]',
@@ -64,7 +61,6 @@ export function MessageList(props: MessageListProps) {
 		prevMessageCountRef.current = currentMessageCount;
 	}, [props.messages, props.autoScroll]);
 
-	// Handle scroll detection
 	useEffect(() => {
 		const scrollContainer = scrollAreaRef.current?.querySelector(
 			'[data-slot="scroll-area-viewport"]',
@@ -95,7 +91,6 @@ export function MessageList(props: MessageListProps) {
 							onRegenerate={props.onRegenerate}
 							onCreateBranch={props.onCreateBranch}
 						/>
-						{/* Show branch indicator after assistant messages */}
 						{msg.type === "assistant" && index < props.messages.length - 1 && (
 							<div className="ml-4 mt-1">
 								<BranchIndicator

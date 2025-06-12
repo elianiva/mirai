@@ -21,7 +21,6 @@ type ChatAreaPanelProps = {
 	threadId: Id<"threads">;
 	onThreadClick: (threadId: Id<"threads">) => void;
 	isStreaming?: boolean;
-	onStopStreaming: () => void;
 };
 
 export function ChatAreaPanel(props: ChatAreaPanelProps) {

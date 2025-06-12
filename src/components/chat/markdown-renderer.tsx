@@ -44,7 +44,6 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 		<ReactMarkdown
 			remarkPlugins={[remarkGfm]}
 			components={{
-				// Custom components for better styling
 				p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
 				h1: ({ children }) => (
 					<h1 className="text-2xl font-bold mb-4 mt-6 first:mt-0">

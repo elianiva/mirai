@@ -113,7 +113,6 @@ export function useOpenRouterModels() {
 	});
 }
 
-// Mutation hooks
 export type CreateProfileData = {
 	slug: string;
 	name: string;
