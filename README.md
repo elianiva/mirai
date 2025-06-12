@@ -40,6 +40,18 @@ Thankfully, it's super easy to do!
 - Tanstack Form
 - Convex DB
 - shadcn/ui
+- Vercel AI SDK
+- Clerk
+
+## Features
+
+- Quick navigation (thanks to local storage caching)
+- Smooth and resumable stream (thanks to convex)
+- Create modes and profiles (see how it works in [roocode.com](https://roocode.com))
+- Remote MCP support
+- Attachments
+- Good markdown rendering
+- LaTeX support
 
 ## Contributing
 

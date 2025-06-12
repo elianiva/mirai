@@ -2,9 +2,13 @@ import { useLLMOutput, type BlockMatch } from "@llm-ui/react";
 import { markdownLookBack } from "@llm-ui/markdown";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { memo } from "react";
 import { codeBlock } from "./code-block";
 import { CopyIcon } from "lucide-react";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 
 type MarkdownRendererProps = {
 	content: string;
@@ -42,7 +46,8 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(
 function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 	return (
 		<ReactMarkdown
-			remarkPlugins={[remarkGfm]}
+			remarkPlugins={[remarkGfm, remarkMath]}
+			rehypePlugins={[rehypeKatex]}
 			components={{
 				p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
 				h1: ({ children }) => (
@@ -137,6 +142,39 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 					<strong className="font-semibold">{children}</strong>
 				),
 				em: ({ children }) => <em className="italic">{children}</em>,
+				span: ({ className, children, ...props }) => {
+					if (className === "math math-inline") {
+						try {
+							const html = katex.renderToString(children as string, {
+								throwOnError: false,
+								displayMode: false,
+							});
+							return <span dangerouslySetInnerHTML={{ __html: html }} />;
+						} catch {
+							return <span>{children}</span>;
+						}
+					}
+					return <span className={className} {...props}>{children}</span>;
+				},
+				div: ({ className, children, ...props }) => {
+					if (className === "math math-display") {
+						try {
+							const html = katex.renderToString(children as string, {
+								throwOnError: false,
+								displayMode: true,
+							});
+							return (
+								<div
+									className="my-3"
+									dangerouslySetInnerHTML={{ __html: html }}
+								/>
+							);
+						} catch {
+							return <div className="my-3">{children}</div>;
+						}
+					}
+					return <div className={className} {...props}>{children}</div>;
+				},
 			}}
 		>
 			{blockMatch.output}
