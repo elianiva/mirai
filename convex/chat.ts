@@ -504,40 +504,83 @@ export const createBranch = mutation({
 			throw new Error("Parent message not found");
 		}
 
+		// Get the original thread to copy its title
+		const originalThread = await ctx.db.get(parentMessage.threadId);
+		if (!originalThread) {
+			throw new Error("Original thread not found");
+		}
+
+		// Create a new thread for the branch
+		const newThreadId = await ctx.db.insert("threads", {
+			title: `${originalThread.title} (Branch)`,
+		});
+
 		const branchId = `branch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
+		// Get all messages from the original thread
 		const allMessages = await ctx.db
 			.query("messages")
 			.withIndex("by_thread", (q) => q.eq("threadId", parentMessage.threadId))
 			.order("asc")
 			.collect();
 
-		const parentIndex = allMessages.findIndex(
+		// Get active branch messages up to and including the parent message
+		const activeBranchMessages = await getActiveBranchMessages(
+			ctx,
+			parentMessage.threadId,
+			parentMessage.branchId
+		);
+
+		// Find the parent message index in the active branch
+		const parentIndex = activeBranchMessages.findIndex(
 			(msg) => msg._id === args.parentMessageId,
 		);
-		const messagesToBranch = allMessages.slice(parentIndex + 1);
 
-		for (const msg of messagesToBranch) {
-			await ctx.db.insert("messages", {
-				threadId: msg.threadId,
+		if (parentIndex === -1) {
+			throw new Error("Parent message not found in active branch");
+		}
+
+		// Copy all messages up to and including the parent message
+		const messagesToCopy = activeBranchMessages.slice(0, parentIndex + 1);
+		const messageIdMap = new Map<Id<"messages">, Id<"messages">>();
+
+		// Copy messages to the new thread
+		for (let i = 0; i < messagesToCopy.length; i++) {
+			const msg = messagesToCopy[i];
+			
+			// Determine the parent message ID for the copied message
+			let newParentMessageId: Id<"messages"> | undefined;
+			if (msg.parentMessageId && messageIdMap.has(msg.parentMessageId)) {
+				newParentMessageId = messageIdMap.get(msg.parentMessageId);
+			}
+
+			const newMessageId = await ctx.db.insert("messages", {
+				threadId: newThreadId,
 				senderId: msg.senderId,
 				content: msg.content,
 				type: msg.type,
 				metadata: msg.metadata,
-				parentMessageId:
-					msg._id === messagesToBranch[0]._id
-						? args.parentMessageId
-						: undefined,
-				branchId,
+				parentMessageId: newParentMessageId,
+				branchId: undefined, // Start fresh in the new thread
 				isActiveBranch: true,
 			});
+
+			// Store the mapping for parent-child relationships
+			messageIdMap.set(msg._id, newMessageId);
 		}
 
-		for (const msg of messagesToBranch) {
-			await ctx.db.patch(msg._id, { isActiveBranch: false });
-		}
+		// Store the original thread and parent message info for tracking
+		const branchMetadata = {
+			originalThreadId: parentMessage.threadId,
+			originalParentMessageId: args.parentMessageId,
+			originalBranchId: parentMessage.branchId,
+		};
 
-		return { branchId, threadId: parentMessage.threadId };
+		return {
+			branchId,
+			threadId: newThreadId,
+			branchMetadata
+		};
 	},
 });
 

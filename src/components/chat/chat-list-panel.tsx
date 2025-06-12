@@ -15,7 +15,7 @@ import {
 import { UserProfileSection } from "./user-profile-section";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, GitFork } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
 import {
@@ -183,7 +183,12 @@ export function ChatListPanel(props: ChatListPanelProps) {
 														onClick={(e) => e.stopPropagation()}
 													/>
 												) : (
-													<span>{thread.title || "New Chat"}</span>
+													<span className="flex items-center">
+														{thread.parentId && (
+															<GitFork className="h-4 w-4 mr-2" />
+														)}
+														{thread.title || "New Chat"}
+													</span>
 												)}
 											</Button>
 										</SidebarMenuButton>

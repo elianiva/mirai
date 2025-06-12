@@ -55,7 +55,7 @@ export function ChatInput(props: ChatInputProps) {
 		props.message.trim() && !props.isLoading && props.selectedModeId;
 
 	return (
-		<div className="mx-auto max-w-4xl bg-sidebar border-4 border-secondary/50 border-b-0 transition-all duration-200">
+		<div className="rounded-t mx-auto max-w-4xl bg-sidebar border-4 border-secondary/50 border-b-0 transition-all duration-200">
 			<Textarea
 				value={props.message}
 				onChange={(e) => props.onMessageChange(e.target.value)}

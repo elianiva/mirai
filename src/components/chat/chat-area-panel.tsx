@@ -119,8 +119,8 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 				parentMessageId,
 			});
 
-			if (result.branchId) {
-				setCurrentBranchId(result.branchId);
+			if (result.threadId) {
+				navigate({ to: "/$threadId", params: { threadId: result.threadId } });
 			}
 		} catch (error) {
 			console.error("Failed to create branch:", error);

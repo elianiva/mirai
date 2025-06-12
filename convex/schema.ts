@@ -28,6 +28,7 @@ const schema = defineSchema({
 	}),
 	threads: defineTable({
 		title: v.string(),
+		parentId: v.optional(v.id("threads")),
 	}),
 	messages: defineTable({
 		threadId: v.id("threads"),

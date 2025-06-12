@@ -6,10 +6,11 @@ function loadFromLocalStorage<T>(key: string): T | undefined {
 		}
 		return JSON.parse(item) as T;
 	} catch (error) {
-		console.warn(
-			`Failed to load data from localStorage for key "${key}":`,
-			error,
-		);
+		// TODO: this is annoying, but could be useful for debugging
+		// console.warn(
+		// 	`Failed to load data from localStorage for key "${key}":`,
+		// 	error,
+		// );
 		return undefined;
 	}
 }

@@ -149,12 +149,17 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 								throwOnError: false,
 								displayMode: false,
 							});
+							// biome-ignore lint/security/noDangerouslySetInnerHtml: latex is safe
 							return <span dangerouslySetInnerHTML={{ __html: html }} />;
 						} catch {
 							return <span>{children}</span>;
 						}
 					}
-					return <span className={className} {...props}>{children}</span>;
+					return (
+						<span className={className} {...props}>
+							{children}
+						</span>
+					);
 				},
 				div: ({ className, children, ...props }) => {
 					if (className === "math math-display") {
@@ -166,6 +171,7 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 							return (
 								<div
 									className="my-3"
+									// biome-ignore lint/security/noDangerouslySetInnerHtml: latex is safe
 									dangerouslySetInnerHTML={{ __html: html }}
 								/>
 							);
@@ -173,7 +179,11 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 							return <div className="my-3">{children}</div>;
 						}
 					}
-					return <div className={className} {...props}>{children}</div>;
+					return (
+						<div className={className} {...props}>
+							{children}
+						</div>
+					);
 				},
 			}}
 		>
