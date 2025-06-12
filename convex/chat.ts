@@ -289,12 +289,17 @@ export const streamResponse = action({
 		const { messageId, userName, messages, profile, mode } = args;
 
 		try {
+			// Check if OpenRouter key is required for this model
+			if (!args.openrouterKey || args.openrouterKey.trim() === "") {
+				throw new Error("OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.");
+			}
+
 			const accountSettings = await ctx.runQuery(
 				api.accountSettings.getAccountSettings,
 			);
 
 			const { textStream } = streamText({
-				model: getChatModel(profile.model),
+				model: getChatModel(profile.model, args.openrouterKey),
 				system: buildSystemPrompt({
 					user_name: accountSettings.name || userName,
 					model: mode.model,

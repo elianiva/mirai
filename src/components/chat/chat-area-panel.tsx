@@ -55,6 +55,11 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			return;
 		}
 
+		if (!openrouterKey || openrouterKey.trim() === "") {
+			alert("OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.");
+			return;
+		}
+
 		setIsLoading(true);
 		setAutoScroll(true);
 		try {
@@ -77,6 +82,9 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			setMessage("");
 		} catch (error) {
 			console.error("Failed to send message:", error);
+			if (error instanceof Error && error.message.includes("OpenRouter API key")) {
+				alert("OpenRouter API key is required. Please add your API key in the account settings.");
+			}
 		} finally {
 			setIsLoading(false);
 		}
@@ -100,13 +108,21 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 				}
 			}
 
+			if (!openrouterKey || openrouterKey.trim() === "") {
+				alert("OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.");
+				return;
+			}
+
 			await regenerateMessage({
 				messageId: messageId,
 				modeId: modeId,
-				openrouterKey: openrouterKey || undefined,
+				openrouterKey: openrouterKey,
 			});
 		} catch (error) {
 			console.error("Failed to regenerate message:", error);
+			if (error instanceof Error && error.message.includes("OpenRouter API key")) {
+				alert("OpenRouter API key is required. Please add your API key in the account settings.");
+			}
 		} finally {
 			setIsLoading(false);
 		}

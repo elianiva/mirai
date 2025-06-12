@@ -45,11 +45,12 @@ export function AccountSettings() {
 			openrouterKey: "" as string | undefined,
 		},
 		onSubmit: async ({ value }) => {
-			if (value.openrouterKey) {
-				await encryptAndStore(user?.id || "", value.openrouterKey);
-			} else {
-				localStorage.removeItem("openrouter-key");
+			if (!value.openrouterKey || value.openrouterKey.trim() === "") {
+				toast.error("OpenRouter API key is required");
+				return;
 			}
+
+			await encryptAndStore(user?.id || "", value.openrouterKey);
 
 			toast.promise(
 				updateAccountSettings({
@@ -193,9 +194,20 @@ export function AccountSettings() {
 			<div className="space-y-2">
 				<form.Field
 					name="openrouterKey"
+					validators={{
+						onChange: ({ value }) => {
+							if (!value || value.trim() === "") {
+								return "OpenRouter API key is required to use OpenRouter models";
+							}
+							if (!value.startsWith("sk-or-")) {
+								return "OpenRouter API key should start with 'sk-or-'";
+							}
+							return undefined;
+						},
+					}}
 					children={(field) => (
 						<>
-							<Label htmlFor={field.name}>OpenRouter Key (Optional)</Label>
+							<Label htmlFor={field.name}>OpenRouter Key (Required)</Label>
 							<Input
 								id={field.name}
 								name={field.name}
@@ -207,6 +219,7 @@ export function AccountSettings() {
 									field.handleChange(e.target.value);
 								}}
 								placeholder="sk-or-..."
+								required
 							/>
 							{field.state.meta.errors.length > 0 ? (
 								<em className="text-xs text-destructive my-0">
@@ -214,7 +227,7 @@ export function AccountSettings() {
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground">
-								Your OpenRouter API key. Stored encrypted in your browser.
+								Your OpenRouter API key is required to use OpenRouter models. Stored encrypted in your browser.
 							</p>
 						</>
 					)}

@@ -1,9 +1,11 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
-export const openrouter = createOpenRouter({
-	apiKey: process.env.OPENROUTER_API_KEY,
-	baseURL: process.env.OPENROUTER_BASE_URL,
-});
+function createOpenRouterInstance(apiKey?: string) {
+	return createOpenRouter({
+		apiKey: apiKey || "",
+		baseURL: "https://openrouter.ai/api/v1",
+	});
+}
 
 const SYSTEM_PROMPT = `
 <system_info>
@@ -47,4 +49,7 @@ export function buildSystemPrompt(extra: PromptExtra) {
 	return prompt;
 }
 
-export const getChatModel = (modelId: string) => openrouter.chat(modelId);
+export const getChatModel = (modelId: string, apiKey?: string) => {
+	const openrouter = createOpenRouterInstance(apiKey);
+	return openrouter.chat(modelId);
+};
