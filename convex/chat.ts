@@ -551,6 +551,114 @@ export const updateThreadTitle = internalMutation({
 	},
 });
 
+// New helper functions for HTTP streaming
+
+export const getMode = internalQuery({
+	args: {
+		modeId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.modeId as Id<"modes">);
+	},
+});
+
+export const getProfile = internalQuery({
+	args: {
+		profileId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db.get(args.profileId as Id<"profiles">);
+	},
+});
+
+export const saveChatMessages = internalMutation({
+	args: {
+		threadId: v.optional(v.id("threads")),
+		userMessage: v.string(),
+		assistantMessage: v.string(),
+		modeId: v.string(),
+		parentMessageId: v.optional(v.id("messages")),
+		branchId: v.optional(v.string()),
+		userId: v.string(),
+		userName: v.string(),
+		openrouterKey: v.string(),
+	},
+	handler: async (ctx, args) => {
+		let {
+			threadId,
+			userMessage,
+			assistantMessage,
+			modeId,
+			parentMessageId,
+			branchId,
+			userId,
+			userName,
+			openrouterKey,
+		} = args;
+
+		// Create thread if it doesn't exist
+		if (!threadId) {
+			threadId = await ctx.db.insert("threads", {
+				title: userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : ""),
+			});
+
+			// Schedule title generation
+			await ctx.scheduler.runAfter(0, internal.chat.generateThreadTitle, {
+				threadId,
+				message: userMessage,
+				openrouterKey,
+			});
+		}
+
+		// Handle branching logic
+		if (parentMessageId && !branchId) {
+			branchId = `branch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+		}
+
+		if (parentMessageId && branchId) {
+			const siblingMessages = await ctx.db
+				.query("messages")
+				.withIndex("by_parent", (q) => q.eq("parentMessageId", parentMessageId))
+				.collect();
+
+			for (const sibling of siblingMessages) {
+				if (sibling.branchId !== branchId) {
+					await ctx.db.patch(sibling._id, { isActiveBranch: false });
+				}
+			}
+		}
+
+		// Insert user message
+		const userMessageId = await ctx.db.insert("messages", {
+			threadId,
+			senderId: userId,
+			content: userMessage,
+			type: "user",
+			metadata: { modeId },
+			parentMessageId,
+			branchId,
+			isActiveBranch: true,
+		});
+
+		// Insert assistant message
+		const assistantMessageId = await ctx.db.insert("messages", {
+			threadId,
+			senderId: "assistant",
+			content: assistantMessage,
+			type: "assistant",
+			metadata: {
+				modeId,
+				isStreaming: false,
+			},
+			parentMessageId: userMessageId,
+			branchId,
+			isActiveBranch: true,
+		});
+
+		return { threadId, userMessageId, assistantMessageId, branchId };
+	},
+});
+
 export const createBranch = mutation({
 	args: {
 		parentMessageId: v.id("messages"),

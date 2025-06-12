@@ -16,7 +16,7 @@ import { retrieveAndDecrypt } from "~/lib/utils/crypto";
 type ChatInputProps = {
 	message: string;
 	onMessageChange: (message: string) => void;
-	onSendMessage: (openrouterKey?: string) => void;
+	onSendMessage: () => void;
 	onStopStreaming: () => void;
 	isLoading: boolean;
 	isStreaming: boolean;
@@ -47,7 +47,7 @@ export function ChatInput(props: ChatInputProps) {
 	function handleKeyDown(e: React.KeyboardEvent) {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
-			props.onSendMessage(openrouterKey || undefined);
+			props.onSendMessage();
 		}
 	}
 
@@ -86,7 +86,7 @@ export function ChatInput(props: ChatInputProps) {
 							onClick={() =>
 								props.isStreaming
 									? props.onStopStreaming()
-									: props.onSendMessage(openrouterKey || undefined)
+									: props.onSendMessage()
 							}
 							disabled={!canSend && !props.isStreaming}
 							size="sm"

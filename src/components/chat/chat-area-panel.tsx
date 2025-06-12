@@ -1,14 +1,11 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
-import { useState } from "react";
-import {
-	useMessages,
-	useRegenerateMessage,
-	useSendMessage,
-} from "~/lib/query/messages";
+import { useState, useEffect } from "react";
+import { useMessages } from "~/lib/query/messages";
 import { useModes } from "~/lib/query/mode";
 import { useUser } from "~/lib/query/user";
-import { useChat } from "~/lib/hooks/use-chat";
+import { useChat } from "@ai-sdk/react";
+import type { Message } from "ai";
 import { ChatInput } from "./chat-input";
 import { BranchTimeline } from "./branch-timeline";
 import { useMutation } from "convex/react";
@@ -34,24 +31,65 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		setSelectedModeId(modes[0]._id);
 	}
 
-	const [message, setMessage] = useState("");
-	const [isLoading, setIsLoading] = useState(false);
 	const [autoScroll, setAutoScroll] = useState(true);
+	const [openrouterKey, setOpenrouterKey] = useState<string | null>(null);
 
 	const { data: user } = useUser();
-	const { stopStreaming } = useChat({
-		modeId: selectedModeId,
-		threadId: threadId !== "new" ? threadId : undefined,
-		branchId: currentBranchId,
-	});
-
-	const sendMessage = useSendMessage();
-	const messages = useMessages(threadId);
-	const regenerateMessage = useRegenerateMessage();
+	const messagesFromDB = useMessages(threadId);
 	const createBranch = useMutation(api.chat.createBranch);
 
-	async function handleSendMessage(openrouterKey?: string) {
-		if (!message.trim() || isLoading || !selectedModeId) {
+	// Load OpenRouter key
+	useEffect(() => {
+		async function loadOpenrouterKey() {
+			if (!user?.id) return;
+
+			try {
+				const decryptedKey = await retrieveAndDecrypt(user.id);
+				setOpenrouterKey(decryptedKey);
+			} catch (error) {
+				console.debug("No OpenRouter key found or failed to decrypt");
+				setOpenrouterKey(null);
+			}
+		}
+
+		loadOpenrouterKey();
+	}, [user?.id]);
+
+	// Convert DB messages to AI SDK format
+	const initialMessages: Message[] = messagesFromDB?.map((msg) => ({
+		id: msg._id,
+		role: msg.type as "user" | "assistant",
+		content: msg.content,
+	})) || [];
+
+	// Use AI SDK's useChat hook
+	const {
+		messages,
+		input,
+		handleInputChange,
+		handleSubmit,
+		isLoading,
+		reload,
+		stop,
+	} = useChat({
+		api: `${import.meta.env.VITE_CONVEX_URL}/api/chat`,
+		initialMessages,
+		body: {
+			modeId: selectedModeId,
+			branchId: currentBranchId,
+			threadId: threadId !== "new" ? threadId : undefined,
+			openrouterKey,
+		},
+		id: threadId === "new" ? undefined : threadId,
+	});
+
+	// Wrapper function to handle input change with string parameter
+	const handleMessageChange = (message: string) => {
+		handleInputChange({ target: { value: message } } as React.ChangeEvent<HTMLInputElement>);
+	};
+
+	async function handleSendMessage() {
+		if (!input.trim() || isLoading || !selectedModeId) {
 			return;
 		}
 
@@ -60,34 +98,10 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			return;
 		}
 
-		setIsLoading(true);
 		setAutoScroll(true);
-		try {
-			const result = await sendMessage({
-				threadId: threadId === "new" ? undefined : threadId,
-				modeId: selectedModeId,
-				message: message.trim(),
-				branchId: currentBranchId,
-				openrouterKey,
-			});
-
-			if (threadId === "new" && result.threadId) {
-				navigate({ to: "/$threadId", params: { threadId: result.threadId } });
-			}
-
-			if (result.branchId) {
-				setCurrentBranchId(result.branchId);
-			}
-
-			setMessage("");
-		} catch (error) {
-			console.error("Failed to send message:", error);
-			if (error instanceof Error && error.message.includes("OpenRouter API key")) {
-				alert("OpenRouter API key is required. Please add your API key in the account settings.");
-			}
-		} finally {
-			setIsLoading(false);
-		}
+		
+		// The useChat hook will handle the submission
+		handleSubmit();
 	}
 
 	async function handleRegenerate(
@@ -96,40 +110,18 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	) {
 		if (!threadId || threadId === "new") return;
 
-		setIsLoading(true);
-		setAutoScroll(true);
-		try {
-			let openrouterKey: string | null = null;
-			if (user?.id) {
-				try {
-					openrouterKey = await retrieveAndDecrypt(user.id);
-				} catch (error) {
-					console.debug("No OpenRouter key found or failed to decrypt");
-				}
-			}
-
-			if (!openrouterKey || openrouterKey.trim() === "") {
-				alert("OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.");
-				return;
-			}
-
-			await regenerateMessage({
-				messageId: messageId,
-				modeId: modeId,
-				openrouterKey: openrouterKey,
-			});
-		} catch (error) {
-			console.error("Failed to regenerate message:", error);
-			if (error instanceof Error && error.message.includes("OpenRouter API key")) {
-				alert("OpenRouter API key is required. Please add your API key in the account settings.");
-			}
-		} finally {
-			setIsLoading(false);
+		if (!openrouterKey || openrouterKey.trim() === "") {
+			alert("OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.");
+			return;
 		}
+
+		setAutoScroll(true);
+		
+		// Use the reload function from useChat hook
+		reload();
 	}
 
 	async function handleCreateBranch(parentMessageId: Id<"messages">) {
-		setIsLoading(true);
 		try {
 			const result = await createBranch({
 				parentMessageId,
@@ -140,8 +132,6 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			}
 		} catch (error) {
 			console.error("Failed to create branch:", error);
-		} finally {
-			setIsLoading(false);
 		}
 	}
 
@@ -159,7 +149,13 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 					<EmptyState userName={user?.firstName ?? undefined} />
 				) : (
 					<MessageList
-						messages={messages}
+						messages={messagesFromDB?.map(msg => ({
+							...msg,
+							metadata: msg.metadata ? {
+								...msg.metadata,
+								profileId: msg.metadata.profileId as Id<"profiles"> | undefined
+							} : undefined
+						})) || []}
 						userId={user?.id || ""}
 						threadId={threadId}
 						currentBranchId={currentBranchId}
@@ -173,12 +169,12 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			</div>
 			<div className="flex-shrink-0">
 				<ChatInput
-					message={message}
-					onMessageChange={setMessage}
+					message={input}
+					onMessageChange={handleMessageChange}
 					onSendMessage={handleSendMessage}
-					onStopStreaming={stopStreaming}
+					onStopStreaming={stop}
 					isLoading={isLoading}
-					isStreaming={props.isStreaming ?? false}
+					isStreaming={isLoading}
 					selectedModeId={selectedModeId}
 					onModeSelect={setSelectedModeId}
 					userId={user?.id}

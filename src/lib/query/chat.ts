@@ -56,14 +56,5 @@ export function useBranches(threadId: Id<"threads">) {
 	);
 }
 
-export function useSendMessage() {
-	return useMutation(api.chat.sendMessage);
-}
-
-export function useRegenerateMessage() {
-	return useMutation(api.chat.regenerateMessage);
-}
-
-export function useStopStreaming() {
-	return useMutation(api.chat.stopStreaming);
-}
+// Note: useSendMessage, useRegenerateMessage, and useStopStreaming have been removed
+// as we now use the AI SDK's useChat hook for these operations
