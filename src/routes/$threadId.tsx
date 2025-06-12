@@ -46,11 +46,8 @@ export function ThreadPage() {
 			? ("new" as Id<"threads">)
 			: (params.threadId as Id<"threads">);
 	const thread = useThread(threadId);
-	// Only fetch parent thread if parentId exists, otherwise pass a dummy ID that won't match
-	const parentThreadId = thread?.parentId || ("dummy" as Id<"threads">);
-	const parentThreadResult = useThread(parentThreadId);
-	// Only use parent thread data if we actually have a valid parentId
-	const parentThread = thread?.parentId ? parentThreadResult : null;
+	const parentThreadId = thread?.parentId;
+	const parentThread = useThread(parentThreadId);
 	const messages = useMessages(threadId);
 	const isStreaming =
 		messages?.some((msg) => msg.metadata?.isStreaming) ?? false;
@@ -82,23 +79,47 @@ export function ThreadPage() {
 							<SidebarTrigger />
 							<Breadcrumb className="text-lg font-semibold font-serif">
 								<BreadcrumbList>
-									{thread?.parentId && parentThread ? (
-										<>
-											<BreadcrumbItem>
-												<BreadcrumbLink asChild>
-													<Link to="/$threadId" params={{ threadId: parentThread._id }}>
-														{parentThread.title}
-													</Link>
-												</BreadcrumbLink>
-											</BreadcrumbItem>
-											<BreadcrumbSeparator />
-											<BreadcrumbItem>
-												<BreadcrumbPage>{thread.title}</BreadcrumbPage>
-											</BreadcrumbItem>
-										</>
+									{thread?.parentId ? (
+										parentThread ? (
+											<>
+												<BreadcrumbItem>
+													<BreadcrumbLink asChild>
+														<Link
+															to="/$threadId"
+															params={{ threadId: parentThread._id }}
+														>
+															{parentThread.title || "Untitled"}
+														</Link>
+													</BreadcrumbLink>
+												</BreadcrumbItem>
+												<BreadcrumbSeparator />
+												<BreadcrumbItem>
+													<BreadcrumbPage>
+														{thread.title || "New Chat"}
+													</BreadcrumbPage>
+												</BreadcrumbItem>
+											</>
+										) : (
+											// Parent thread is loading or failed to load
+											<>
+												<BreadcrumbItem>
+													<BreadcrumbPage className="text-muted-foreground">
+														Loading parent...
+													</BreadcrumbPage>
+												</BreadcrumbItem>
+												<BreadcrumbSeparator />
+												<BreadcrumbItem>
+													<BreadcrumbPage>
+														{thread.title || "New Chat"}
+													</BreadcrumbPage>
+												</BreadcrumbItem>
+											</>
+										)
 									) : (
 										<BreadcrumbItem>
-											<BreadcrumbPage>{thread?.title || "New Chat"}</BreadcrumbPage>
+											<BreadcrumbPage>
+												{thread?.title || "New Chat"}
+											</BreadcrumbPage>
 										</BreadcrumbItem>
 									)}
 								</BreadcrumbList>

@@ -12,6 +12,11 @@ import {
 	SidebarMenuItem,
 	SidebarMenuSkeleton,
 } from "~/components/ui/sidebar";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "~/components/ui/popover";
 import { UserProfileSection } from "./user-profile-section";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -124,9 +129,16 @@ export function ChatListPanel(props: ChatListPanelProps) {
 			</SidebarHeader>
 
 			<SidebarContent>
-				<SidebarGroup>
-					<SidebarGroupLabel className="font-serif font-semibold text-base">
-						Your Conversations
+				<SidebarGroup className="gap-2 mt-2">
+					<SidebarGroupLabel className="font-serif">
+						<div className="w-full flex flex-col gap-1">
+							<h2 className="leading-none font-semibold text-base">
+								Your Conversations
+							</h2>
+							<small className="block text-xs text-muted-foreground text-left font-light">
+								Double click the title to edit
+							</small>
+						</div>
 					</SidebarGroupLabel>
 					<SidebarGroupContent>
 						{isLoading ? (
@@ -193,18 +205,6 @@ export function ChatListPanel(props: ChatListPanelProps) {
 											</Button>
 										</SidebarMenuButton>
 										<div className="absolute top-1.5 right-1 flex gap-1 opacity-0 group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 transition-opacity">
-											<SidebarMenuAction
-												onClick={(e) => {
-													e.stopPropagation();
-													handleDoubleClick(
-														thread._id,
-														thread.title || "New Chat",
-													);
-												}}
-												className="relative top-0 right-0"
-											>
-												<Pencil className="h-4 w-4 text-muted" />
-											</SidebarMenuAction>
 											<SidebarMenuAction
 												onClick={(e) => handleDeleteThread(thread._id, e)}
 												className="relative top-0 right-0"

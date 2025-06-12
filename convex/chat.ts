@@ -513,6 +513,7 @@ export const createBranch = mutation({
 		// Create a new thread for the branch
 		const newThreadId = await ctx.db.insert("threads", {
 			title: `${originalThread.title} (Branch)`,
+			parentId: parentMessage.threadId,
 		});
 
 		const branchId = `branch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

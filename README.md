@@ -52,6 +52,7 @@ Thankfully, it's super easy to do!
 - Attachments
 - Good markdown rendering
 - LaTeX support
+- Chat branching with hierarchical history
 
 ## Contributing
 

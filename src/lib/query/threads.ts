@@ -58,10 +58,11 @@ export function useThreads() {
 	return result !== undefined ? result : cachedData;
 }
 
-export function useThread(id: Id<"threads">) {
+export function useThread(id: Id<"threads"> | undefined) {
+	const hasId = id !== undefined && id !== "new";
 	const cacheKey = `thread-${id}`;
 	const [cachedData, setCachedData] = useState(() =>
-		id !== "new" ? loadFromLocalStorage<Doc<"threads">>(cacheKey) : undefined,
+		hasId ? loadFromLocalStorage<Doc<"threads">>(cacheKey) : undefined,
 	);
 
 	useEffect(() => {
@@ -73,7 +74,7 @@ export function useThread(id: Id<"threads">) {
 		}
 	}, [id, cacheKey]);
 
-	const result = useQuery(api.threads.getById, id !== "new" ? { id } : "skip");
+	const result = useQuery(api.threads.getById, hasId ? { id } : "skip");
 
 	useEffect(() => {
 		if (result !== undefined && id !== "new") {
