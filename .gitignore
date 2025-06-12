@@ -22,3 +22,5 @@ yarn.lock
 /playwright/.cache/
 
 .env.local
+.tanstack
+.nitro
