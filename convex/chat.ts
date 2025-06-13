@@ -571,11 +571,10 @@ export const getProfile = internalQuery({
 	},
 });
 
-export const saveChatMessages = internalMutation({
+export const saveUserMessage = internalMutation({
 	args: {
 		threadId: v.optional(v.id("threads")),
 		userMessage: v.string(),
-		assistantMessage: v.string(),
 		modeId: v.string(),
 		parentMessageId: v.optional(v.id("messages")),
 		branchId: v.optional(v.string()),
@@ -587,7 +586,6 @@ export const saveChatMessages = internalMutation({
 		let {
 			threadId,
 			userMessage,
-			assistantMessage,
 			modeId,
 			parentMessageId,
 			branchId,
@@ -640,22 +638,93 @@ export const saveChatMessages = internalMutation({
 			isActiveBranch: true,
 		});
 
-		// Insert assistant message
+		return { threadId, userMessageId, branchId };
+	},
+});
+
+export const createAssistantMessage = internalMutation({
+	args: {
+		threadId: v.id("threads"),
+		modeId: v.string(),
+		parentMessageId: v.id("messages"),
+		branchId: v.optional(v.string()),
+		userId: v.string(),
+		userName: v.string(),
+		openrouterKey: v.string(),
+		modelName: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const {
+			threadId,
+			modeId,
+			parentMessageId,
+			branchId,
+			userId,
+			userName,
+			openrouterKey,
+			modelName,
+		} = args;
+
 		const assistantMessageId = await ctx.db.insert("messages", {
 			threadId,
 			senderId: "assistant",
-			content: assistantMessage,
+			content: "",
 			type: "assistant",
 			metadata: {
 				modeId,
-				isStreaming: false,
+				isStreaming: true,
+				modelName,
 			},
-			parentMessageId: userMessageId,
+			parentMessageId,
 			branchId,
 			isActiveBranch: true,
 		});
 
-		return { threadId, userMessageId, assistantMessageId, branchId };
+		return assistantMessageId;
+	},
+});
+
+export const appendAssistantMessageContent = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		chunk: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const { messageId, chunk } = args;
+
+		const message = await ctx.db.get(messageId);
+		if (!message) {
+			throw new Error("Message not found");
+		}
+
+		await ctx.db.patch(messageId, {
+			content: message.content + chunk,
+		});
+	},
+});
+
+export const finalizeAssistantMessage = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		finalContent: v.string(),
+		finishReason: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const { messageId, finalContent, finishReason } = args;
+
+		const message = await ctx.db.get(messageId);
+		if (!message) {
+			throw new Error("Message not found");
+		}
+
+		await ctx.db.patch(messageId, {
+			content: finalContent,
+			metadata: {
+				...message.metadata,
+				isStreaming: false,
+				finishReason,
+			},
+		});
 	},
 });
 

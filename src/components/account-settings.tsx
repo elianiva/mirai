@@ -8,41 +8,22 @@ import {
 	useAccountSettings,
 	useUpdateAccountSettings,
 } from "~/lib/query/account-settings";
-import { updateAccountSettingsSchema } from "~/lib/functions/account-settings";
 import { useUser } from "~/lib/query/user";
 import { toast } from "sonner";
-import { encryptAndStore, retrieveAndDecrypt } from "~/lib/utils/crypto";
-import { useEffect, useState } from "react";
+import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
 
 export function AccountSettings() {
 	const { data: user } = useUser();
 	const accountSettings = useAccountSettings();
 	const updateAccountSettings = useUpdateAccountSettings();
-
-	const [openrouterKey, setOpenrouterKey] = useState<string>("");
-
-	useEffect(() => {
-		async function loadOpenrouterKey() {
-			try {
-				const key = await retrieveAndDecrypt(user?.id || "");
-				if (key) {
-					setOpenrouterKey(key);
-				}
-			} catch (error) {
-				console.debug("No OpenRouter key found or failed to decrypt");
-			}
-		}
-		if (user?.id) {
-			loadOpenrouterKey();
-		}
-	}, [user?.id]);
+	const { openrouterKey, setOpenrouterKey } = useOpenrouterKey(user?.id);
 
 	const form = useForm({
 		defaultValues: {
 			name: accountSettings?.name ?? user?.firstName ?? "",
 			role: accountSettings?.role ?? "",
 			behavior: accountSettings?.behavior ?? "",
-			openrouterKey: "" as string | undefined,
+			openrouterKey: openrouterKey ?? "",
 		},
 		onSubmit: async ({ value }) => {
 			if (!value.openrouterKey || value.openrouterKey.trim() === "") {
@@ -50,7 +31,7 @@ export function AccountSettings() {
 				return;
 			}
 
-			await encryptAndStore(user?.id || "", value.openrouterKey);
+			await setOpenrouterKey(value.openrouterKey as string);
 
 			toast.promise(
 				updateAccountSettings({
@@ -212,10 +193,9 @@ export function AccountSettings() {
 								id={field.name}
 								name={field.name}
 								type="password"
-								value={openrouterKey}
+								value={field.state.value}
 								onBlur={field.handleBlur}
 								onChange={(e) => {
-									setOpenrouterKey(e.target.value);
 									field.handleChange(e.target.value);
 								}}
 								placeholder="sk-or-..."
@@ -227,7 +207,8 @@ export function AccountSettings() {
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground">
-								Your OpenRouter API key is required to use OpenRouter models. Stored encrypted in your browser.
+								Your OpenRouter API key is required to use OpenRouter models.
+								Stored encrypted in your browser.
 							</p>
 						</>
 					)}

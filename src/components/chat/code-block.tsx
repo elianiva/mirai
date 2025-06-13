@@ -48,17 +48,99 @@ const LANGUAGE_ALIASES: Record<string, string> = {
 
 const ALL_BUNDLED_LANGS = Object.keys(bundledLanguages) as BundledLanguage[];
 
-let highlighterInstance: Highlighter | null = null;
-const loadedLanguages = new Set<string>(ESSENTIAL_LANGS);
-const loadingLanguages = new Map<string, Promise<void>>();
+// Singleton highlighter management
+class HighlighterManager {
+	private static instance: HighlighterManager | null = null;
+	private highlighter: Highlighter | null = null;
+	private highlighterPromise: Promise<Highlighter> | null = null;
+	private loadedLanguages = new Set<string>(ESSENTIAL_LANGS);
+	private loadingLanguages = new Map<string, Promise<void>>();
 
-const highlighterPromise = createHighlighter({
-	themes: ["rose-pine-dawn"],
-	langs: ESSENTIAL_LANGS,
-}).then((h) => {
-	highlighterInstance = h;
-	return h;
-});
+	private constructor() {}
+
+	static getInstance(): HighlighterManager {
+		if (!HighlighterManager.instance) {
+			HighlighterManager.instance = new HighlighterManager();
+		}
+		return HighlighterManager.instance;
+	}
+
+	async getHighlighter(): Promise<Highlighter> {
+		if (this.highlighter) {
+			return this.highlighter;
+		}
+
+		if (!this.highlighterPromise) {
+			this.highlighterPromise = createHighlighter({
+				themes: ["rose-pine-dawn"],
+				langs: ESSENTIAL_LANGS,
+			}).then((h) => {
+				this.highlighter = h;
+				return h;
+			});
+		}
+
+		return this.highlighterPromise;
+	}
+
+	async loadLanguageIfNeeded(lang: string): Promise<boolean> {
+		const normalized = normalizeLanguage(lang);
+
+		if (this.loadedLanguages.has(normalized)) {
+			return true;
+		}
+
+		if (this.loadingLanguages.has(normalized)) {
+			await this.loadingLanguages.get(normalized);
+			return this.loadedLanguages.has(normalized);
+		}
+
+		const highlighter = await this.getHighlighter();
+
+		if (!isLanguageSupported(normalized)) {
+			console.warn(`Language not supported: ${lang} (normalized: ${normalized})`);
+			return false;
+		}
+
+		const loadingPromise = (async () => {
+			try {
+				await highlighter.loadLanguage(normalized as BundledLanguage);
+				this.loadedLanguages.add(normalized);
+				console.log(`Successfully loaded language: ${normalized}`);
+			} catch (error) {
+				console.error(`Failed to load language: ${normalized}`, error);
+				throw error;
+			} finally {
+				this.loadingLanguages.delete(normalized);
+			}
+		})();
+
+		this.loadingLanguages.set(normalized, loadingPromise);
+
+		try {
+			await loadingPromise;
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	isLanguageLoaded(lang: string): boolean {
+		return this.loadedLanguages.has(normalizeLanguage(lang));
+	}
+
+	dispose(): void {
+		if (this.highlighter) {
+			this.highlighter.dispose();
+			this.highlighter = null;
+			this.highlighterPromise = null;
+			this.loadedLanguages.clear();
+			this.loadingLanguages.clear();
+		}
+	}
+}
+
+const highlighterManager = HighlighterManager.getInstance();
 
 function normalizeLanguage(lang: string): string {
 	const normalized = lang.toLowerCase().trim();
@@ -70,52 +152,6 @@ function isLanguageSupported(lang: string): boolean {
 	return ALL_BUNDLED_LANGS.includes(normalized as BundledLanguage);
 }
 
-async function loadLanguageIfNeeded(lang: string): Promise<boolean> {
-	const normalized = normalizeLanguage(lang);
-
-	if (loadedLanguages.has(normalized)) {
-		return true;
-	}
-
-	if (loadingLanguages.has(normalized)) {
-		await loadingLanguages.get(normalized);
-		return loadedLanguages.has(normalized);
-	}
-
-	if (!highlighterInstance) {
-		console.error("Highlighter instance not available");
-		return false;
-	}
-
-	if (!isLanguageSupported(normalized)) {
-		console.warn(`Language not supported: ${lang} (normalized: ${normalized})`);
-		return false;
-	}
-
-	const loadingPromise = (async () => {
-		try {
-			if (highlighterInstance) {
-				await highlighterInstance.loadLanguage(normalized as BundledLanguage);
-			}
-			loadedLanguages.add(normalized);
-			console.log(`Successfully loaded language: ${normalized}`);
-		} catch (error) {
-			console.error(`Failed to load language: ${normalized}`, error);
-			throw error;
-		} finally {
-			loadingLanguages.delete(normalized);
-		}
-	})();
-
-	loadingLanguages.set(normalized, loadingPromise);
-
-	try {
-		await loadingPromise;
-		return true;
-	} catch {
-		return false;
-	}
-}
 
 function extractCodeFromBlock(markdownBlock: string): {
 	code: string;
@@ -158,17 +194,18 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 
 	const highlightCode = useCallback(
 		async (codeToHighlight: string, lang: string) => {
-			if (!highlighterInstance || !isMountedRef.current) {
+			if (!isMountedRef.current) {
 				return "";
 			}
 
 			try {
-				const loadedLangs = highlighterInstance.getLoadedLanguages();
+				const highlighter = await highlighterManager.getHighlighter();
+				const loadedLangs = highlighter.getLoadedLanguages();
 				const langToUse = loadedLangs.includes(lang as BundledLanguage)
 					? lang
 					: "text";
 
-				const html = highlighterInstance.codeToHtml(codeToHighlight, {
+				const html = highlighter.codeToHtml(codeToHighlight, {
 					lang: langToUse,
 					theme: "rose-pine-dawn",
 				});
@@ -196,7 +233,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 				return;
 			}
 
-			if (loadedLanguages.has(language)) {
+			if (highlighterManager.isLanguageLoaded(language)) {
 				const html = await highlightCode(code, language);
 				if (!cancelled && html) {
 					setHighlightedHtml(html);
@@ -207,7 +244,7 @@ function CodeBlockComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 			setIsLoading(true);
 
 			try {
-				const success = await loadLanguageIfNeeded(language);
+				const success = await highlighterManager.loadLanguageIfNeeded(language);
 				const langToUse = success ? language : "text";
 				const html = await highlightCode(code, langToUse);
 

@@ -104,7 +104,7 @@ export const Route = createRootRouteWithContext<{
 function RootComponent() {
 	const context = useRouteContext({ from: Route.id });
 	return (
-		<ClerkProvider>
+		<ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
 			<ConvexProviderWithClerk client={context.convexClient} useAuth={useAuth}>
 				<RootDocument>
 					<Outlet />

@@ -40,6 +40,8 @@ const schema = defineSchema({
 			modeId: v.optional(v.string()),
 			profileId: v.optional(v.string()),
 			reasoning: v.optional(v.string()),
+			modelName: v.optional(v.string()),
+			finishReason: v.optional(v.string()),
 		})),
 		parentMessageId: v.optional(v.id("messages")),
 		branchId: v.optional(v.string()),

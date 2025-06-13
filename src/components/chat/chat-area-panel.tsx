@@ -7,12 +7,25 @@ import { useUser } from "~/lib/query/user";
 import { useChat } from "@ai-sdk/react";
 import type { Message } from "ai";
 import { ChatInput } from "./chat-input";
-import { BranchTimeline } from "./branch-timeline";
 import { useMutation } from "convex/react";
 import { api } from "~/../convex/_generated/api";
 import { EmptyState } from "./empty-state";
 import { MessageList } from "./message-list";
-import { retrieveAndDecrypt } from "~/lib/utils/crypto";
+import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "~/components/ui/dialog";
+import { Button } from "~/components/ui/button";
+
+const CHAT_API_URL = `${import.meta.env.VITE_CONVEX_HTTP_URL}/api/chat`;
+const NEW_THREAD_ID = "new";
+const OPENROUTER_KEY_ERROR_MESSAGE =
+	"OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.";
 
 type ChatAreaPanelProps = {
 	threadId: Id<"threads">;
@@ -20,49 +33,45 @@ type ChatAreaPanelProps = {
 	isStreaming?: boolean;
 };
 
+function validateOpenrouterKey(openrouterKey: string | null): boolean {
+	return !!openrouterKey?.trim();
+}
+
 export function ChatAreaPanel(props: ChatAreaPanelProps) {
-	const threadId = props.threadId;
+	const { threadId } = props;
 	const navigate = useNavigate();
 	const modes = useModes();
-	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
-	const [currentBranchId, setCurrentBranchId] = useState<string>();
-
-	if (!selectedModeId && modes?.[0]?._id) {
-		setSelectedModeId(modes[0]._id);
-	}
-
-	const [autoScroll, setAutoScroll] = useState(true);
-	const [openrouterKey, setOpenrouterKey] = useState<string | null>(null);
-
 	const { data: user } = useUser();
+	const { openrouterKey } = useOpenrouterKey(user?.id);
 	const messagesFromDB = useMessages(threadId);
 	const createBranch = useMutation(api.chat.createBranch);
+	const regenerateMessage = useMutation(api.chat.regenerateMessage);
 
-	// Load OpenRouter key
+	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
+	const [currentBranchId, setCurrentBranchId] = useState<string>();
+	const [useConvexFallback, setUseConvexFallback] = useState(false);
+	const [autoScroll, setAutoScroll] = useState(true);
+	const [showOpenrouterDialog, setShowOpenrouterDialog] = useState(false);
+
+	function showOpenrouterKeyError(): void {
+		setShowOpenrouterDialog(true);
+	}
+
 	useEffect(() => {
-		async function loadOpenrouterKey() {
-			if (!user?.id) return;
-
-			try {
-				const decryptedKey = await retrieveAndDecrypt(user.id);
-				setOpenrouterKey(decryptedKey);
-			} catch (error) {
-				console.debug("No OpenRouter key found or failed to decrypt");
-				setOpenrouterKey(null);
-			}
+		if (!selectedModeId && modes?.[0]?._id) {
+			setSelectedModeId(modes[0]._id);
 		}
+	}, [modes, selectedModeId]);
 
-		loadOpenrouterKey();
-	}, [user?.id]);
+	const initialMessages: Message[] =
+		messagesFromDB?.map((msg) => ({
+			id: msg._id,
+			role: msg.type as "user" | "assistant",
+			content: msg.content,
+		})) || [];
 
-	// Convert DB messages to AI SDK format
-	const initialMessages: Message[] = messagesFromDB?.map((msg) => ({
-		id: msg._id,
-		role: msg.type as "user" | "assistant",
-		content: msg.content,
-	})) || [];
+	const isNewThread = threadId === NEW_THREAD_ID;
 
-	// Use AI SDK's useChat hook
 	const {
 		messages,
 		input,
@@ -72,35 +81,57 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		reload,
 		stop,
 	} = useChat({
-		api: `${import.meta.env.VITE_CONVEX_URL}/api/chat`,
+		api: CHAT_API_URL,
 		initialMessages,
 		body: {
 			modeId: selectedModeId,
 			branchId: currentBranchId,
-			threadId: threadId !== "new" ? threadId : undefined,
+			parentMessageId: undefined,
+			threadId: isNewThread ? undefined : threadId,
 			openrouterKey,
 		},
-		id: threadId === "new" ? undefined : threadId,
+		headers: {
+			Authorization: `Bearer ${user?.token}`,
+		},
+		id: isNewThread ? undefined : threadId,
+		onError: (error) => {
+			console.error("AI SDK streaming error:", error);
+			setUseConvexFallback(true);
+		},
 	});
 
-	// Wrapper function to handle input change with string parameter
-	const handleMessageChange = (message: string) => {
-		handleInputChange({ target: { value: message } } as React.ChangeEvent<HTMLInputElement>);
-	};
+	const displayMessages = useConvexFallback
+		? messagesFromDB
+		: messages.length > 0
+			? messages
+			: messagesFromDB;
+
+	const currentIsLoading = useConvexFallback ? false : isLoading;
+
+	useEffect(() => {
+		if (messages.length > 0 && useConvexFallback) {
+			setUseConvexFallback(false);
+		}
+	}, [messages.length, useConvexFallback]);
+
+	function handleMessageChange(message: string) {
+		handleInputChange({
+			target: { value: message },
+		} as React.ChangeEvent<HTMLInputElement>);
+	}
 
 	async function handleSendMessage() {
-		if (!input.trim() || isLoading || !selectedModeId) {
+		if (!input.trim() || currentIsLoading || !selectedModeId) {
 			return;
 		}
 
-		if (!openrouterKey || openrouterKey.trim() === "") {
-			alert("OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.");
+		if (!validateOpenrouterKey(openrouterKey)) {
+			showOpenrouterKeyError();
 			return;
 		}
 
 		setAutoScroll(true);
-		
-		// The useChat hook will handle the submission
+		setUseConvexFallback(false);
 		handleSubmit();
 	}
 
@@ -108,17 +139,24 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		messageId: Id<"messages">,
 		modeId: Id<"modes">,
 	) {
-		if (!threadId || threadId === "new") return;
+		if (isNewThread) return;
 
-		if (!openrouterKey || openrouterKey.trim() === "") {
-			alert("OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.");
+		if (!validateOpenrouterKey(openrouterKey)) {
+			showOpenrouterKeyError();
 			return;
 		}
 
-		setAutoScroll(true);
-		
-		// Use the reload function from useChat hook
-		reload();
+		try {
+			setAutoScroll(true);
+			setUseConvexFallback(true);
+			await regenerateMessage({
+				messageId,
+				modeId,
+				openrouterKey: openrouterKey || undefined,
+			});
+		} catch (error) {
+			console.error("Failed to regenerate message:", error);
+		}
 	}
 
 	async function handleCreateBranch(parentMessageId: Id<"messages">) {
@@ -135,27 +173,25 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		}
 	}
 
+	const transformedMessages =
+		messagesFromDB?.map((msg) => ({
+			...msg,
+			metadata: msg.metadata
+				? {
+						...msg.metadata,
+						profileId: msg.metadata.profileId as Id<"profiles"> | undefined,
+					}
+				: undefined,
+		})) || [];
+
 	return (
 		<div className="flex flex-col h-full bg-background">
-			{threadId !== "new" && (
-				<BranchTimeline
-					threadId={threadId}
-					currentBranchId={currentBranchId}
-					onBranchSwitch={setCurrentBranchId}
-				/>
-			)}
 			<div className="flex-1 min-h-0">
-				{!messages?.length ? (
+				{!displayMessages?.length ? (
 					<EmptyState userName={user?.firstName ?? undefined} />
 				) : (
 					<MessageList
-						messages={messagesFromDB?.map(msg => ({
-							...msg,
-							metadata: msg.metadata ? {
-								...msg.metadata,
-								profileId: msg.metadata.profileId as Id<"profiles"> | undefined
-							} : undefined
-						})) || []}
+						messages={transformedMessages}
 						userId={user?.id || ""}
 						threadId={threadId}
 						currentBranchId={currentBranchId}
@@ -173,13 +209,30 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 					onMessageChange={handleMessageChange}
 					onSendMessage={handleSendMessage}
 					onStopStreaming={stop}
-					isLoading={isLoading}
-					isStreaming={isLoading}
+					isLoading={currentIsLoading}
+					isStreaming={currentIsLoading}
 					selectedModeId={selectedModeId}
 					onModeSelect={setSelectedModeId}
 					userId={user?.id}
 				/>
 			</div>
+
+			<Dialog
+				open={showOpenrouterDialog}
+				onOpenChange={setShowOpenrouterDialog}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>OpenRouter API Key Required</DialogTitle>
+						<DialogDescription>
+							{OPENROUTER_KEY_ERROR_MESSAGE}
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter>
+						<Button onClick={() => setShowOpenrouterDialog(false)}>OK</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }
