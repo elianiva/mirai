@@ -16,11 +16,13 @@ type MessageListProps = {
 			profileId?: Id<"profiles">;
 			reasoning?: string;
 		};
+		parts?: Array<Record<string, unknown>>;
 	}>;
 	userId: string;
 	threadId: Id<"threads">;
 	currentBranchId?: string;
 	autoScroll: boolean;
+	isLoading: boolean;
 	onAutoScrollChange: (autoScroll: boolean) => void;
 	onRegenerate: (messageId: Id<"messages">, modeId: Id<"modes">) => void;
 	onCreateBranch: (parentMessageId: Id<"messages">) => void;
@@ -83,27 +85,35 @@ export function MessageList(props: MessageListProps) {
 	return (
 		<ScrollArea ref={scrollAreaRef} className="h-full w-full">
 			<div className="relative px-4 space-y-4 max-w-screen-md mx-auto py-4">
-				{props.messages?.map((msg, index) => (
-					<div key={msg._id}>
-						<MessageBubble
-							message={msg}
-							userId={props.userId}
-							threadId={props.threadId}
-							onRegenerate={props.onRegenerate}
-							onCreateBranch={props.onCreateBranch}
-						/>
-						{msg.type === "assistant" && index < props.messages.length - 1 && (
-							<div className="ml-4 mt-1">
-								<BranchIndicator
-									messageId={msg._id}
-									threadId={props.threadId}
-									currentBranchId={props.currentBranchId}
-									onBranchSwitch={props.onBranchSwitch}
-								/>
-							</div>
-						)}
-					</div>
-				))}
+				{props.messages?.map((msg, index) => {
+					const isLastMessage = index === props.messages.length - 1;
+					const isStreamingReasoning =
+						props.isLoading && isLastMessage && msg.type === "assistant";
+
+					return (
+						<div key={msg._id}>
+							<MessageBubble
+								message={msg}
+								userId={props.userId}
+								threadId={props.threadId}
+								isStreamingReasoning={isStreamingReasoning}
+								onRegenerate={props.onRegenerate}
+								onCreateBranch={props.onCreateBranch}
+							/>
+							{msg.type === "assistant" &&
+								index < props.messages.length - 1 && (
+									<div className="ml-4 mt-1">
+										<BranchIndicator
+											messageId={msg._id}
+											threadId={props.threadId}
+											currentBranchId={props.currentBranchId}
+											onBranchSwitch={props.onBranchSwitch}
+										/>
+									</div>
+								)}
+						</div>
+					);
+				})}
 				<div ref={messagesEndRef} className="h-4" />
 			</div>
 		</ScrollArea>

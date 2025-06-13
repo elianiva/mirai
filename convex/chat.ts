@@ -708,9 +708,10 @@ export const finalizeAssistantMessage = internalMutation({
 		messageId: v.id("messages"),
 		finalContent: v.string(),
 		finishReason: v.string(),
+		reasoning: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		const { messageId, finalContent, finishReason } = args;
+		const { messageId, finalContent, finishReason, reasoning } = args;
 
 		const message = await ctx.db.get(messageId);
 		if (!message) {
@@ -723,6 +724,7 @@ export const finalizeAssistantMessage = internalMutation({
 				...message.metadata,
 				isStreaming: false,
 				finishReason,
+				reasoning,
 			},
 		});
 	},

@@ -8,7 +8,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "~/components/ui/dialog";
-import { ModeSelector } from "./mode-selector";
+import { ModeSelector } from "../mode-selector";
 
 type RegenerateDialogProps = {
 	open: boolean;

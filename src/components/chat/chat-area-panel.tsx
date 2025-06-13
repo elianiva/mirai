@@ -191,11 +191,21 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 					<EmptyState userName={user?.firstName ?? undefined} />
 				) : (
 					<MessageList
-						messages={transformedMessages}
+						messages={useConvexFallback ? transformedMessages : messages.map((msg) => ({
+							_id: msg.id as Id<"messages">,
+							content: msg.content,
+							type: msg.role,
+							senderId: msg.role === "user" ? (user?.id || "") : "assistant",
+							parts: msg.parts,
+							metadata: {
+								isStreaming: isLoading && messages[messages.length - 1]?.id === msg.id,
+							},
+						}))}
 						userId={user?.id || ""}
 						threadId={threadId}
 						currentBranchId={currentBranchId}
 						autoScroll={autoScroll}
+						isLoading={currentIsLoading}
 						onAutoScrollChange={setAutoScroll}
 						onRegenerate={handleRegenerate}
 						onCreateBranch={handleCreateBranch}

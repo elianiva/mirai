@@ -168,7 +168,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 				}
 			}
 		},
-		async onFinish({ text, finishReason }) {
+		async onFinish({ text, finishReason, reasoning }) {
 			await flushBuffer();
 
 			let finalContent = text;
@@ -183,6 +183,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 				messageId: assistantMessageId,
 				finalContent,
 				finishReason: finishReason || "unknown",
+				reasoning,
 			});
 		},
 		async onError(error) {
@@ -198,6 +199,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 
 	return result.toDataStreamResponse({
 		headers: CORS_HEADERS,
+		sendReasoning: true,
 	});
 });
 
