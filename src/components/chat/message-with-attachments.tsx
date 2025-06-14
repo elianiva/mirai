@@ -1,19 +1,24 @@
 import { useQuery } from "convex/react";
 import { api } from "~/../convex/_generated/api";
 import type { Id } from "convex/_generated/dataModel";
-import { MessageBubble } from "./message-bubble";
-import type { MessageWithMetadata } from "./message-bubble/message-types";
+import { MessageBubble } from "./message-bubble/message-bubble";
+import type { MessageWithMetadata } from "~/types/message";
 
 type MessageWithAttachmentsProps = {
-	message: MessageWithMetadata & {
-		attachmentIds?: Id<"attachments">[];
-	};
+	message: MessageWithMetadata;
 	userId: string;
 	threadId: Id<"threads">;
 	currentBranchId?: string;
 	onRegenerate: (messageId: Id<"messages">, modeId: Id<"modes">) => void;
 	onCreateBranch: (parentMessageId: Id<"messages">) => void;
 	onBranchSwitch: (branchId: string) => void;
+};
+
+type Attachment = {
+	url: string;
+	filename: string;
+	contentType: string;
+	size: number;
 };
 
 export function MessageWithAttachments(props: MessageWithAttachmentsProps) {
@@ -26,23 +31,16 @@ export function MessageWithAttachments(props: MessageWithAttachmentsProps) {
 
 	const messageWithAttachments: MessageWithMetadata = {
 		...props.message,
-		attachments:
-			attachmentData
-				?.filter(
-					(
-						attachment,
-					): attachment is {
-						url: string;
-						filename: string;
-						contentType: string;
-						size: number;
-					} => attachment !== null && attachment.url !== null,
-				)
-				.map((attachment) => ({
-					url: attachment.url,
-					filename: attachment.filename,
-					contentType: attachment.contentType,
-				})) || undefined,
+		attachments: attachmentData
+			?.filter(
+				(attachment): attachment is Attachment =>
+					attachment !== null && attachment.url !== null,
+			)
+			.map((attachment) => ({
+				url: attachment.url,
+				filename: attachment.filename,
+				contentType: attachment.contentType,
+			})),
 	};
 
 	return (

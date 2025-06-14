@@ -1,13 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
-import type { Id, Doc } from "convex/_generated/dataModel";
-import { useState, useEffect } from "react";
+import type { Id } from "convex/_generated/dataModel";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useMessages } from "~/lib/query/messages";
 import { useModes } from "~/lib/query/mode";
 import { useUser } from "~/lib/query/user";
 import { useChat } from "@ai-sdk/react";
 import type { Message } from "ai";
 import { ChatInput } from "./chat-input";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "~/../convex/_generated/api";
 import { EmptyState } from "./empty-state";
 import { MessageList } from "./message-list";
@@ -21,31 +21,44 @@ import {
 	DialogTitle,
 } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
+import { NEW_THREAD_ID } from "~/types/message";
 
-type MessageWithAttachments = Doc<"messages"> & {
-	attachments?: { url: string; filename: string; contentType: string }[];
-};
+// @ts-expect-error - import.meta.env is not typed
+const CHAT_API_URL = `${import.meta.env.VITE_CONVEX_HTTP_URL}/api/chat`;
 
-type Env = {
-	env: {
-		VITE_CONVEX_HTTP_URL: string;
+function getMessageStreamingStatus(
+	message: {
+		role: string;
+		content?: string;
+		parts?: Array<Record<string, unknown>>;
+	},
+	isCurrentlyStreaming: boolean,
+): { isStreamingMessageContent: boolean; isStreamingReasoning: boolean } {
+	if (!isCurrentlyStreaming || message.role !== "assistant") {
+		return { isStreamingMessageContent: false, isStreamingReasoning: false };
+	}
+
+	const reasoningPart = message.parts?.find(
+		(part) => part.type === "reasoning",
+	);
+	const hasReasoningContent =
+		reasoningPart && "reasoning" in reasoningPart && reasoningPart.reasoning;
+
+	if (reasoningPart && !hasReasoningContent) {
+		return { isStreamingMessageContent: false, isStreamingReasoning: true };
+	}
+
+	return {
+		isStreamingMessageContent: !message.content,
+		isStreamingReasoning: false,
 	};
-};
-
-const CHAT_API_URL = `${(import.meta as unknown as Env).env.VITE_CONVEX_HTTP_URL}/api/chat`;
-const NEW_THREAD_ID = "new";
-const OPENROUTER_KEY_ERROR_MESSAGE =
-	"OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.";
+}
 
 type ChatAreaPanelProps = {
 	threadId: Id<"threads">;
 	onThreadClick: (threadId: Id<"threads">) => void;
 	isStreaming?: boolean;
 };
-
-function validateOpenrouterKey(openrouterKey: string | null): boolean {
-	return !!openrouterKey?.trim();
-}
 
 export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const { threadId } = props;
@@ -59,117 +72,131 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 
 	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
 	const [currentBranchId, setCurrentBranchId] = useState<string>();
-	const [useConvexFallback, setUseConvexFallback] = useState(false);
 	const [autoScroll, setAutoScroll] = useState(true);
 	const [showOpenrouterDialog, setShowOpenrouterDialog] = useState(false);
 	const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
 
-	function showOpenrouterKeyError(): void {
-		setShowOpenrouterDialog(true);
-	}
-
-	useEffect(() => {
-		if (!selectedModeId && modes?.[0]?._id) {
-			setSelectedModeId(modes[0]._id);
-		}
-	}, [modes, selectedModeId]);
-
-	const initialMessages: Message[] =
-		messagesFromDB?.map((msg) => ({
-			id: msg._id,
-			role: msg.type as "user" | "assistant",
-			content: msg.content,
-		})) || [];
-
 	const isNewThread = threadId === NEW_THREAD_ID;
+	const hasAttachmentsInDB = messagesFromDB?.some(
+		(msg) => msg.attachmentIds?.length,
+	);
+
+	const initialMessages: Message[] = useMemo(
+		() =>
+			messagesFromDB?.map((msg) => ({
+				id: msg._id,
+				role: msg.role,
+				content: msg.content,
+			})) || [],
+		[messagesFromDB],
+	);
+
+	const chatBody = useMemo(
+		() => ({
+			modeId: selectedModeId,
+			branchId: currentBranchId,
+			parentMessageId: undefined,
+			threadId: isNewThread ? undefined : threadId,
+			openrouterKey,
+			attachmentIds,
+		}),
+		[
+			selectedModeId,
+			currentBranchId,
+			isNewThread,
+			threadId,
+			openrouterKey,
+			attachmentIds,
+		],
+	);
 
 	const { messages, input, handleInputChange, handleSubmit, status, stop } =
 		useChat({
 			api: CHAT_API_URL,
 			initialMessages,
-			body: {
-				modeId: selectedModeId,
-				branchId: currentBranchId,
-				parentMessageId: undefined,
-				threadId: isNewThread ? undefined : threadId,
-				openrouterKey,
-				attachmentIds: attachmentIds,
-			},
+			body: chatBody,
 			headers: {
 				Authorization: `Bearer ${user?.token}`,
 			},
 			id: isNewThread ? undefined : threadId,
 			onError: (error) => {
 				console.error("AI SDK streaming error:", error);
-				setUseConvexFallback(true);
 			},
 		});
 
-	// Check if any messages have attachments - if so, we should use Convex messages to get attachment data
-	const hasAttachmentsInDB =
-		messagesFromDB?.some(
-			(msg) => msg.attachmentIds && msg.attachmentIds.length > 0,
-		) || false;
+	const shouldUseConvexMessages =
+		hasAttachmentsInDB || (messages.length === 0 && status !== "streaming");
 
-	const displayMessages =
-		useConvexFallback || hasAttachmentsInDB
-			? messagesFromDB
-			: messages.length > 0
-				? messages
-				: messagesFromDB;
+	const displayMessages = shouldUseConvexMessages ? messagesFromDB : messages;
 
-	const currentIsLoading =
-		useConvexFallback || hasAttachmentsInDB ? false : status === "streaming";
+	const currentIsLoading = status === "streaming" && !shouldUseConvexMessages;
 
-	useEffect(() => {
-		if (messages.length > 0 && useConvexFallback) {
-			setUseConvexFallback(false);
+	const checkOpenrouterKey = useCallback(() => {
+		if (!openrouterKey?.trim()) {
+			setShowOpenrouterDialog(true);
+			return false;
 		}
-	}, [messages.length, useConvexFallback]);
+		return true;
+	}, [openrouterKey]);
 
-	function handleMessageChange(message: string) {
-		handleInputChange({
-			target: { value: message },
-		} as React.ChangeEvent<HTMLInputElement>);
-	}
+	const messagesList = useMemo(() => {
+		if (shouldUseConvexMessages) {
+			return (
+				messagesFromDB?.map((msg) => ({
+					...msg,
+					attachmentIds: msg.attachmentIds || undefined,
+					metadata: msg.metadata
+						? {
+								...msg.metadata,
+								profileId: msg.metadata.profileId as Id<"profiles"> | undefined,
+							}
+						: undefined,
+				})) ?? []
+			);
+		}
+
+		return messages.map((msg) => {
+			const isCurrentlyStreaming =
+				status === "streaming" && messages[messages.length - 1]?.id === msg.id;
+			const { isStreamingMessageContent, isStreamingReasoning } =
+				getMessageStreamingStatus(msg, isCurrentlyStreaming);
+
+			return {
+				_id: msg.id as Id<"messages">,
+				content: msg.content,
+				role:
+					msg.role === "user" || msg.role === "assistant"
+						? msg.role
+						: "assistant",
+				senderId: msg.role === "user" ? user?.id || "" : "assistant",
+				parts: msg.parts,
+				metadata: {
+					isStreaming: isCurrentlyStreaming,
+					isStreamingMessageContent,
+					isStreamingReasoning,
+				},
+				attachments: [],
+			};
+		});
+	}, [shouldUseConvexMessages, messagesFromDB, messages, status, user?.id]);
 
 	async function handleSendMessage() {
-		if (!input.trim() || currentIsLoading || !selectedModeId) {
-			return;
-		}
-
-		if (!validateOpenrouterKey(openrouterKey)) {
-			showOpenrouterKeyError();
+		if (
+			!input.trim() ||
+			currentIsLoading ||
+			!selectedModeId ||
+			!checkOpenrouterKey()
+		) {
 			return;
 		}
 
 		setAutoScroll(true);
-		setUseConvexFallback(false);
-
-		// Attachments are already uploaded by ChatInput component
-
-		// Create a custom submit with attachmentIds
-		const customSubmit = (e?: React.FormEvent) => {
-			if (e) e.preventDefault();
-
-			// Update the body with the attachmentIds
-			const submitOptions = {
-				body: {
-					modeId: selectedModeId,
-					branchId: currentBranchId,
-					parentMessageId: undefined,
-					threadId: isNewThread ? undefined : threadId,
-					openrouterKey,
-					attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
-				},
-			};
-
-			handleSubmit(e, submitOptions);
-		};
-
-		customSubmit();
-
-		// Clear the attachment IDs after sending
+		handleSubmit(undefined, {
+			body: {
+				...chatBody,
+				attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
+			},
+		});
 		setAttachmentIds([]);
 	}
 
@@ -177,16 +204,10 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		messageId: Id<"messages">,
 		modeId: Id<"modes">,
 	) {
-		if (isNewThread) return;
-
-		if (!validateOpenrouterKey(openrouterKey)) {
-			showOpenrouterKeyError();
-			return;
-		}
+		if (isNewThread || !checkOpenrouterKey()) return;
 
 		try {
 			setAutoScroll(true);
-			setUseConvexFallback(true);
 			await regenerateMessage({
 				messageId,
 				modeId,
@@ -199,10 +220,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 
 	async function handleCreateBranch(parentMessageId: Id<"messages">) {
 		try {
-			const result = await createBranch({
-				parentMessageId,
-			});
-
+			const result = await createBranch({ parentMessageId });
 			if (result.threadId) {
 				navigate({ to: "/$threadId", params: { threadId: result.threadId } });
 			}
@@ -211,23 +229,11 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		}
 	}
 
-	// Transform messages to include attachment data
-	const transformedMessages =
-		messagesFromDB?.map((msg) => {
-			const transformed = {
-				...msg,
-				metadata: msg.metadata
-					? {
-							...msg.metadata,
-							profileId: msg.metadata.profileId as Id<"profiles"> | undefined,
-						}
-					: undefined,
-			};
-
-			// For now, we'll handle attachment fetching in the message components
-			// This could be optimized by fetching all attachments at once
-			return transformed;
-		}) || [];
+	useEffect(() => {
+		if (!selectedModeId && modes?.[0]?._id) {
+			setSelectedModeId(modes[0]._id);
+		}
+	}, [modes, selectedModeId]);
 
 	return (
 		<div className="flex flex-col h-full bg-background">
@@ -236,67 +242,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 					<EmptyState userName={user?.firstName ?? undefined} />
 				) : (
 					<MessageList
-						messages={
-							useConvexFallback || hasAttachmentsInDB
-								? transformedMessages.map((msg) => ({
-										...msg,
-										attachmentIds: msg.attachmentIds || undefined,
-									}))
-								: messages.map((msg) => {
-										const isCurrentlyStreaming =
-											status === "streaming" &&
-											messages[messages.length - 1]?.id === msg.id;
-										const hasReasoningParts = msg.parts?.some(
-											(part) =>
-												typeof part === "object" &&
-												part !== null &&
-												"type" in part &&
-												part.type === "reasoning",
-										);
-
-										let isStreamingMessageContent = false;
-										let isStreamingReasoning = false;
-
-										if (isCurrentlyStreaming && msg.role === "assistant") {
-											if (hasReasoningParts) {
-												const reasoningPart = msg.parts?.find(
-													(part) =>
-														typeof part === "object" &&
-														part !== null &&
-														"type" in part &&
-														part.type === "reasoning",
-												);
-												const hasReasoningContent =
-													reasoningPart &&
-													"reasoning" in reasoningPart &&
-													reasoningPart.reasoning;
-
-												if (!hasReasoningContent) {
-													isStreamingReasoning = true;
-												} else if (!msg.content) {
-													isStreamingMessageContent = true;
-												}
-											} else if (!msg.content) {
-												isStreamingMessageContent = true;
-											}
-										}
-
-										return {
-											_id: msg.id as Id<"messages">,
-											content: msg.content,
-											type: msg.role,
-											senderId:
-												msg.role === "user" ? user?.id || "" : "assistant",
-											parts: msg.parts,
-											metadata: {
-												isStreaming: isCurrentlyStreaming,
-												isStreamingMessageContent,
-												isStreamingReasoning,
-											},
-											attachments: [],
-										};
-									})
-						}
+						messages={messagesList}
 						userId={user?.id || ""}
 						threadId={threadId}
 						currentBranchId={currentBranchId}
@@ -312,7 +258,11 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			<div className="flex-shrink-0">
 				<ChatInput
 					message={input}
-					onMessageChange={handleMessageChange}
+					onMessageChange={(message) =>
+						handleInputChange({
+							target: { value: message },
+						} as React.ChangeEvent<HTMLInputElement>)
+					}
 					onSendMessage={handleSendMessage}
 					onStopStreaming={stop}
 					isLoading={currentIsLoading}
@@ -331,7 +281,8 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 					<DialogHeader>
 						<DialogTitle>OpenRouter API Key Required</DialogTitle>
 						<DialogDescription>
-							{OPENROUTER_KEY_ERROR_MESSAGE}
+							OpenRouter API key is required to use OpenRouter models. Please
+							add your API key in the account settings.
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>

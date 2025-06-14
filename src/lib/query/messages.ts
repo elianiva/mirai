@@ -66,7 +66,7 @@ export function useMessages(threadId: Id<"threads">, branchId?: string) {
 		}
 	}, [result, threadId, cacheKey]);
 
-	return result !== undefined ? result : cachedData;
+	return result !== undefined ? result : (cachedData ?? []);
 }
 
 export function useCreateMessage() {

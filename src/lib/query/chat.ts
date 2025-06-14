@@ -55,6 +55,3 @@ export function useBranches(threadId: Id<"threads">) {
 		threadId !== "new" ? { threadId } : "skip",
 	);
 }
-
-// Note: useSendMessage, useRegenerateMessage, and useStopStreaming have been removed
-// as we now use the AI SDK's useChat hook for these operations

@@ -4,25 +4,10 @@ import { ScrollArea } from "~/components/ui/scroll-area";
 import { BranchIndicator } from "./branch-indicator";
 import { MessageBubble } from "./message-bubble";
 import { MessageWithAttachments } from "./message-with-attachments";
+import type { MessageWithMetadata } from "~/types/message";
 
 type MessageListProps = {
-	messages: Array<{
-		_id: Id<"messages">;
-		content: string;
-		type: string;
-		senderId: string;
-		metadata?: {
-			isStreaming?: boolean;
-			isStreamingMessageContent?: boolean;
-			isStreamingReasoning?: boolean;
-			modeId?: string;
-			profileId?: Id<"profiles">;
-			reasoning?: string;
-		};
-		parts?: Array<Record<string, unknown>>;
-		attachments?: { url: string; filename: string; contentType: string }[];
-		attachmentIds?: Id<"attachments">[];
-	}>;
+	messages: MessageWithMetadata[];
 	userId: string;
 	threadId: Id<"threads">;
 	currentBranchId?: string;
@@ -112,7 +97,7 @@ export function MessageList(props: MessageListProps) {
 									onCreateBranch={props.onCreateBranch}
 								/>
 							)}
-							{msg.type === "assistant" &&
+							{msg.role === "assistant" &&
 								index < props.messages.length - 1 && (
 									<div className="ml-4 mt-1">
 										<BranchIndicator

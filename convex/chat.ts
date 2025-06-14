@@ -24,9 +24,7 @@ async function getActiveBranchMessages(
 		.order("asc")
 		.collect();
 
-	if (!currentBranchId) {
-		return allMessages;
-	}
+	if (!currentBranchId) return allMessages;
 
 	const activeBranchMessages: typeof allMessages = [];
 	const messageMap = new Map(allMessages.map((msg) => [msg._id, msg]));
@@ -83,9 +81,7 @@ export const sendMessage = mutation({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Unauthorized");
-		}
+		if (!identity) throw new Error("Unauthorized");
 
 		let {
 			message,
@@ -96,19 +92,13 @@ export const sendMessage = mutation({
 			openrouterKey,
 		} = args;
 
-		if (!openrouterKey) {
-			throw new Error("OpenRouter API key is required");
-		}
+		if (!openrouterKey) throw new Error("OpenRouter API key is required");
 
 		const mode = await ctx.db.get(modeId as Id<"modes">);
-		if (!mode) {
-			throw new Error("Mode not found");
-		}
+		if (!mode) throw new Error("Mode not found");
 
 		const profile = await ctx.db.get(mode.profileSelector as Id<"profiles">);
-		if (!profile) {
-			throw new Error("Profile not found");
-		}
+		if (!profile) throw new Error("Profile not found");
 
 		if (!threadId) {
 			threadId = await ctx.db.insert("threads", {
@@ -144,7 +134,7 @@ export const sendMessage = mutation({
 			threadId,
 			senderId: identity.subject,
 			content: message,
-			type: "user",
+			role: "user",
 			metadata: { modeId },
 			parentMessageId,
 			branchId,
@@ -167,7 +157,7 @@ export const sendMessage = mutation({
 			threadId,
 			messageId,
 			messages: pastMessages.map((msg) => ({
-				role: msg.type as "user" | "assistant",
+				role: msg.role as "user" | "assistant",
 				content: msg.content,
 			})),
 			mode: {
@@ -196,21 +186,17 @@ export const regenerateMessage = mutation({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Unauthorized");
-		}
+		if (!identity) throw new Error("Unauthorized");
 
 		const { messageId, modeId, openrouterKey } = args;
 
 		const messageToRegenerate = await ctx.db.get(messageId);
-		if (!messageToRegenerate || messageToRegenerate.type !== "assistant") {
+		if (!messageToRegenerate || messageToRegenerate.role !== "assistant") {
 			throw new Error("Invalid message to regenerate");
 		}
 
 		const thread = await ctx.db.get(messageToRegenerate.threadId);
-		if (!thread) {
-			throw new Error("Thread not found");
-		}
+		if (!thread) throw new Error("Thread not found");
 
 		const allMessages = await ctx.db
 			.query("messages")
@@ -221,30 +207,24 @@ export const regenerateMessage = mutation({
 			.collect();
 
 		const messageIndex = allMessages.findIndex((msg) => msg._id === messageId);
-		if (messageIndex === -1) {
-			throw new Error("Message not found in thread");
-		}
+		if (messageIndex === -1) throw new Error("Message not found in thread");
 
 		const conversationHistory = [];
 		for (let i = 0; i < messageIndex; i++) {
 			const msg = allMessages[i];
-			if (msg.type === "user" || msg.type === "assistant") {
+			if (msg.role === "user" || msg.role === "assistant") {
 				conversationHistory.push({
-					role: msg.type as "user" | "assistant",
+					role: msg.role,
 					content: msg.content,
 				});
 			}
 		}
 
 		const mode = await ctx.db.get(modeId as Id<"modes">);
-		if (!mode) {
-			throw new Error("Mode not found");
-		}
+		if (!mode) throw new Error("Mode not found");
 
 		const profile = await ctx.db.get(mode.profileSelector as Id<"profiles">);
-		if (!profile) {
-			throw new Error("Profile not found");
-		}
+		if (!profile) throw new Error("Profile not found");
 
 		await ctx.db.patch(messageId, {
 			content: "",
@@ -412,7 +392,7 @@ export const createStreamingMessage = internalMutation({
 			threadId,
 			senderId: "assistant",
 			content: "",
-			type: "assistant",
+			role: "assistant",
 			metadata: {
 				modeId,
 				isStreaming: true,
@@ -468,19 +448,18 @@ export const stopStreaming = mutation({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Unauthorized");
-		}
+		if (!identity) throw new Error("Unauthorized");
 
 		const message = await ctx.db.get(args.messageId);
-		if (!message) {
-			throw new Error("Message not found");
-		}
+		if (!message) throw new Error("Message not found");
 
 		if (!message.metadata?.isStreaming) {
 			return { success: false, reason: "Message is not streaming" };
 		}
 
+		// TODO: this is a bit of a hack, sometimes it could fail due to race condition
+		//       because when the message is streaming, it will keep updating this row
+		//       and we can't update it while it's being updated in other places
 		await ctx.db.patch(args.messageId, {
 			metadata: {
 				...message.metadata,
@@ -599,7 +578,8 @@ export const saveUserMessage = internalMutation({
 		// Create thread if it doesn't exist
 		if (!threadId) {
 			threadId = await ctx.db.insert("threads", {
-				title: userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : ""),
+				title:
+					userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : ""),
 			});
 
 			// Schedule title generation
@@ -633,7 +613,7 @@ export const saveUserMessage = internalMutation({
 			threadId,
 			senderId: userId,
 			content: userMessage,
-			type: "user",
+			role: "user",
 			metadata: { modeId },
 			parentMessageId,
 			branchId,
@@ -681,7 +661,7 @@ export const createAssistantMessage = internalMutation({
 			threadId,
 			senderId: "assistant",
 			content: "",
-			type: "assistant",
+			role: "assistant",
 			metadata: {
 				modeId,
 				isStreaming: true,
@@ -748,22 +728,14 @@ export const createBranch = mutation({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Unauthorized");
-		}
+		if (!identity) throw new Error("Unauthorized");
 
 		const parentMessage = await ctx.db.get(args.parentMessageId);
-		if (!parentMessage) {
-			throw new Error("Parent message not found");
-		}
+		if (!parentMessage) throw new Error("Parent message not found");
 
-		// Get the original thread to copy its title
 		const originalThread = await ctx.db.get(parentMessage.threadId);
-		if (!originalThread) {
-			throw new Error("Original thread not found");
-		}
+		if (!originalThread) throw new Error("Original thread not found");
 
-		// Create a new thread for the branch
 		const newThreadId = await ctx.db.insert("threads", {
 			title: `${originalThread.title} (Branch)`,
 			parentId: parentMessage.threadId,
@@ -771,51 +743,36 @@ export const createBranch = mutation({
 
 		const branchId = `branch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-		// Get all messages from the original thread
-		const allMessages = await ctx.db
-			.query("messages")
-			.withIndex("by_thread", (q) => q.eq("threadId", parentMessage.threadId))
-			.order("asc")
-			.collect();
-
-		// Get active branch messages up to and including the parent message
 		const activeBranchMessages = await getActiveBranchMessages(
 			ctx,
 			parentMessage.threadId,
 			parentMessage.branchId,
 		);
 
-		// Find the parent message index in the active branch
 		const parentIndex = activeBranchMessages.findIndex(
 			(msg) => msg._id === args.parentMessageId,
 		);
 
-		if (parentIndex === -1) {
+		if (parentIndex === -1)
 			throw new Error("Parent message not found in active branch");
-		}
 
-		// Copy all messages up to and including the parent message
 		const messagesToCopy = activeBranchMessages.slice(0, parentIndex + 1);
 		const messageIdMap = new Map<Id<"messages">, Id<"messages">>();
 
-		// Copy messages to the new thread
 		for (let i = 0; i < messagesToCopy.length; i++) {
 			const msg = messagesToCopy[i];
 
-			// Determine the parent message ID for the copied message
 			let newParentMessageId: Id<"messages"> | undefined;
 			if (msg.parentMessageId && messageIdMap.has(msg.parentMessageId)) {
 				newParentMessageId = messageIdMap.get(msg.parentMessageId);
 			}
 
-			// Copy attachments if they exist
 			let newAttachmentIds: Id<"attachments">[] | undefined;
 			if (msg.attachmentIds && msg.attachmentIds.length > 0) {
 				newAttachmentIds = [];
 				for (const attachmentId of msg.attachmentIds) {
 					const originalAttachment = await ctx.db.get(attachmentId);
 					if (originalAttachment) {
-						// Create a new attachment record for the copied message
 						const newAttachmentId = await ctx.db.insert("attachments", {
 							storageId: originalAttachment.storageId,
 							filename: originalAttachment.filename,
@@ -833,15 +790,14 @@ export const createBranch = mutation({
 				threadId: newThreadId,
 				senderId: msg.senderId,
 				content: msg.content,
-				type: msg.type,
+				role: msg.role,
 				metadata: msg.metadata,
 				parentMessageId: newParentMessageId,
-				branchId: undefined, // Start fresh in the new thread
+				branchId: undefined,
 				isActiveBranch: true,
 				attachmentIds: newAttachmentIds,
 			});
 
-			// Update attachment records to link them to this message
 			if (newAttachmentIds && newAttachmentIds.length > 0) {
 				for (const attachmentId of newAttachmentIds) {
 					await ctx.db.patch(attachmentId, {
@@ -850,11 +806,9 @@ export const createBranch = mutation({
 				}
 			}
 
-			// Store the mapping for parent-child relationships
 			messageIdMap.set(msg._id, newMessageId);
 		}
 
-		// Store the original thread and parent message info for tracking
 		const branchMetadata = {
 			originalThreadId: parentMessage.threadId,
 			originalParentMessageId: args.parentMessageId,
@@ -876,9 +830,7 @@ export const switchBranch = mutation({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Unauthorized");
-		}
+		if (!identity) throw new Error("Unauthorized");
 
 		const { threadId, branchId } = args;
 
@@ -905,9 +857,7 @@ export const getBranches = query({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Unauthorized");
-		}
+		if (!identity) throw new Error("Unauthorized");
 
 		const messages = await ctx.db
 			.query("messages")
@@ -931,7 +881,7 @@ export const getBranches = query({
 					(m) => m.branchId === msg.branchId,
 				);
 				const firstBranchMessage = branchMessages.find(
-					(m) => m.type === "user",
+					(m) => m.role === "user",
 				);
 
 				if (firstBranchMessage?.parentMessageId) {

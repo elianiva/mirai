@@ -5,33 +5,28 @@ export const create = mutation({
 	args: {
 		threadId: v.id("threads"),
 		content: v.string(),
-		type: v.string(),
+		role: v.union(v.literal("user"), v.literal("assistant")),
 		metadata: v.optional(v.any()),
 		attachmentIds: v.optional(v.array(v.id("attachments"))),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
+		if (!identity) throw new Error("Not authenticated");
 
 		const userId = identity.subject;
 
 		const thread = await ctx.db.get(args.threadId);
-		if (!thread) {
-			throw new Error("Thread not found");
-		}
+		if (!thread) throw new Error("Thread not found");
 
 		const messageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
 			senderId: userId,
 			content: args.content,
-			type: args.type,
+			role: args.role,
 			metadata: args.metadata,
 			attachmentIds: args.attachmentIds,
 		});
 
-		// Update attachment records to link them to this message
 		if (args.attachmentIds && args.attachmentIds.length > 0) {
 			for (const attachmentId of args.attachmentIds) {
 				await ctx.db.patch(attachmentId, {
@@ -51,14 +46,10 @@ export const list = query({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
+		if (!identity) throw new Error("Not authenticated");
 
 		const thread = await ctx.db.get(args.threadId);
-		if (!thread) {
-			throw new Error("Thread not found");
-		}
+		if (!thread) throw new Error("Thread not found");
 
 		const allMessages = await ctx.db
 			.query("messages")
@@ -75,7 +66,6 @@ export const list = query({
 						msg.branchId === args.branchId && msg.isActiveBranch !== false,
 				);
 
-		// Return messages with attachmentIds - attachment URLs will be handled by the frontend
 		return filteredMessages;
 	},
 });
@@ -88,16 +78,12 @@ export const update = mutation({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
+		if (!identity) throw new Error("Not authenticated");
 
 		const userId = identity.subject;
 		const message = await ctx.db.get(args.id);
 
-		if (!message) {
-			throw new Error("Message not found");
-		}
+		if (!message) throw new Error("Message not found");
 
 		if (message.senderId !== userId) {
 			throw new Error("Not authorized to update this message");
@@ -118,14 +104,10 @@ export const remove = mutation({
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
+		if (!identity) throw new Error("Not authenticated");
 
 		const message = await ctx.db.get(args.id);
-		if (!message) {
-			throw new Error("Message not found");
-		}
+		if (!message) throw new Error("Message not found");
 
 		await ctx.db.delete(args.id);
 

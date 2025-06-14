@@ -3,11 +3,53 @@ import { useState, useEffect } from "react";
 import { useRemoveMessage } from "~/lib/query/messages";
 import { UserMessage } from "./user-message";
 import { AssistantMessage } from "./assistant-message";
-import {
-	type MessageWithMetadata,
-	extractReasoning,
-	REASONING_COLLAPSE_DELAY,
-} from "./message-types";
+import type { MessageWithMetadata } from "~/types/message";
+
+// only extract reasoning portion from parts, since it can contain other stuff (tool calls, etc)
+function extractReasoningFromParts(
+	parts?: Array<Record<string, unknown>>,
+): string {
+	if (!parts) return "";
+
+	const reasoningPart = parts.find((part) => part.type === "reasoning");
+	if (!reasoningPart) return "";
+
+	if (
+		"reasoning" in reasoningPart &&
+		typeof reasoningPart.reasoning === "string"
+	) {
+		return reasoningPart.reasoning;
+	}
+
+	if ("details" in reasoningPart && Array.isArray(reasoningPart.details)) {
+		return reasoningPart.details
+			.map((detail: unknown) => {
+				if (
+					typeof detail === "object" &&
+					detail !== null &&
+					"type" in detail &&
+					"text" in detail
+				) {
+					const detailObj = detail as Record<string, unknown>;
+					return detailObj.type === "text"
+						? String(detailObj.text)
+						: "<redacted>";
+				}
+				return "<redacted>";
+			})
+			.join("");
+	}
+
+	return "";
+}
+
+// this is needed because we store reasoning in the metadata field on convex
+// but when streaming it's in the parts field
+function extractReasoning(message: MessageWithMetadata): string {
+	return (
+		message.metadata?.reasoning || extractReasoningFromParts(message.parts)
+	);
+}
 
 type MessageBubbleProps = {
 	message: MessageWithMetadata;
@@ -18,7 +60,7 @@ type MessageBubbleProps = {
 };
 
 export function MessageBubble(props: MessageBubbleProps) {
-	const isUser = props.message.type === "user";
+	const isUser = props.message.role === "user";
 	const isStreaming = props.message.metadata?.isStreaming;
 	const isStreamingMessageContent =
 		props.message.metadata?.isStreamingMessageContent;
@@ -42,7 +84,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 			// Only auto-collapse if user hasn't manually toggled
 			const timer = setTimeout(() => {
 				setShowReasoning(false);
-			}, REASONING_COLLAPSE_DELAY);
+			}, 500);
 			return () => clearTimeout(timer);
 		}
 	}, [
