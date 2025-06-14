@@ -7,6 +7,7 @@ export const create = mutation({
 		content: v.string(),
 		type: v.string(),
 		metadata: v.optional(v.any()),
+		attachmentIds: v.optional(v.array(v.id("attachments"))),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -21,13 +22,25 @@ export const create = mutation({
 			throw new Error("Thread not found");
 		}
 
-		return await ctx.db.insert("messages", {
+		const messageId = await ctx.db.insert("messages", {
 			threadId: args.threadId,
 			senderId: userId,
 			content: args.content,
 			type: args.type,
 			metadata: args.metadata,
+			attachmentIds: args.attachmentIds,
 		});
+
+		// Update attachment records to link them to this message
+		if (args.attachmentIds && args.attachmentIds.length > 0) {
+			for (const attachmentId of args.attachmentIds) {
+				await ctx.db.patch(attachmentId, {
+					messageId: messageId,
+				});
+			}
+		}
+
+		return messageId;
 	},
 });
 
@@ -53,15 +66,17 @@ export const list = query({
 			.order("asc")
 			.collect();
 
-		if (!args.branchId) {
-			return allMessages.filter(
-				(msg) => !msg.branchId || msg.isActiveBranch !== false,
-			);
-		}
+		const filteredMessages = !args.branchId
+			? allMessages.filter(
+					(msg) => !msg.branchId || msg.isActiveBranch !== false,
+				)
+			: allMessages.filter(
+					(msg) =>
+						msg.branchId === args.branchId && msg.isActiveBranch !== false,
+				);
 
-		return allMessages.filter(
-			(msg) => msg.branchId === args.branchId && msg.isActiveBranch !== false,
-		);
+		// Return messages with attachmentIds - attachment URLs will be handled by the frontend
+		return filteredMessages;
 	},
 });
 

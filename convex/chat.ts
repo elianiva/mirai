@@ -581,6 +581,7 @@ export const saveUserMessage = internalMutation({
 		userId: v.string(),
 		userName: v.string(),
 		openrouterKey: v.string(),
+		attachmentIds: v.optional(v.array(v.id("attachments"))),
 	},
 	handler: async (ctx, args) => {
 		let {
@@ -592,6 +593,7 @@ export const saveUserMessage = internalMutation({
 			userId,
 			userName,
 			openrouterKey,
+			attachmentIds,
 		} = args;
 
 		// Create thread if it doesn't exist
@@ -636,7 +638,17 @@ export const saveUserMessage = internalMutation({
 			parentMessageId,
 			branchId,
 			isActiveBranch: true,
+			attachmentIds,
 		});
+
+		// Update attachment records to link them to this message
+		if (attachmentIds && attachmentIds.length > 0) {
+			for (const attachmentId of attachmentIds) {
+				await ctx.db.patch(attachmentId, {
+					messageId: userMessageId,
+				});
+			}
+		}
 
 		return { threadId, userMessageId, branchId };
 	},
@@ -796,6 +808,27 @@ export const createBranch = mutation({
 				newParentMessageId = messageIdMap.get(msg.parentMessageId);
 			}
 
+			// Copy attachments if they exist
+			let newAttachmentIds: Id<"attachments">[] | undefined;
+			if (msg.attachmentIds && msg.attachmentIds.length > 0) {
+				newAttachmentIds = [];
+				for (const attachmentId of msg.attachmentIds) {
+					const originalAttachment = await ctx.db.get(attachmentId);
+					if (originalAttachment) {
+						// Create a new attachment record for the copied message
+						const newAttachmentId = await ctx.db.insert("attachments", {
+							storageId: originalAttachment.storageId,
+							filename: originalAttachment.filename,
+							contentType: originalAttachment.contentType,
+							size: originalAttachment.size,
+							uploadedBy: originalAttachment.uploadedBy,
+							uploadedAt: originalAttachment.uploadedAt,
+						});
+						newAttachmentIds.push(newAttachmentId);
+					}
+				}
+			}
+
 			const newMessageId = await ctx.db.insert("messages", {
 				threadId: newThreadId,
 				senderId: msg.senderId,
@@ -805,7 +838,17 @@ export const createBranch = mutation({
 				parentMessageId: newParentMessageId,
 				branchId: undefined, // Start fresh in the new thread
 				isActiveBranch: true,
+				attachmentIds: newAttachmentIds,
 			});
+
+			// Update attachment records to link them to this message
+			if (newAttachmentIds && newAttachmentIds.length > 0) {
+				for (const attachmentId of newAttachmentIds) {
+					await ctx.db.patch(attachmentId, {
+						messageId: newMessageId,
+					});
+				}
+			}
 
 			// Store the mapping for parent-child relationships
 			messageIdMap.set(msg._id, newMessageId);

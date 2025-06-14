@@ -14,7 +14,11 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as accountSettings from "../accountSettings.js";
+import type * as attachments from "../attachments.js";
 import type * as chat from "../chat.js";
+import type * as http_chat from "../http/chat.js";
+import type * as http_common from "../http/common.js";
+import type * as http_files from "../http/files.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
 import type * as modes from "../modes.js";
@@ -33,7 +37,11 @@ import type * as threads from "../threads.js";
  */
 declare const fullApi: ApiFromModules<{
   accountSettings: typeof accountSettings;
+  attachments: typeof attachments;
   chat: typeof chat;
+  "http/chat": typeof http_chat;
+  "http/common": typeof http_common;
+  "http/files": typeof http_files;
   http: typeof http;
   messages: typeof messages;
   modes: typeof modes;

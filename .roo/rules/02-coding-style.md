@@ -23,3 +23,4 @@
 - always use kebab-case for file names, NEVER PascalCase or snakeCase
 - always use camelCase for everything inside convex folders
 - never destructure props
+- use toast from sonner instead of alert

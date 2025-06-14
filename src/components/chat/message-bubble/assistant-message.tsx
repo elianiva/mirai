@@ -7,7 +7,7 @@ import { MessageContent } from "./message-content";
 type AssistantMessageProps = {
 	content: string;
 	reasoning: string;
-	isStreaming?: boolean;
+	isStreamingMessageContent?: boolean;
 	isStreamingReasoning?: boolean;
 	showReasoning: boolean;
 	onShowReasoningChange: (show: boolean) => void;
@@ -21,6 +21,7 @@ type AssistantMessageProps = {
 
 export function AssistantMessage(props: AssistantMessageProps) {
 	const hasReasoning = props.reasoning || props.isStreamingReasoning;
+	const isAnyStreaming = props.isStreamingMessageContent || props.isStreamingReasoning;
 
 	return (
 		<div className="group flex flex-col items-start w-full">
@@ -29,7 +30,6 @@ export function AssistantMessage(props: AssistantMessageProps) {
 					<ReasoningSection
 						reasoning={props.reasoning}
 						isStreamingReasoning={props.isStreamingReasoning}
-						isStreaming={props.isStreaming}
 						showReasoning={props.showReasoning}
 						onShowReasoningChange={props.onShowReasoningChange}
 					/>
@@ -37,11 +37,11 @@ export function AssistantMessage(props: AssistantMessageProps) {
 
 				<MessageContent
 					content={props.content}
-					isStreaming={props.isStreaming}
+					isStreaming={props.isStreamingMessageContent}
 				/>
 			</div>
 
-			{!props.isStreaming && (
+			{!isAnyStreaming && (
 				<MessageActions
 					isUser={false}
 					onRegenerate={() => props.onShowRegenerateDialog(true)}

@@ -2,7 +2,9 @@ import type { Id } from "convex/_generated/dataModel";
 import type { TextPart } from "ai";
 
 export type MessageMetadata = {
-	isStreaming?: boolean;
+	isStreaming?: boolean; // Keep for backward compatibility
+	isStreamingMessageContent?: boolean;
+	isStreamingReasoning?: boolean;
 	modeId?: string;
 	profileId?: Id<"profiles">;
 	reasoning?: string;
@@ -22,6 +24,7 @@ export type MessageWithMetadata = {
 	senderId: string;
 	metadata?: MessageMetadata;
 	parts?: Array<Record<string, unknown>>;
+	attachments?: { url: string; filename: string; contentType: string }[];
 };
 
 export const REASONING_COLLAPSE_DELAY = 500;

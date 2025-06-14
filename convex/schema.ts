@@ -30,6 +30,18 @@ const schema = defineSchema({
 		title: v.string(),
 		parentId: v.optional(v.id("threads")),
 	}),
+	attachments: defineTable({
+		storageId: v.string(),
+		filename: v.string(),
+		contentType: v.string(),
+		size: v.number(),
+		uploadedBy: v.string(),
+		uploadedAt: v.number(),
+		messageId: v.optional(v.id("messages")),
+	})
+		.index("by_uploader", ["uploadedBy"])
+		.index("by_storage_id", ["storageId"])
+		.index("by_message", ["messageId"]),
 	messages: defineTable({
 		threadId: v.id("threads"),
 		senderId: v.string(),
@@ -46,6 +58,7 @@ const schema = defineSchema({
 		parentMessageId: v.optional(v.id("messages")),
 		branchId: v.optional(v.string()),
 		isActiveBranch: v.optional(v.boolean()),
+		attachmentIds: v.optional(v.array(v.id("attachments"))),
 	})
 		.index("by_thread", ["threadId"])
 		.index("by_parent", ["parentMessageId"])

@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { BranchIndicator } from "./branch-indicator";
 import { MessageBubble } from "./message-bubble";
+import { MessageWithAttachments } from "./message-with-attachments";
 
 type MessageListProps = {
 	messages: Array<{
@@ -12,11 +13,15 @@ type MessageListProps = {
 		senderId: string;
 		metadata?: {
 			isStreaming?: boolean;
+			isStreamingMessageContent?: boolean;
+			isStreamingReasoning?: boolean;
 			modeId?: string;
 			profileId?: Id<"profiles">;
 			reasoning?: string;
 		};
 		parts?: Array<Record<string, unknown>>;
+		attachments?: { url: string; filename: string; contentType: string }[];
+		attachmentIds?: Id<"attachments">[];
 	}>;
 	userId: string;
 	threadId: Id<"threads">;
@@ -86,20 +91,27 @@ export function MessageList(props: MessageListProps) {
 		<ScrollArea ref={scrollAreaRef} className="h-full w-full">
 			<div className="relative px-4 space-y-4 max-w-screen-md mx-auto py-4">
 				{props.messages?.map((msg, index) => {
-					const isLastMessage = index === props.messages.length - 1;
-					const isStreamingReasoning =
-						props.isLoading && isLastMessage && msg.type === "assistant";
-
 					return (
 						<div key={msg._id}>
-							<MessageBubble
-								message={msg}
-								userId={props.userId}
-								threadId={props.threadId}
-								isStreamingReasoning={isStreamingReasoning}
-								onRegenerate={props.onRegenerate}
-								onCreateBranch={props.onCreateBranch}
-							/>
+							{msg.attachmentIds && msg.attachmentIds.length > 0 ? (
+								<MessageWithAttachments
+									message={msg}
+									userId={props.userId}
+									threadId={props.threadId}
+									currentBranchId={props.currentBranchId}
+									onRegenerate={props.onRegenerate}
+									onCreateBranch={props.onCreateBranch}
+									onBranchSwitch={props.onBranchSwitch}
+								/>
+							) : (
+								<MessageBubble
+									message={msg}
+									userId={props.userId}
+									threadId={props.threadId}
+									onRegenerate={props.onRegenerate}
+									onCreateBranch={props.onCreateBranch}
+								/>
+							)}
 							{msg.type === "assistant" &&
 								index < props.messages.length - 1 && (
 									<div className="ml-4 mt-1">

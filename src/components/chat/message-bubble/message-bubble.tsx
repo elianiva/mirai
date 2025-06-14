@@ -13,7 +13,6 @@ type MessageBubbleProps = {
 	message: MessageWithMetadata;
 	userId: string;
 	threadId: Id<"threads">;
-	isStreamingReasoning?: boolean;
 	onRegenerate: (messageId: Id<"messages">, modeId: Id<"modes">) => void;
 	onCreateBranch?: (parentMessageId: Id<"messages">) => void;
 };
@@ -21,21 +20,23 @@ type MessageBubbleProps = {
 export function MessageBubble(props: MessageBubbleProps) {
 	const isUser = props.message.type === "user";
 	const isStreaming = props.message.metadata?.isStreaming;
+	const isStreamingMessageContent =
+		props.message.metadata?.isStreamingMessageContent;
+	const isStreamingReasoning = props.message.metadata?.isStreamingReasoning;
 	const [showReasoning, setShowReasoning] = useState(false);
 	const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
 	const [userHasManuallyToggled, setUserHasManuallyToggled] = useState(false);
 	const removeMessage = useRemoveMessage();
 	const reasoning = extractReasoning(props.message);
 
-	// Handle dynamic expansion and collapse based on streaming state
 	useEffect(() => {
-		if (props.isStreamingReasoning) {
+		if (isStreamingReasoning) {
 			setShowReasoning(true);
 			setUserHasManuallyToggled(false); // Reset manual toggle when new streaming starts
 		} else if (
-			!props.isStreamingReasoning &&
+			!isStreamingReasoning &&
 			showReasoning &&
-			!isStreaming &&
+			!isStreamingMessageContent &&
 			!userHasManuallyToggled
 		) {
 			// Only auto-collapse if user hasn't manually toggled
@@ -45,8 +46,8 @@ export function MessageBubble(props: MessageBubbleProps) {
 			return () => clearTimeout(timer);
 		}
 	}, [
-		props.isStreamingReasoning,
-		isStreaming,
+		isStreamingReasoning,
+		isStreamingMessageContent,
 		showReasoning,
 		userHasManuallyToggled,
 	]);
@@ -73,6 +74,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 		return (
 			<UserMessage
 				content={props.message.content}
+				attachments={props.message.attachments}
 				isStreaming={isStreaming}
 				onRemove={handleRemove}
 				onCreateBranch={
@@ -92,8 +94,8 @@ export function MessageBubble(props: MessageBubbleProps) {
 		<AssistantMessage
 			content={props.message.content}
 			reasoning={reasoning}
-			isStreaming={isStreaming}
-			isStreamingReasoning={props.isStreamingReasoning}
+			isStreamingMessageContent={isStreamingMessageContent}
+			isStreamingReasoning={isStreamingReasoning}
 			showReasoning={showReasoning}
 			onShowReasoningChange={handleReasoningToggle}
 			onRemove={handleRemove}
