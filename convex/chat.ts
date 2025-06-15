@@ -1,17 +1,17 @@
+import { generateText, smoothStream, streamText } from "ai";
+import { v } from "convex/values";
+import { buildSystemPrompt, getChatModel } from "../src/lib/ai";
+import { api, internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import {
+	type QueryCtx,
 	action,
 	internalAction,
 	internalMutation,
 	internalQuery,
 	mutation,
 	query,
-	type QueryCtx,
 } from "./_generated/server";
-import { v } from "convex/values";
-import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import { buildSystemPrompt, getChatModel } from "../src/lib/ai";
-import { streamText, generateText, smoothStream } from "ai";
 
 async function getActiveBranchMessages(
 	ctx: QueryCtx,
@@ -79,11 +79,14 @@ export const sendMessage = mutation({
 		branchId: v.optional(v.string()),
 		openrouterKey: v.optional(v.string()),
 	},
-	handler: async (ctx, args) => {
+	handler: async (
+		ctx,
+		args,
+	): Promise<{ threadId: Id<"threads">; branchId?: string }> => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new Error("Unauthorized");
 
-		let {
+		const {
 			message,
 			modeId,
 			threadId,
@@ -100,61 +103,44 @@ export const sendMessage = mutation({
 		const profile = await ctx.db.get(mode.profileSelector as Id<"profiles">);
 		if (!profile) throw new Error("Profile not found");
 
-		if (!threadId) {
-			threadId = await ctx.db.insert("threads", {
-				title: message.slice(0, 50) + (message.length > 50 ? "..." : ""),
-			});
-
-			// schedule title generation
-			await ctx.scheduler.runAfter(0, internal.chat.generateThreadTitle, {
-				threadId,
-				message,
-				openrouterKey,
-			});
-		}
-
-		if (parentMessageId && !branchId) {
-			branchId = `branch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-		}
-
-		if (parentMessageId && branchId) {
-			const siblingMessages = await ctx.db
-				.query("messages")
-				.withIndex("by_parent", (q) => q.eq("parentMessageId", parentMessageId))
-				.collect();
-
-			for (const sibling of siblingMessages) {
-				if (sibling.branchId !== branchId) {
-					await ctx.db.patch(sibling._id, { isActiveBranch: false });
-				}
-			}
-		}
-
-		const userMessageId = await ctx.db.insert("messages", {
+		// Use saveUserMessage to handle all message creation logic
+		const {
+			threadId: finalThreadId,
+			userMessageId,
+			branchId: finalBranchId,
+		}: {
+			threadId: Id<"threads">;
+			userMessageId: Id<"messages">;
+			branchId?: string;
+		} = await ctx.runMutation(internal.chat.saveUserMessage, {
 			threadId,
-			senderId: identity.subject,
-			content: message,
-			role: "user",
-			metadata: { modeId },
+			userMessage: message,
+			modeId,
 			parentMessageId,
 			branchId,
-			isActiveBranch: true,
+			userId: identity.subject,
+			userName: identity.name ?? "User",
+			openrouterKey,
 		});
 
 		const messageId = await ctx.runMutation(
 			internal.chat.createStreamingMessage,
 			{
-				threadId,
+				threadId: finalThreadId,
 				modeId,
 				parentMessageId: userMessageId,
-				branchId,
+				branchId: finalBranchId,
 			},
 		);
 
-		const pastMessages = await getActiveBranchMessages(ctx, threadId, branchId);
+		const pastMessages = await getActiveBranchMessages(
+			ctx,
+			finalThreadId,
+			finalBranchId,
+		);
 
 		await ctx.scheduler.runAfter(0, api.chat.streamResponse, {
-			threadId,
+			threadId: finalThreadId,
 			messageId,
 			messages: pastMessages.map((msg) => ({
 				role: msg.role as "user" | "assistant",
@@ -174,7 +160,7 @@ export const sendMessage = mutation({
 			openrouterKey,
 		});
 
-		return { threadId, branchId };
+		return { threadId: finalThreadId, branchId: finalBranchId };
 	},
 });
 

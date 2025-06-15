@@ -3,10 +3,11 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
+import { EmojiPickerInput } from "~/components/ui/emoji-picker-input";
 import { useCreateMode, useUpdateMode } from "~/lib/query/mode";
 import { toast } from "sonner";
 import { updateModeSettingsSchema } from "~/lib/query/mode";
-import { slugify } from "~/lib/utils";
+import { cn, slugify } from "~/lib/utils";
 import { ProfileSelector } from "./chat/profile-selector";
 import type { Id } from "convex/_generated/dataModel";
 
@@ -94,15 +95,12 @@ export function ModeSettings(props: ModeSettingsProps) {
 				<form.Field
 					name="icon"
 					children={(field) => (
-						<>
+						<div className="flex flex-col gap-2 justify-center items-center">
 							<Label htmlFor={field.name}>Icon</Label>
-							<Input
-								id={field.name}
-								name={field.name}
+							<EmojiPickerInput
 								value={field.state.value}
-								onBlur={field.handleBlur}
-								onChange={(e) => field.handleChange(e.target.value)}
-								placeholder="💻 or path/to/icon.png"
+								onChange={field.handleChange}
+								placeholder="❓"
 							/>
 							{!field.state.meta.isValid ? (
 								<em className="text-xs text-destructive my-0">
@@ -112,10 +110,9 @@ export function ModeSettings(props: ModeSettingsProps) {
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground mt-1 font-serif">
-								Visual identifier for the mode. Can be an emoji or path to an
-								image file.
+								Click the button to open the emoji picker.
 							</p>
-						</>
+						</div>
 					)}
 				/>
 			</div>
@@ -125,7 +122,9 @@ export function ModeSettings(props: ModeSettingsProps) {
 					name="slug"
 					children={(field) => (
 						<>
-							<Label htmlFor={field.name}>Slug</Label>
+							<Label htmlFor={field.name}>
+								Slug <span className="text-destructive">*</span>
+							</Label>
 							<Input
 								id={field.name}
 								name={field.name}
@@ -133,6 +132,10 @@ export function ModeSettings(props: ModeSettingsProps) {
 								onBlur={field.handleBlur}
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="mode-name"
+								className={cn({
+									"border-destructive": field.state.meta.errors?.length,
+								})}
+								required
 							/>
 							{!field.state.meta.isValid ? (
 								<em className="text-xs text-destructive my-0">
@@ -155,7 +158,9 @@ export function ModeSettings(props: ModeSettingsProps) {
 					name="name"
 					children={(field) => (
 						<>
-							<Label htmlFor={field.name}>Name</Label>
+							<Label htmlFor={field.name}>
+								Name <span className="text-destructive">*</span>
+							</Label>
 							<Input
 								id={field.name}
 								name={field.name}
@@ -171,6 +176,10 @@ export function ModeSettings(props: ModeSettingsProps) {
 									}
 								}}
 								placeholder="Mode Name"
+								className={cn({
+									"border-destructive": field.state.meta.errors?.length,
+								})}
+								required
 							/>
 							{!field.state.meta.isValid ? (
 								<em className="text-xs text-destructive my-0">
@@ -201,12 +210,13 @@ export function ModeSettings(props: ModeSettingsProps) {
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="A summary of what this mode does."
 								rows={3}
+								className={cn({
+									"border-destructive": field.state.meta.errors?.length,
+								})}
 							/>
-							{!field.state.meta.isValid ? (
-								<em className="text-xs text-destructive my-0">
-									{field.state.meta.errors
-										.map((error) => error?.message)
-										.join(", ")}
+							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
+								<em className="text-xs text-destructive">
+									{field.state.meta.errors.join(", ")}
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground mt-1 font-serif">
@@ -258,12 +268,13 @@ export function ModeSettings(props: ModeSettingsProps) {
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="Detailed instructions for the AI in this mode."
 								rows={5}
+								className={cn({
+									"border-destructive": field.state.meta.errors?.length,
+								})}
 							/>
-							{!field.state.meta.isValid ? (
-								<em className="text-xs text-destructive my-0">
-									{field.state.meta.errors
-										.map((error) => error?.message)
-										.join(", ")}
+							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
+								<em className="text-xs text-destructive">
+									{field.state.meta.errors.join(", ")}
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground mt-1 font-serif">
@@ -289,12 +300,13 @@ export function ModeSettings(props: ModeSettingsProps) {
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="Describe scenarios where this mode is most effective."
 								rows={3}
+								className={cn({
+									"border-destructive": field.state.meta.errors?.length,
+								})}
 							/>
-							{!field.state.meta.isValid ? (
-								<em className="text-xs text-destructive my-0">
-									{field.state.meta.errors
-										.map((error) => error?.message)
-										.join(", ")}
+							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
+								<em className="text-xs text-destructive">
+									{field.state.meta.errors.join(", ")}
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground mt-1 font-serif">
@@ -320,12 +332,13 @@ export function ModeSettings(props: ModeSettingsProps) {
 								onChange={(e) => field.handleChange(e.target.value)}
 								placeholder="Any other specific guidelines or context for this mode."
 								rows={3}
+								className={cn({
+									"border-destructive": field.state.meta.errors?.length,
+								})}
 							/>
-							{!field.state.meta.isValid ? (
-								<em className="text-xs text-destructive my-0">
-									{field.state.meta.errors
-										.map((error) => error?.message)
-										.join(", ")}
+							{field.state.meta.errors && field.state.meta.errors.length > 0 ? (
+								<em className="text-xs text-destructive">
+									{field.state.meta.errors.join(", ")}
 								</em>
 							) : null}
 							<p className="text-xs text-muted-foreground mt-1 font-serif">

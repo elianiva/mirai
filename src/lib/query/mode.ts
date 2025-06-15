@@ -74,7 +74,3 @@ export function useCreateMode() {
 export function useUpdateMode() {
 	return useMutation(api.modes.update);
 }
-
-export function useUpdateModeSettings() {
-	return useMutation(api.modes.update);
-}
