@@ -1,14 +1,13 @@
 import { useNavigate } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useMessages } from "~/lib/query/messages";
+import { useMessages, useRegenerateMessage } from "~/lib/query/messages";
 import { useModes } from "~/lib/query/mode";
 import { useUser } from "~/lib/query/user";
+import { useCreateBranch } from "~/lib/query/chat";
 import { useChat } from "@ai-sdk/react";
 import type { Message } from "ai";
 import { ChatInput } from "./chat-input";
-import { useMutation } from "convex/react";
-import { api } from "~/../convex/_generated/api";
 import { EmptyState } from "./empty-state";
 import { MessageList } from "./message-list";
 import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
@@ -67,8 +66,8 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const { data: user } = useUser();
 	const { openrouterKey } = useOpenrouterKey(user?.id);
 	const messagesFromDB = useMessages(threadId);
-	const createBranch = useMutation(api.chat.createBranch);
-	const regenerateMessage = useMutation(api.chat.regenerateMessage);
+	const createBranch = useCreateBranch();
+	const regenerateMessage = useRegenerateMessage();
 
 	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
 	const [currentBranchId, setCurrentBranchId] = useState<string>();
