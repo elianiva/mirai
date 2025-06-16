@@ -1,5 +1,9 @@
+import { generateText } from "ai";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { getChatModel } from "../src/lib/ai";
+import { api, internal } from "./_generated/api";
+import type { Doc, Id } from "./_generated/dataModel";
+import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
 
 export const getById = query({
 	args: {
@@ -11,9 +15,7 @@ export const getById = query({
 			throw new Error("Not authenticated");
 		}
 
-		const userId = identity.subject;
 		const thread = await ctx.db.get(args.id);
-
 		if (!thread) {
 			throw new Error("Thread not found");
 		}
@@ -44,34 +46,7 @@ export const updateTitle = mutation({
 			throw new Error("Not authenticated");
 		}
 
-		const userId = identity.subject;
 		const thread = await ctx.db.get(args.id);
-
-		if (!thread) {
-			throw new Error("Thread not found");
-		}
-
-		await ctx.db.patch(args.id, {
-			title: args.title,
-		});
-
-		return args.id;
-	},
-});
-
-export const renameThread = mutation({
-	args: {
-		id: v.id("threads"),
-		title: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
-
-		const thread = await ctx.db.get(args.id);
-
 		if (!thread) {
 			throw new Error("Thread not found");
 		}
@@ -95,7 +70,6 @@ export const remove = mutation({
 		}
 
 		const thread = await ctx.db.get(args.id);
-
 		if (!thread) {
 			throw new Error("Thread not found");
 		}
@@ -115,27 +89,345 @@ export const remove = mutation({
 	},
 });
 
-export const getThreadMetadata = query({
+// Branching functionality - simplified thread cloning
+
+export const cloneThread = mutation({
 	args: {
-		id: v.id("threads"),
+		sourceThreadId: v.id("threads"),
+		upToMessageId: v.optional(v.id("messages")),
+		openrouterKey: v.string(),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
+		if (!identity) throw new Error("Unauthorized");
+
+		const sourceThread = await ctx.db.get(args.sourceThreadId);
+		if (!sourceThread) throw new Error("Source thread not found");
+
+		const sourceMessages = await ctx.db
+			.query("messages")
+			.withIndex("by_thread", (q) => q.eq("threadId", args.sourceThreadId))
+			.order("asc")
+			.collect();
+
+		// If upToMessageId is specified, only copy messages up to that point
+		let messagesToCopy = sourceMessages;
+		if (args.upToMessageId) {
+			const upToIndex = sourceMessages.findIndex(
+				(msg) => msg._id === args.upToMessageId,
+			);
+			if (upToIndex !== -1) {
+				messagesToCopy = sourceMessages.slice(0, upToIndex + 1);
+			}
 		}
 
-		const thread = await ctx.db.get(args.id);
-		if (!thread) {
-			throw new Error("Thread not found");
+		// Create new thread with parent reference
+		const newThreadId = await ctx.db.insert("threads", {
+			title: `${sourceThread.title} - Copy`,
+			parentThreadId: args.sourceThreadId,
+		});
+
+		// Generate dynamic title based on conversation context
+		const lastAssistantMessage = [...messagesToCopy]
+			.reverse()
+			.find((msg) => msg.role === "assistant");
+		if (lastAssistantMessage) {
+			await ctx.scheduler.runAfter(0, internal.threads.generateThreadTitle, {
+				threadId: newThreadId,
+				message: lastAssistantMessage.content,
+				openrouterKey: args.openrouterKey,
+			});
 		}
 
-		return {
-			id: thread._id,
-			title: thread.title,
-			parentId: thread.parentId,
-			isDetached: thread.isDetached || false,
-			condensedFromThreadId: thread.condensedFromThreadId,
-		};
+		// Copy messages to new thread
+		await ctx.runMutation(internal.threads.copyMessagesToThread, {
+			messages: messagesToCopy,
+			targetThreadId: newThreadId,
+		});
+
+		return { threadId: newThreadId };
+	},
+});
+
+export const cloneThreadWithCondensedHistory = mutation({
+	args: {
+		sourceThreadId: v.id("threads"),
+		upToMessageId: v.optional(v.id("messages")),
+		openrouterKey: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error("Unauthorized");
+
+		const sourceThread = await ctx.db.get(args.sourceThreadId);
+		if (!sourceThread) throw new Error("Source thread not found");
+
+		// Create new thread with parent reference
+		const newThreadId = await ctx.db.insert("threads", {
+			title: "Detached Branch",
+			parentThreadId: args.sourceThreadId,
+		});
+
+		// Create placeholder message that will be updated with condensed history
+		const contextMessageId = await ctx.db.insert("messages", {
+			threadId: newThreadId,
+			senderId: "system",
+			content: "Generating condensed history...",
+			role: "assistant",
+			metadata: {
+				isCondensedHistory: true,
+				originalThreadId: args.sourceThreadId,
+				isStreaming: true,
+			},
+		});
+
+		// Schedule action to generate condensed history
+		await ctx.scheduler.runAfter(0, internal.threads.generateCondensedHistory, {
+			sourceThreadId: args.sourceThreadId,
+			upToMessageId: args.upToMessageId,
+			newThreadId: newThreadId,
+			contextMessageId: contextMessageId,
+			openrouterKey: args.openrouterKey,
+		});
+
+		return { threadId: newThreadId };
+	},
+});
+
+// Helper function for UI to create branches from a specific message
+export const createBranchFromMessage = mutation({
+	args: {
+		messageId: v.id("messages"),
+		useCondensedHistory: v.boolean(),
+		openrouterKey: v.string(),
+	},
+	handler: async (ctx, args): Promise<{ threadId: Id<"threads"> }> => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error("Unauthorized");
+
+		const message = await ctx.db.get(args.messageId);
+		if (!message) throw new Error("Message not found");
+
+		if (args.useCondensedHistory) {
+			return await ctx.runMutation(api.threads.cloneThreadWithCondensedHistory, {
+				sourceThreadId: message.threadId,
+				upToMessageId: args.messageId,
+				openrouterKey: args.openrouterKey,
+			});
+		}
+		
+		return await ctx.runMutation(api.threads.cloneThread, {
+			sourceThreadId: message.threadId,
+			upToMessageId: args.messageId,
+			openrouterKey: args.openrouterKey,
+		});
+	},
+});
+
+// Internal helper functions
+
+export const copyMessagesToThread = internalMutation({
+	args: {
+		messages: v.array(v.any()),
+		targetThreadId: v.id("threads"),
+	},
+	handler: async (ctx, args) => {
+		for (const msg of args.messages) {
+			let newAttachmentIds: Id<"attachments">[] | undefined;
+			if (msg.attachmentIds && msg.attachmentIds.length > 0) {
+				newAttachmentIds = [];
+				for (const attachmentId of msg.attachmentIds) {
+					const originalAttachment = await ctx.db.get(attachmentId) as Doc<"attachments"> | null;
+					if (originalAttachment) {
+						const newAttachmentId = await ctx.db.insert("attachments", {
+							storageId: originalAttachment.storageId,
+							filename: originalAttachment.filename,
+							contentType: originalAttachment.contentType,
+							size: originalAttachment.size,
+							uploadedBy: originalAttachment.uploadedBy,
+							uploadedAt: originalAttachment.uploadedAt,
+						});
+						newAttachmentIds.push(newAttachmentId);
+					}
+				}
+			}
+
+			const newMessageId = await ctx.db.insert("messages", {
+				threadId: args.targetThreadId,
+				senderId: msg.senderId,
+				content: msg.content,
+				role: msg.role,
+				metadata: msg.metadata,
+				attachmentIds: newAttachmentIds,
+			});
+
+			// Update attachment references
+			if (newAttachmentIds && newAttachmentIds.length > 0) {
+				for (const attachmentId of newAttachmentIds) {
+					await ctx.db.patch(attachmentId, {
+						messageId: newMessageId,
+					});
+				}
+			}
+		}
+	},
+});
+
+export const generateCondensedHistory = internalAction({
+	args: {
+		sourceThreadId: v.id("threads"),
+		upToMessageId: v.optional(v.id("messages")),
+		newThreadId: v.id("threads"),
+		contextMessageId: v.id("messages"),
+		openrouterKey: v.string(),
+	},
+	handler: async (ctx, args) => {
+		try {
+			// Get messages from source thread
+			const sourceMessages = await ctx.runQuery(internal.threads.getThreadMessages, {
+				threadId: args.sourceThreadId,
+			});
+
+			// Filter messages up to the specified point
+			let messagesToCondense = sourceMessages;
+			if (args.upToMessageId) {
+				const upToIndex = sourceMessages.findIndex(
+					(msg) => msg._id === args.upToMessageId,
+				);
+				if (upToIndex !== -1) {
+					messagesToCondense = sourceMessages.slice(0, upToIndex + 1);
+				}
+			}
+
+			if (messagesToCondense.length === 0) {
+				await ctx.runMutation(internal.threads.updateCondensedMessage, {
+					messageId: args.contextMessageId,
+					content: "No conversation history to condense.",
+				});
+				return;
+			}
+
+			// Convert to conversation text
+			const conversationText = messagesToCondense
+				.map((msg) => {
+					const role = msg.role === "user" ? "User" : "Assistant";
+					return `${role}: ${msg.content}`;
+				})
+				.join("\n\n");
+
+			// Generate condensed summary
+			const { text } = await generateText({
+				model: getChatModel("google/gemini-2.5-flash-preview", args.openrouterKey),
+				system: `You are a helpful summarizer bot that creates concise summaries of chat conversations.
+				
+Your task is to condense the conversation history into a single, comprehensive summary that:
+1. Captures the key topics, questions, and decisions discussed
+2. Preserves important context that would be relevant for continuing the conversation
+3. Maintains the essential information while significantly reducing token count
+4. Uses clear, natural language that flows well as a conversation starter
+
+The summary should be written as if you're briefing someone on "what we've discussed so far" and should be suitable as context for continuing the conversation in a new thread.`,
+				prompt: `Please create a condensed summary of this conversation:
+
+${conversationText}
+
+Create a summary that captures the essential context and key points discussed, suitable for continuing this conversation in a new thread.`,
+			});
+
+			// Update the context message with condensed history
+			await ctx.runMutation(internal.threads.updateCondensedMessage, {
+				messageId: args.contextMessageId,
+				content: text.trim(),
+			});
+
+			// Generate dynamic title based on condensed content
+			await ctx.runAction(internal.threads.generateThreadTitle, {
+				threadId: args.newThreadId,
+				message: text.trim(),
+				openrouterKey: args.openrouterKey,
+			});
+		} catch (error) {
+			console.error("Error generating condensed history:", error);
+			// Update with fallback content
+			await ctx.runMutation(internal.threads.updateCondensedMessage, {
+				messageId: args.contextMessageId,
+				content: "Previous conversation context has been condensed. You can continue the conversation from here.",
+			});
+		}
+	},
+});
+
+export const getThreadMessages = internalQuery({
+	args: {
+		threadId: v.id("threads"),
+	},
+	handler: async (ctx, args) => {
+		return await ctx.db
+			.query("messages")
+			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+			.order("asc")
+			.collect();
+	},
+});
+
+export const updateCondensedMessage = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		content: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) throw new Error("Message not found");
+
+		await ctx.db.patch(args.messageId, {
+			content: args.content,
+			metadata: {
+				...message.metadata,
+				isStreaming: false,
+			},
+		});
+	},
+});
+
+export const generateThreadTitle = internalAction({
+	args: {
+		threadId: v.id("threads"),
+		message: v.string(),
+		openrouterKey: v.string(),
+	},
+	handler: async (ctx, args) => {
+		try {
+			const { text } = await generateText({
+				model: getChatModel(
+					"google/gemini-2.0-flash-lite-001",
+					args.openrouterKey,
+				),
+				system:
+					"You are a helpful assistant that generates concise, descriptive titles for chat conversations. Generate a title that captures the main topic or intent of the user's message. Keep it under 50 characters and make it clear and informative. Do not use any markdown syntax.",
+				prompt: `Generate a concise title for a conversation that starts with this message: "${args.message}"`,
+			});
+
+			await ctx.runMutation(internal.threads.updateThreadTitle, {
+				threadId: args.threadId,
+				title: text.trim(),
+			});
+		} catch (error) {
+			console.error("Error generating thread title:", error);
+		}
+	},
+});
+
+export const updateThreadTitle = internalMutation({
+	args: {
+		threadId: v.id("threads"),
+		title: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const { threadId, title } = args;
+		const finalTitle = title.length > 50 ? `${title.slice(0, 47)}...` : title;
+
+		await ctx.db.patch(threadId, {
+			title: finalTitle,
+		});
 	},
 });

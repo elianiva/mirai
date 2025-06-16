@@ -40,8 +40,6 @@ const schema = z.object({
 		}),
 	),
 	modeId: z.string(),
-	branchId: z.string().optional(),
-	parentMessageId: z.string().optional(),
 	threadId: z.string().optional(),
 	openrouterKey: z.string(),
 	attachmentIds: z.array(z.string()).optional(),
@@ -57,15 +55,8 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		});
 	}
 
-	const {
-		messages,
-		modeId,
-		branchId,
-		parentMessageId,
-		threadId,
-		openrouterKey,
-		attachmentIds,
-	} = parsed.data;
+	const { messages, modeId, threadId, openrouterKey, attachmentIds } =
+		parsed.data;
 
 	const identity = await ctx.auth.getUserIdentity();
 	if (!identity) {
@@ -195,10 +186,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 			threadId: threadId as Id<"threads">,
 			userMessage: originalUserMessageContent,
 			modeId,
-			parentMessageId: parentMessageId as Id<"messages">,
-			branchId,
 			userId: identity.subject,
-			userName: identity.name ?? "User",
 			openrouterKey,
 			attachmentIds: attachmentIds
 				? (attachmentIds as Id<"attachments">[])
@@ -212,7 +200,6 @@ export const chatHandler = httpAction(async (ctx, req) => {
 			threadId: userMessageResult.threadId,
 			modeId,
 			parentMessageId: userMessageResult.userMessageId,
-			branchId: userMessageResult.branchId,
 			userId: identity.subject,
 			userName: identity.name ?? "User",
 			openrouterKey,

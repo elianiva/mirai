@@ -196,7 +196,7 @@ export function ChatListPanel(props: ChatListPanelProps) {
 													/>
 												) : (
 													<span className="flex items-center">
-														{thread.parentId && (
+														{thread.parentThreadId && (
 															<GitFork className="h-4 w-4 mr-2" />
 														)}
 														{thread.title || "New Chat"}

@@ -30,9 +30,7 @@ export const profiles = defineTable({
 
 export const threads = defineTable({
 	title: v.string(),
-	parentId: v.optional(v.id("threads")),
-	isDetached: v.optional(v.boolean()),
-	condensedFromThreadId: v.optional(v.id("threads")),
+	parentThreadId: v.optional(v.id("threads")),
 });
 
 export const attachments = defineTable({
@@ -63,17 +61,11 @@ export const messages = defineTable({
 			finishReason: v.optional(v.string()),
 			isCondensedHistory: v.optional(v.boolean()),
 			originalThreadId: v.optional(v.id("threads")),
-			originalParentMessageId: v.optional(v.id("messages")),
 		}),
 	),
-	parentMessageId: v.optional(v.id("messages")),
-	branchId: v.optional(v.string()),
-	isActiveBranch: v.optional(v.boolean()),
 	attachmentIds: v.optional(v.array(v.id("attachments"))),
 })
-	.index("by_thread", ["threadId"])
-	.index("by_parent", ["parentMessageId"])
-	.index("by_branch", ["threadId", "branchId"]);
+	.index("by_thread", ["threadId"]);
 
 const schema = defineSchema({
 	accountSettings,

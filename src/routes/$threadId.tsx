@@ -46,7 +46,7 @@ export function ThreadPage() {
 			? ("new" as Id<"threads">)
 			: (params.threadId as Id<"threads">);
 	const thread = useThread(threadId);
-	const parentThreadId = thread?.parentId;
+	const parentThreadId = thread?.parentThreadId;
 	const parentThread = useThread(parentThreadId);
 	const messages = useMessages(threadId);
 	const isStreaming =
@@ -79,7 +79,7 @@ export function ThreadPage() {
 							<SidebarTrigger />
 							<Breadcrumb className="text-lg font-semibold font-serif">
 								<BreadcrumbList>
-									{thread?.parentId ? (
+									{thread?.parentThreadId ? (
 										parentThread ? (
 											<>
 												<BreadcrumbItem>

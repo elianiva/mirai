@@ -2,7 +2,6 @@ import type { Id } from "convex/_generated/dataModel";
 import { useEffect, useRef } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import type { MessageWithMetadata } from "~/types/message";
-import { BranchIndicator } from "./branch-indicator";
 import { MessageBubble } from "./message-bubble/message-bubble";
 import { MessageWithAttachments } from "./message-with-attachments";
 
@@ -75,7 +74,7 @@ export function MessageList(props: MessageListProps) {
 	return (
 		<ScrollArea ref={scrollAreaRef} className="h-full w-full">
 			<div className="relative px-4 space-y-4 max-w-screen-md mx-auto py-4">
-				{props.messages?.map((msg, index) => {
+				{props.messages?.map((msg) => {
 					return (
 						<div key={msg._id}>
 							{msg.attachmentIds && msg.attachmentIds.length > 0 ? (
@@ -97,17 +96,6 @@ export function MessageList(props: MessageListProps) {
 									onCreateBranch={props.onCreateBranch}
 								/>
 							)}
-							{msg.role === "assistant" &&
-								index < props.messages.length - 1 && (
-									<div className="ml-4 mt-1">
-										<BranchIndicator
-											messageId={msg._id}
-											threadId={props.threadId}
-											currentBranchId={props.currentBranchId}
-											onBranchSwitch={props.onBranchSwitch}
-										/>
-									</div>
-								)}
 						</div>
 					);
 				})}

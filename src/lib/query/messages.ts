@@ -10,7 +10,6 @@ import {
 
 export const listMessagesSchema = z.object({
 	threadId: z.custom<Id<"threads">>(),
-	branchId: z.string().optional(),
 });
 
 export type ListMessagesVariables = z.infer<typeof listMessagesSchema>;
@@ -38,8 +37,8 @@ export const removeMessageSchema = z.object({
 
 export type RemoveMessageVariables = z.infer<typeof removeMessageSchema>;
 
-export function useMessages(threadId: Id<"threads">, branchId?: string) {
-	const cacheKey = `messages-data-${threadId}${branchId ? `-${branchId}` : ""}`;
+export function useMessages(threadId: Id<"threads">) {
+	const cacheKey = `messages-data-${threadId}`;
 
 	const [cachedData, setCachedData] = useState<Doc<"messages">[] | undefined>(
 		undefined,
@@ -56,7 +55,7 @@ export function useMessages(threadId: Id<"threads">, branchId?: string) {
 
 	const result = useQuery(
 		api.messages.list,
-		threadId !== "new" ? { threadId, branchId } : "skip",
+		threadId !== "new" ? { threadId } : "skip",
 	);
 
 	useEffect(() => {

@@ -217,10 +217,11 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		}
 	}
 
-	async function handleCreateBranch(parentMessageId: Id<"messages">) {
+	async function handleCreateBranch(messageId: Id<"messages">) {
 		try {
 			const result = await createBranch({
-				parentMessageId,
+				messageId,
+				useCondensedHistory: false,
 				openrouterKey: openrouterKey || "",
 			});
 			if (result.threadId) {

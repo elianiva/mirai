@@ -9,9 +9,9 @@ import {
 	DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
-import { useCreateDetachedBranch } from "~/lib/query/chat";
 import { useUser } from "~/lib/query/user";
 import { cn } from "~/lib/utils";
+import { useCreateBranch } from "~/lib/query/chat";
 
 type MessageActionsProps = {
 	isUser: boolean;
@@ -26,7 +26,7 @@ export function MessageActions(props: MessageActionsProps) {
 	const navigate = useNavigate();
 	const { data: user } = useUser();
 	const { openrouterKey } = useOpenrouterKey(user?.id);
-	const mutateCreateDetachedBranch = useCreateDetachedBranch();
+	const mutateCreateDetachedBranch = useCreateBranch();
 
 	async function handleCreateDetachedBranch() {
 		if (!props.message?._id || !openrouterKey) {
@@ -36,7 +36,7 @@ export function MessageActions(props: MessageActionsProps) {
 
 		try {
 			const result = await mutateCreateDetachedBranch({
-				parentMessageId: props.message._id,
+				messageId: props.message._id,
 				openrouterKey,
 				useCondensedHistory: true,
 			});
@@ -82,15 +82,22 @@ export function MessageActions(props: MessageActionsProps) {
 									<GitBranch className="size-3" />
 								</Button>
 							</DropdownMenuTrigger>
-							<DropdownMenuContent align="start">
+							<DropdownMenuContent
+								align="start"
+								className="border-2 border-secondary shadow-none font-serif"
+							>
 								<DropdownMenuItem
+									className="cursor-pointer"
 									onClick={() => {
 										props.onCreateBranch?.();
 									}}
 								>
 									Use full history
 								</DropdownMenuItem>
-								<DropdownMenuItem onClick={handleCreateDetachedBranch}>
+								<DropdownMenuItem
+									className="cursor-pointer"
+									onClick={handleCreateDetachedBranch}
+								>
 									Use condensed history (detached)
 								</DropdownMenuItem>
 							</DropdownMenuContent>
