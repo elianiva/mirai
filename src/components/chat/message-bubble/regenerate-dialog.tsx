@@ -8,6 +8,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "~/components/ui/dialog";
+import { ORCHESTRATOR_MODE_CONFIG } from "~/lib/defaults";
 import { ModeSelector } from "../mode-selector";
 
 type RegenerateDialogProps = {
@@ -41,6 +42,7 @@ export function RegenerateDialog(props: RegenerateDialogProps) {
 					<ModeSelector
 						selectedModeId={selectedModeId}
 						onModeSelect={setSelectedModeId}
+						excludeSlug={ORCHESTRATOR_MODE_CONFIG.slug}
 					/>
 					<div className="flex justify-end gap-2">
 						<Button variant="outline" onClick={() => props.onOpenChange(false)}>

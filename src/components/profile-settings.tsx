@@ -100,8 +100,9 @@ export function ProfileSettings() {
 						<UserX className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
 						<h3 className="mt-4 text-lg font-medium">No profiles available</h3>
 						<p className="mt-2 text-sm text-muted-foreground">
-							You don't have any AI profiles yet. Create a profile to get
-							started.
+							You don't have any AI profiles yet. The default profiles should be
+							automatically created for new users. Try refreshing the page or
+							create a profile manually to get started.
 						</p>
 					</CardContent>
 				</Card>

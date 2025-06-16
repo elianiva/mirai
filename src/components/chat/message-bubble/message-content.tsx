@@ -3,9 +3,25 @@ import { MarkdownRenderer } from "../markdown-renderer";
 type MessageContentProps = {
 	content: string;
 	isStreaming?: boolean;
+	isPendingOrchestrator?: boolean;
 };
 
 export function MessageContent(props: MessageContentProps) {
+	if (props.isPendingOrchestrator) {
+		return (
+			<>
+				<span className="text-muted-foreground italic text-sm font-serif">
+					Please wait...
+				</span>
+				<div className="mt-2 flex items-center gap-1">
+					<div className="size-1.5 rounded-full bg-current opacity-75 animate-pulse" />
+					<div className="size-1.5 rounded-full bg-current opacity-75 animate-pulse [animation-delay:0.2s]" />
+					<div className="size-1.5 rounded-full bg-current opacity-75 animate-pulse [animation-delay:0.4s]" />
+				</div>
+			</>
+		);
+	}
+
 	if (props.content) {
 		return (
 			<MarkdownRenderer

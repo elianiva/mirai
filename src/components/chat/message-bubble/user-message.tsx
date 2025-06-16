@@ -1,18 +1,13 @@
 import type { Id } from "convex/_generated/dataModel";
 import { MessageActions } from "./message-actions";
-import { RegenerateDialog } from "./regenerate-dialog";
 
 type UserMessageProps = {
-	content: string;
 	attachments?: { url: string; filename: string; contentType: string }[];
 	isStreaming?: boolean;
 	onRemove: () => void;
 	onCreateBranch?: () => void;
-	showRegenerateDialog: boolean;
-	onShowRegenerateDialog: (show: boolean) => void;
 	onRegenerate: (modeId: Id<"modes">) => void;
-	initialModeId?: Id<"modes">;
-	message?: { _id: Id<"messages"> };
+	message?: { _id: Id<"messages">; content: string };
 	threadId?: Id<"threads">;
 };
 
@@ -45,26 +40,19 @@ export function UserMessage(props: UserMessageProps) {
 						))}
 					</div>
 				)}
-				{props.content}
+				{props.message?.content}
 			</div>
 
 			{!props.isStreaming && (
 				<MessageActions
 					isUser={true}
-					onRegenerate={() => props.onShowRegenerateDialog(true)}
+					onRegenerate={props.onRegenerate}
 					onCreateBranch={props.onCreateBranch}
 					onRemove={props.onRemove}
 					message={props.message}
 					threadId={props.threadId}
 				/>
 			)}
-
-			<RegenerateDialog
-				open={props.showRegenerateDialog}
-				onOpenChange={props.onShowRegenerateDialog}
-				onRegenerate={props.onRegenerate}
-				initialModeId={props.initialModeId}
-			/>
 		</div>
 	);
 }

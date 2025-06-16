@@ -68,20 +68,8 @@ export function useMessages(threadId: Id<"threads">) {
 	return result !== undefined ? result : (cachedData ?? []);
 }
 
-export function useCreateMessage() {
-	return useMutation(api.messages.create);
-}
-
-export function useUpdateMessage() {
-	return useMutation(api.messages.update);
-}
-
 export function useRemoveMessage() {
 	return useMutation(api.messages.remove);
-}
-
-export function useSendMessage() {
-	return useMutation(api.chat.sendMessage);
 }
 
 export function useRegenerateMessage() {

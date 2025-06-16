@@ -8,17 +8,29 @@ export type MessageAttachment = {
 	contentType: string;
 };
 
+export type ToolCall = {
+	name: string;
+	status: string;
+	arguments: Record<string, unknown>;
+	output?: unknown;
+};
+
+export type ToolCallMetadata = ToolCall[];
+
 export type MessageMetadata = {
 	isStreaming?: boolean;
+	isPendingOrchestrator?: boolean;
 	modeId?: string;
 	profileId?: string;
 	reasoning?: string;
 	modelName?: string;
 	finishReason?: string;
+	toolCallMetadata?: ToolCallMetadata;
 };
 
 export type MessageMetadataUI = {
 	isStreaming?: boolean;
+	isPendingOrchestrator?: boolean;
 	isStreamingMessageContent?: boolean;
 	isStreamingReasoning?: boolean;
 	modeId?: string;
@@ -26,6 +38,7 @@ export type MessageMetadataUI = {
 	reasoning?: string;
 	modelName?: string;
 	finishReason?: string;
+	toolCallMetadata?: ToolCallMetadata;
 };
 
 export type Message = Doc<"messages"> & {

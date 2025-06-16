@@ -83,7 +83,13 @@ export function AccountSettings() {
 	}
 
 	return (
-		<form onSubmit={form.handleSubmit} className="space-y-4 font-serif">
+		<form
+			onSubmit={(e) => {
+				e.preventDefault();
+				form.handleSubmit();
+			}}
+			className="space-y-4 font-serif"
+		>
 			<div>
 				<h3 className="text-xl font-semibold">Account Settings</h3>
 				<p className="text-sm text-muted-foreground">

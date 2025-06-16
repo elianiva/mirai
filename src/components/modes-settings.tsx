@@ -24,13 +24,13 @@ export function ModesSettings() {
 	const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
 	const [showAddForm, setShowAddForm] = useState(false);
 	const [newMode, setNewMode] = useState<
-		Omit<ModeData, "_id" | "_creationTime">
+		Omit<ModeData, "_id" | "_creationTime" | "userId">
 	>({
 		slug: "",
 		icon: "",
 		name: "",
 		description: "",
-		profileSelector: "",
+		profileId: "",
 		modeDefinition: "",
 		whenToUse: "",
 		additionalInstructions: "",
@@ -68,7 +68,7 @@ export function ModesSettings() {
 			icon: "",
 			name: "",
 			description: "",
-			profileSelector: "",
+			profileId: "",
 			modeDefinition: "",
 			whenToUse: "",
 			additionalInstructions: "",
@@ -98,7 +98,7 @@ export function ModesSettings() {
 			icon: selectedMode.icon,
 			name: selectedMode.name,
 			description: selectedMode.description,
-			profileSelector: selectedMode.profileSelector,
+			profileId: selectedMode.profileId,
 			modeDefinition: selectedMode.modeDefinition,
 			whenToUse: selectedMode.whenToUse,
 			additionalInstructions: selectedMode.additionalInstructions,
@@ -172,13 +172,13 @@ export function ModesSettings() {
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="profileSelector">Profile Selector</Label>
+						<Label htmlFor="profileId">Profile ID</Label>
 						<Input
-							id="profileSelector"
-							name="profileSelector"
-							value={newMode.profileSelector}
+							id="profileId"
+							name="profileId"
+							value={newMode.profileId}
 							onChange={handleInputChange}
-							placeholder="Profile selector for this mode"
+							placeholder="Profile ID for this mode"
 						/>
 					</div>
 
@@ -270,8 +270,9 @@ export function ModesSettings() {
 						<UserX className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
 						<h3 className="mt-4 text-lg font-medium">No modes available</h3>
 						<p className="mt-2 text-sm text-muted-foreground">
-							You don't have any AI modes yet. Create a mode to get started or
-							run the database seeding.
+							You don't have any AI modes yet. The default modes should be
+							automatically created for new users. Try refreshing the page or
+							create a mode manually to get started.
 						</p>
 					</CardContent>
 				</Card>

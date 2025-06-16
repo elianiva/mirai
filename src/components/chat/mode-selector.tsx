@@ -8,14 +8,19 @@ type Mode = Doc<"modes">;
 type ModeSelectorProps = {
 	selectedModeId?: Id<"modes">;
 	onModeSelect: (modeId: Id<"modes">) => void;
+	excludeSlug?: string;
 };
 
 export function ModeSelector(props: ModeSelectorProps) {
 	const [open, setOpen] = useState(false);
 	const modes = useModes();
 
+	const filteredModes = props.excludeSlug
+		? modes?.filter((mode: Mode) => mode.slug !== props.excludeSlug)
+		: modes;
+
 	const modeOptions =
-		modes?.map((mode: Mode) => ({
+		filteredModes?.map((mode: Mode) => ({
 			value: mode._id,
 			label: mode.name,
 			icon: mode.icon,

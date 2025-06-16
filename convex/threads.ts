@@ -3,7 +3,13 @@ import { v } from "convex/values";
 import { getChatModel } from "../src/lib/ai";
 import { api, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
-import { internalAction, internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import {
+	internalAction,
+	internalMutation,
+	internalQuery,
+	mutation,
+	query,
+} from "./_generated/server";
 
 export const getById = query({
 	args: {
@@ -209,13 +215,16 @@ export const createBranchFromMessage = mutation({
 		if (!message) throw new Error("Message not found");
 
 		if (args.useCondensedHistory) {
-			return await ctx.runMutation(api.threads.cloneThreadWithCondensedHistory, {
-				sourceThreadId: message.threadId,
-				upToMessageId: args.messageId,
-				openrouterKey: args.openrouterKey,
-			});
+			return await ctx.runMutation(
+				api.threads.cloneThreadWithCondensedHistory,
+				{
+					sourceThreadId: message.threadId,
+					upToMessageId: args.messageId,
+					openrouterKey: args.openrouterKey,
+				},
+			);
 		}
-		
+
 		return await ctx.runMutation(api.threads.cloneThread, {
 			sourceThreadId: message.threadId,
 			upToMessageId: args.messageId,
@@ -237,7 +246,9 @@ export const copyMessagesToThread = internalMutation({
 			if (msg.attachmentIds && msg.attachmentIds.length > 0) {
 				newAttachmentIds = [];
 				for (const attachmentId of msg.attachmentIds) {
-					const originalAttachment = await ctx.db.get(attachmentId) as Doc<"attachments"> | null;
+					const originalAttachment = (await ctx.db.get(
+						attachmentId,
+					)) as Doc<"attachments"> | null;
 					if (originalAttachment) {
 						const newAttachmentId = await ctx.db.insert("attachments", {
 							storageId: originalAttachment.storageId,
@@ -284,9 +295,12 @@ export const generateCondensedHistory = internalAction({
 	handler: async (ctx, args) => {
 		try {
 			// Get messages from source thread
-			const sourceMessages = await ctx.runQuery(internal.threads.getThreadMessages, {
-				threadId: args.sourceThreadId,
-			});
+			const sourceMessages = await ctx.runQuery(
+				internal.threads.getThreadMessages,
+				{
+					threadId: args.sourceThreadId,
+				},
+			);
 
 			// Filter messages up to the specified point
 			let messagesToCondense = sourceMessages;
@@ -317,7 +331,10 @@ export const generateCondensedHistory = internalAction({
 
 			// Generate condensed summary
 			const { text } = await generateText({
-				model: getChatModel("google/gemini-2.5-flash-preview", args.openrouterKey),
+				model: getChatModel(
+					"google/gemini-2.5-flash-preview",
+					args.openrouterKey,
+				),
 				system: `You are a helpful summarizer bot that creates concise summaries of chat conversations.
 				
 Your task is to condense the conversation history into a single, comprehensive summary that:
@@ -351,7 +368,8 @@ Create a summary that captures the essential context and key points discussed, s
 			// Update with fallback content
 			await ctx.runMutation(internal.threads.updateCondensedMessage, {
 				messageId: args.contextMessageId,
-				content: "Previous conversation context has been condensed. You can continue the conversation from here.",
+				content:
+					"Previous conversation context has been condensed. You can continue the conversation from here.",
 			});
 		}
 	},

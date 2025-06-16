@@ -9,13 +9,15 @@ import {
 	DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
+import { ORCHESTRATOR_MODE_CONFIG } from "~/lib/defaults";
+import { useCreateBranch } from "~/lib/query/chat";
+import { useModes } from "~/lib/query/mode";
 import { useUser } from "~/lib/query/user";
 import { cn } from "~/lib/utils";
-import { useCreateBranch } from "~/lib/query/chat";
 
 type MessageActionsProps = {
 	isUser: boolean;
-	onRegenerate?: () => void;
+	onRegenerate?: (modeId: Id<"modes">) => void;
 	onCreateBranch?: () => void;
 	onRemove: () => void;
 	message?: { _id: Id<"messages"> };
@@ -27,6 +29,11 @@ export function MessageActions(props: MessageActionsProps) {
 	const { data: user } = useUser();
 	const { openrouterKey } = useOpenrouterKey(user?.id);
 	const mutateCreateDetachedBranch = useCreateBranch();
+	const modes = useModes();
+
+	const availableModes = modes?.filter(
+		(mode) => mode.slug !== ORCHESTRATOR_MODE_CONFIG.slug,
+	);
 
 	async function handleCreateDetachedBranch() {
 		if (!props.message?._id || !openrouterKey) {
@@ -49,6 +56,10 @@ export function MessageActions(props: MessageActionsProps) {
 		}
 	}
 
+	function handleRegenerateWithMode(modeId: Id<"modes">) {
+		props.onRegenerate?.(modeId);
+	}
+
 	return (
 		<div
 			className={cn(
@@ -62,14 +73,32 @@ export function MessageActions(props: MessageActionsProps) {
 			{!props.isUser && (
 				<>
 					{props.onRegenerate && (
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-7 px-2 text-xs"
-							onClick={props.onRegenerate}
-						>
-							<RefreshCw className="size-3" />
-						</Button>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-7 px-2 text-xs"
+								>
+									<RefreshCw className="size-3" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent
+								align="start"
+								className="border-2 border-secondary shadow-none font-serif"
+							>
+								{availableModes?.map((mode) => (
+									<DropdownMenuItem
+										key={mode._id}
+										className="cursor-pointer"
+										onClick={() => handleRegenerateWithMode(mode._id)}
+									>
+										<span className="mr-2">{mode.icon}</span>
+										{mode.name}
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
 					)}
 					{props.onCreateBranch && (
 						<DropdownMenu>

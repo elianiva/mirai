@@ -132,10 +132,10 @@ export function Combobox(props: ComboboxProps) {
 									) : (
 										<div className="size-4 shrink-0" />
 									)}
-									<span className="truncate flex-1 flex items-center gap-2">
+									<div className="truncate flex-1 flex items-center gap-2">
 										{option.icon}
 										<span>{option.label}</span>
-									</span>
+									</div>
 									<span className="text-xs text-muted-foreground truncate text-right">
 										{option.slug}
 									</span>

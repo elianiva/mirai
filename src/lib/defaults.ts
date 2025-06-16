@@ -1,3 +1,19 @@
+export const ORCHESTRATOR_MODE_ID = "orchestrator";
+
+export const ORCHESTRATOR_MODE_CONFIG = {
+	slug: "orchestrator",
+	icon: "🎯",
+	name: "Orchestrator",
+	description: "Automatically selects the most appropriate mode for your task.",
+	profileId: "", // Will use default profile
+	modeDefinition:
+		"An intelligent orchestrator that analyzes user queries and automatically selects the most appropriate specialized mode to handle the task. Based on the user's input, it determines whether to use General, Research, Summarizer, Grammar Checker, or other available modes for optimal results.",
+	whenToUse:
+		"Use this mode when you're unsure which specialized mode would be best for your task, or when you want the AI to automatically choose the optimal approach.",
+	additionalInstructions:
+		"First analyze the user's request to determine the most suitable mode, then respond using that mode's capabilities. Always indicate which mode was selected and why.",
+};
+
 export const DEFAULT_PROFILES = [
 	{
 		name: "Balanced",
@@ -29,12 +45,13 @@ export const DEFAULT_PROFILES = [
 ];
 
 export const DEFAULT_MODES = [
+	ORCHESTRATOR_MODE_CONFIG,
 	{
 		slug: "general",
 		icon: "✨",
 		name: "General",
 		description: "Handle a wide variety of tasks and questions.",
-		profileSelector: "",
+		profileId: "",
 		modeDefinition:
 			"A versatile AI assistant capable of handling a wide range of tasks and providing information on various topics.",
 		whenToUse:
@@ -46,7 +63,7 @@ export const DEFAULT_MODES = [
 		icon: "🔬",
 		name: "Research",
 		description: "Gather and synthesize information from various sources.",
-		profileSelector: "",
+		profileId: "",
 		modeDefinition:
 			"An AI specializing in information retrieval and synthesis. Capable of searching for information and providing comprehensive summaries.",
 		whenToUse:
@@ -58,7 +75,7 @@ export const DEFAULT_MODES = [
 		icon: "📝",
 		name: "Summarizer",
 		description: "Condense text into concise summaries.",
-		profileSelector: "",
+		profileId: "",
 		modeDefinition:
 			"An AI skilled at summarizing text. Extracts key information and presents it concisely with clarity and accuracy.",
 		whenToUse:
@@ -71,7 +88,7 @@ export const DEFAULT_MODES = [
 		icon: "✍️",
 		name: "Grammar Checker",
 		description: "Review and correct grammar, spelling, and punctuation.",
-		profileSelector: "",
+		profileId: "",
 		modeDefinition:
 			"An AI focused on linguistic analysis and correction. Identifies and suggests corrections for grammar, spelling, and punctuation errors with high precision.",
 		whenToUse:

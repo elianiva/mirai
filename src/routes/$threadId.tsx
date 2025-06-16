@@ -16,6 +16,7 @@ import {
 	SidebarProvider,
 	SidebarTrigger,
 } from "~/components/ui/sidebar";
+import { useAutoSeed } from "~/hooks/use-auto-seed";
 import { authUserFn } from "~/lib/functions/auth";
 import { useMessages } from "~/lib/query/messages";
 import { useThread } from "~/lib/query/threads";
@@ -51,6 +52,8 @@ export function ThreadPage() {
 	const messages = useMessages(threadId);
 	const isStreaming =
 		messages?.some((msg) => msg.metadata?.isStreaming) ?? false;
+
+	useAutoSeed();
 
 	return (
 		<>

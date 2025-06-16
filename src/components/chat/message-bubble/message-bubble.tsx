@@ -1,11 +1,13 @@
 import type { Id } from "convex/_generated/dataModel";
 import { useEffect, useState } from "react";
+import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
+import { useRegenerateMessageHttp } from "~/lib/query/chat";
 import { useRemoveMessage } from "~/lib/query/messages";
+import { useUser } from "~/lib/query/user";
 import type { MessageWithMetadata } from "~/types/message";
 import { AssistantMessage } from "./assistant-message";
 import { UserMessage } from "./user-message";
 
-// only extract reasoning portion from parts, since it can contain other stuff (tool calls, etc)
 function extractReasoningFromParts(
 	parts?: Array<Record<string, unknown>>,
 ): string {
@@ -66,37 +68,53 @@ export function MessageBubble(props: MessageBubbleProps) {
 		props.message.metadata?.isStreamingMessageContent;
 	const isStreamingReasoning = props.message.metadata?.isStreamingReasoning;
 	const [showReasoning, setShowReasoning] = useState(false);
-	const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
+	const [showToolCall, setShowToolCall] = useState(
+		!!props.message.metadata?.toolCallMetadata &&
+			props.message.metadata.toolCallMetadata.length > 0,
+	);
 	const [userHasManuallyToggled, setUserHasManuallyToggled] = useState(false);
 	const removeMessage = useRemoveMessage();
+	const { data: user } = useUser();
+	const { openrouterKey } = useOpenrouterKey(user?.id);
+	const regenerateMessageHttp = useRegenerateMessageHttp();
 	const reasoning = extractReasoning(props.message);
 
 	useEffect(() => {
 		if (isStreamingReasoning) {
 			setShowReasoning(true);
-			setUserHasManuallyToggled(false); // Reset manual toggle when new streaming starts
+			setUserHasManuallyToggled(false);
 		} else if (
 			!isStreamingReasoning &&
 			showReasoning &&
 			!isStreamingMessageContent &&
 			!userHasManuallyToggled
 		) {
-			// Only auto-collapse if user hasn't manually toggled
 			const timer = setTimeout(() => {
 				setShowReasoning(false);
 			}, 500);
 			return () => clearTimeout(timer);
+		}
+		if (
+			props.message.metadata?.toolCallMetadata &&
+			props.message.metadata.toolCallMetadata.length > 0
+		) {
+			setShowToolCall(true);
 		}
 	}, [
 		isStreamingReasoning,
 		isStreamingMessageContent,
 		showReasoning,
 		userHasManuallyToggled,
+		props.message.metadata?.toolCallMetadata,
 	]);
 
 	function handleReasoningToggle(open: boolean) {
 		setShowReasoning(open);
 		setUserHasManuallyToggled(true);
+	}
+
+	function handleToolCallToggle(open: boolean) {
+		setShowToolCall(open);
 	}
 
 	async function handleRemove() {
@@ -107,15 +125,26 @@ export function MessageBubble(props: MessageBubbleProps) {
 		}
 	}
 
-	function handleRegenerate(modeId: Id<"modes">) {
-		props.onRegenerate(props.message._id, modeId);
-		setShowRegenerateDialog(false);
+	async function handleRegenerate(modeId: Id<"modes">) {
+		if (!openrouterKey?.trim()) {
+			console.error("OpenRouter key is required for regeneration");
+			return;
+		}
+
+		try {
+			await regenerateMessageHttp.mutateAsync({
+				messageId: props.message._id,
+				modeId,
+				openrouterKey,
+			});
+		} catch (error) {
+			console.error("Failed to regenerate message:", error);
+		}
 	}
 
 	if (isUser) {
 		return (
 			<UserMessage
-				content={props.message.content}
 				attachments={props.message.attachments}
 				isStreaming={isStreaming}
 				onRemove={handleRemove}
@@ -124,10 +153,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 						? () => props.onCreateBranch?.(props.message._id)
 						: undefined
 				}
-				showRegenerateDialog={showRegenerateDialog}
-				onShowRegenerateDialog={setShowRegenerateDialog}
 				onRegenerate={handleRegenerate}
-				initialModeId={props.message.metadata?.modeId as Id<"modes">}
 				message={props.message}
 				threadId={props.threadId}
 			/>
@@ -136,22 +162,20 @@ export function MessageBubble(props: MessageBubbleProps) {
 
 	return (
 		<AssistantMessage
-			content={props.message.content}
 			reasoning={reasoning}
 			isStreamingMessageContent={isStreamingMessageContent}
 			isStreamingReasoning={isStreamingReasoning}
 			showReasoning={showReasoning}
 			onShowReasoningChange={handleReasoningToggle}
+			showToolCall={showToolCall}
+			onShowToolCallChange={handleToolCallToggle}
 			onRemove={handleRemove}
 			onCreateBranch={
 				props.onCreateBranch
 					? () => props.onCreateBranch?.(props.message._id)
 					: undefined
 			}
-			showRegenerateDialog={showRegenerateDialog}
-			onShowRegenerateDialog={setShowRegenerateDialog}
 			onRegenerate={handleRegenerate}
-			initialModeId={props.message.metadata?.modeId as Id<"modes">}
 			message={props.message}
 			threadId={props.threadId}
 		/>

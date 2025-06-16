@@ -1,11 +1,12 @@
 import type { Id } from "convex/_generated/dataModel";
+import type { MessageMetadataUI, ToolCallMetadata } from "~/types/message";
 import { MessageActions } from "./message-actions";
 import { MessageContent } from "./message-content";
+import { ModeIndicator } from "./mode-indicator";
 import { ReasoningSection } from "./reasoning-section";
-import { RegenerateDialog } from "./regenerate-dialog";
+import { ToolCallSection } from "./tool-call-section";
 
 type AssistantMessageProps = {
-	content: string;
 	reasoning: string;
 	isStreamingMessageContent?: boolean;
 	isStreamingReasoning?: boolean;
@@ -13,12 +14,15 @@ type AssistantMessageProps = {
 	onShowReasoningChange: (show: boolean) => void;
 	onRemove: () => void;
 	onCreateBranch?: () => void;
-	showRegenerateDialog: boolean;
-	onShowRegenerateDialog: (show: boolean) => void;
 	onRegenerate: (modeId: Id<"modes">) => void;
-	initialModeId?: Id<"modes">;
-	message?: { _id: Id<"messages"> };
+	message?: {
+		_id: Id<"messages">;
+		content: string;
+		metadata?: MessageMetadataUI;
+	};
 	threadId?: Id<"threads">;
+	showToolCall?: boolean;
+	onShowToolCallChange?: (show: boolean) => void;
 };
 
 export function AssistantMessage(props: AssistantMessageProps) {
@@ -26,9 +30,33 @@ export function AssistantMessage(props: AssistantMessageProps) {
 	const isAnyStreaming =
 		props.isStreamingMessageContent || props.isStreamingReasoning;
 
+	const modeId = props.message?.metadata?.modeId;
+	const toolCallMetadata: ToolCallMetadata | undefined =
+		props.message?.metadata?.toolCallMetadata;
+	const isPendingOrchestrator = props.message?.metadata?.isPendingOrchestrator;
+
 	return (
 		<div className="group flex flex-col items-start w-full">
 			<div className="w-full">
+				{modeId && (
+					<div className="mb-2">
+						<ModeIndicator modeId={modeId} />
+					</div>
+				)}
+
+				{toolCallMetadata && toolCallMetadata.length > 0 && (
+					<div>
+						{toolCallMetadata.map((toolCall, index) => (
+							<ToolCallSection
+								key={`${toolCall.name}-${index}`}
+								toolCall={toolCall}
+								showToolCall={props.showToolCall}
+								onShowToolCallChange={props.onShowToolCallChange}
+							/>
+						))}
+					</div>
+				)}
+
 				{hasReasoning && (
 					<ReasoningSection
 						reasoning={props.reasoning}
@@ -39,28 +67,22 @@ export function AssistantMessage(props: AssistantMessageProps) {
 				)}
 
 				<MessageContent
-					content={props.content}
+					content={props.message?.content ?? ""}
 					isStreaming={props.isStreamingMessageContent}
+					isPendingOrchestrator={isPendingOrchestrator}
 				/>
 			</div>
 
 			{!isAnyStreaming && (
 				<MessageActions
 					isUser={false}
-					onRegenerate={() => props.onShowRegenerateDialog(true)}
+					onRegenerate={props.onRegenerate}
 					onCreateBranch={props.onCreateBranch}
 					onRemove={props.onRemove}
 					message={props.message}
 					threadId={props.threadId}
 				/>
 			)}
-
-			<RegenerateDialog
-				open={props.showRegenerateDialog}
-				onOpenChange={props.onShowRegenerateDialog}
-				onRegenerate={props.onRegenerate}
-				initialModeId={props.initialModeId}
-			/>
 		</div>
 	);
 }

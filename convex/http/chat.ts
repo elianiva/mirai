@@ -1,12 +1,14 @@
-import { type CoreMessage, streamText } from "ai";
+import { type CoreMessage, streamText, tool } from "ai";
 import { z } from "zod";
 import { buildSystemPrompt, getChatModel } from "../../src/lib/ai";
+import { ORCHESTRATOR_MODE_CONFIG } from "../../src/lib/defaults";
 import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction } from "../_generated/server";
 import { CORS_HEADERS } from "./common";
+import type { GenericActionCtx } from "convex/server";
 
-const schema = z.object({
+const chatSchema = z.object({
 	messages: z.array(
 		z.object({
 			role: z.enum(["user", "assistant"]),
@@ -45,9 +47,108 @@ const schema = z.object({
 	attachmentIds: z.array(z.string()).optional(),
 });
 
+const regenerateSchema = z.object({
+	messageId: z.string(),
+	modeId: z.string(),
+	openrouterKey: z.string(),
+});
+
+const getDelegateTaskTool = ({
+	ctx,
+	assistantMessageId,
+	originalUserMessageContent,
+}: {
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	ctx: GenericActionCtx<any>;
+	assistantMessageId: Id<"messages">;
+	originalUserMessageContent: string;
+}) =>
+	tool({
+		description:
+			"Determines the most appropriate mode and profile for a given user message, and optionally rewrites the message for that mode. Call this tool to switch to a specialized mode.",
+		parameters: z.object({
+			rewrittenMessage: z
+				.string()
+				.describe(
+					"The user's message rewritten or rephrased to be most effective for the selected mode. This should be directly usable by the new mode.",
+				),
+			selectedModeSlug: z
+				.string()
+				.describe(
+					"The slug of the mode that the task should be delegated to (e.g., 'code', 'ask', 'debug', 'architect').",
+				),
+			reasoning: z
+				.string()
+				.describe(
+					"A brief explanation of why this particular mode was selected and why the message was rewritten (if applicable).",
+				),
+		}),
+		execute: async ({
+			rewrittenMessage,
+			selectedModeSlug,
+			reasoning,
+		}: {
+			rewrittenMessage: string;
+			selectedModeSlug: string;
+			reasoning: string;
+		}) => {
+			const newMode = await ctx.runQuery(api.modes.getBySlug, {
+				slug: selectedModeSlug,
+			});
+
+			if (!newMode) {
+				console.error(
+					`AI tried to delegate to unknown mode: ${selectedModeSlug}`,
+				);
+				await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
+					messageId: assistantMessageId,
+					finalContent: `Error: Could not delegate to mode "${selectedModeSlug}". Mode not found.`,
+					finishReason: "error",
+				});
+				throw new Error(`Mode with slug ${selectedModeSlug} not found.`);
+			}
+
+			const newProfile = await ctx.runQuery(api.profiles.get, {
+				id: newMode.profileId as Id<"profiles">,
+			});
+			if (!newProfile) {
+				console.error(
+					`Profile not found for mode: ${newMode.name} (ID: ${newMode._id})`,
+				);
+				await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
+					messageId: assistantMessageId,
+					finalContent: `Error: Profile for mode "${newMode.name}" not found.`,
+					finishReason: "error",
+				});
+				throw new Error(`Profile not found for mode ${newMode.name}.`);
+			}
+
+			await ctx.runMutation(internal.chat.resetMessageToStreaming, {
+				messageId: assistantMessageId,
+				modeId: newMode._id,
+				toolCallMetadata: [
+					{
+						name: "delegate_task",
+						status: "success",
+						arguments: { rewrittenMessage, selectedModeSlug, reasoning },
+						output: {
+							selectedMode: newMode.name,
+							rewrittenMessage: rewrittenMessage,
+							reasoning: reasoning,
+							originalUserMessage: originalUserMessageContent,
+						},
+					},
+				],
+				clearPendingOrchestrator: true,
+			});
+
+			return "Orchestration decision made and message updated.";
+		},
+	});
+
 export const chatHandler = httpAction(async (ctx, req) => {
 	const body = await req.json();
-	const parsed = schema.safeParse(body);
+	const parsed = chatSchema.safeParse(body);
 	if (!parsed.success) {
 		return new Response(JSON.stringify(parsed.error.flatten().fieldErrors), {
 			status: 400,
@@ -79,7 +180,10 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		);
 	}
 
-	const mode = await ctx.runQuery(internal.chat.getMode, { modeId });
+	const mode = await ctx.runQuery(api.modes.getById, {
+		id: modeId as Id<"modes">,
+	});
+
 	if (!mode) {
 		return new Response(JSON.stringify({ error: "Mode not found" }), {
 			status: 404,
@@ -87,8 +191,8 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		});
 	}
 
-	const profile = await ctx.runQuery(internal.chat.getProfile, {
-		profileId: mode.profileSelector,
+	const profile = await ctx.runQuery(api.profiles.get, {
+		id: mode.profileId as Id<"profiles">,
 	});
 	if (!profile) {
 		return new Response(JSON.stringify({ error: "Profile not found" }), {
@@ -101,17 +205,52 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		api.accountSettings.getAccountSettings,
 	);
 
-	const lastUserMessage = messages[messages.length - 1];
-	if (!lastUserMessage || lastUserMessage.role !== "user") {
-		return new Response(JSON.stringify({ error: "No user message found" }), {
+	if (!messages || messages.length === 0) {
+		return new Response(JSON.stringify({ error: "No messages provided" }), {
 			status: 400,
 			headers: CORS_HEADERS,
 		});
 	}
 
-	let processedMessages = messages;
+	let previousContext: Array<CoreMessage> = [];
+	if (threadId && threadId !== "new") {
+		try {
+			const existingMessages = await ctx.runQuery(api.messages.list, {
+				threadId: threadId as Id<"threads">,
+			});
+
+			previousContext = existingMessages
+				.filter((msg) => msg.role === "user" || msg.role === "assistant")
+				.slice(-10)
+				.map((msg) => ({
+					role: msg.role as "user" | "assistant",
+					content: msg.content,
+				}));
+		} catch (error) {
+			console.warn("Failed to get previous context:", error);
+		}
+	}
+
+	const processedMessages = [...previousContext, ...messages];
+
+	const lastUserMessageInProcessed =
+		processedMessages[processedMessages.length - 1];
+	if (
+		!lastUserMessageInProcessed ||
+		lastUserMessageInProcessed.role !== "user"
+	) {
+		return new Response(
+			JSON.stringify({ error: "No user message found in processed messages" }),
+			{
+				status: 400,
+				headers: CORS_HEADERS,
+			},
+		);
+	}
 	const originalUserMessageContent =
-		typeof lastUserMessage.content === "string" ? lastUserMessage.content : "";
+		typeof lastUserMessageInProcessed.content === "string"
+			? lastUserMessageInProcessed.content
+			: "";
 
 	// handle attachments based on the ids that we've uploaded previously
 	if (attachmentIds && attachmentIds.length > 0) {
@@ -132,9 +271,6 @@ export const chatHandler = httpAction(async (ctx, req) => {
 					},
 				);
 			}
-
-			processedMessages = [...messages];
-			const lastMessageIndex = processedMessages.length - 1;
 
 			const contentParts = [];
 
@@ -164,8 +300,8 @@ export const chatHandler = httpAction(async (ctx, req) => {
 				}
 			}
 
-			processedMessages[lastMessageIndex] = {
-				...lastUserMessage,
+			processedMessages[processedMessages.length - 1] = {
+				...lastUserMessageInProcessed,
 				content: contentParts,
 			};
 		} catch (error) {
@@ -194,11 +330,11 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		},
 	);
 
-	const assistantMessageId = await ctx.runMutation(
+	const assistantMessageId: Id<"messages"> = await ctx.runMutation(
 		internal.chat.createAssistantMessage,
 		{
 			threadId: userMessageResult.threadId,
-			modeId,
+			modeId: mode._id,
 			parentMessageId: userMessageResult.userMessageId,
 			userId: identity.subject,
 			userName: identity.name ?? "User",
@@ -223,6 +359,17 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		}
 	};
 
+	const tools =
+		mode.slug === ORCHESTRATOR_MODE_CONFIG.slug
+			? {
+					delegate_task: getDelegateTaskTool({
+						ctx,
+						assistantMessageId,
+						originalUserMessageContent,
+					}),
+				}
+			: undefined;
+
 	const result = streamText({
 		model: getChatModel(profile.model, openrouterKey),
 		system: buildSystemPrompt({
@@ -232,6 +379,209 @@ export const chatHandler = httpAction(async (ctx, req) => {
 			ai_behavior: accountSettings.behavior,
 		}),
 		messages: processedMessages as CoreMessage[],
+		topP: profile.topP,
+		topK: profile.topK,
+		temperature: profile.temperature,
+		tools: tools,
+		async onChunk({ chunk }) {
+			if (chunk.type === "text-delta") {
+				chunkBuffer += chunk.textDelta;
+				const currentTime = Date.now();
+
+				if (
+					chunkBuffer.length >= BUFFER_SIZE ||
+					currentTime - lastUpdateTime >= BUFFER_TIME
+				) {
+					await flushBuffer();
+				}
+			}
+		},
+		async onFinish({ text, finishReason, reasoning }) {
+			await flushBuffer();
+
+			let finalContent = text;
+			if (finishReason === "content-filter") {
+				finalContent = "Sorry, the content was filtered by the model.";
+			} else if (finishReason === "error") {
+				finalContent =
+					"Sorry, I encountered an error while generating a response.";
+			}
+
+			if (finishReason !== "tool-calls") {
+				await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
+					messageId: assistantMessageId,
+					finalContent,
+					finishReason: finishReason || "unknown",
+					reasoning,
+				});
+			}
+		},
+		async onError(error) {
+			console.error("AI SDK streaming error:", error);
+			await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
+				messageId: assistantMessageId,
+				finalContent:
+					"Sorry, I encountered an error while generating a response.",
+				finishReason: "error",
+			});
+		},
+	});
+
+	return result.toDataStreamResponse({
+		headers: CORS_HEADERS,
+		sendReasoning: true,
+	});
+});
+
+export const regenerateHandler = httpAction(async (ctx, req) => {
+	const body = await req.json();
+	const parsed = regenerateSchema.safeParse(body);
+	if (!parsed.success) {
+		return new Response(JSON.stringify(parsed.error.flatten().fieldErrors), {
+			status: 400,
+			headers: CORS_HEADERS,
+		});
+	}
+
+	const { messageId, modeId, openrouterKey } = parsed.data;
+
+	const identity = await ctx.auth.getUserIdentity();
+	if (!identity) {
+		return new Response(JSON.stringify({ error: "Unauthorized" }), {
+			status: 401,
+			headers: CORS_HEADERS,
+		});
+	}
+
+	if (!openrouterKey || openrouterKey.trim() === "") {
+		return new Response(
+			JSON.stringify({
+				error:
+					"OpenRouter API key is required to use OpenRouter models. Please add your API key in the account settings.",
+			}),
+			{
+				status: 400,
+				headers: CORS_HEADERS,
+			},
+		);
+	}
+
+	const messageToRegenerate = await ctx.runQuery(internal.chat.getMessageById, {
+		messageId: messageId as Id<"messages">,
+	});
+	if (!messageToRegenerate || messageToRegenerate.role !== "assistant") {
+		return new Response(
+			JSON.stringify({ error: "Invalid message to regenerate" }),
+			{
+				status: 400,
+				headers: CORS_HEADERS,
+			},
+		);
+	}
+
+	const thread = await ctx.runQuery(api.threads.getById, {
+		id: messageToRegenerate.threadId,
+	});
+	if (!thread) {
+		return new Response(JSON.stringify({ error: "Thread not found" }), {
+			status: 404,
+			headers: CORS_HEADERS,
+		});
+	}
+
+	const allMessages = await ctx.runQuery(api.messages.list, {
+		threadId: messageToRegenerate.threadId,
+	});
+
+	const messageIndex = allMessages.findIndex((msg) => msg._id === messageId);
+	if (messageIndex === -1) {
+		return new Response(
+			JSON.stringify({ error: "Message not found in thread" }),
+			{
+				status: 404,
+				headers: CORS_HEADERS,
+			},
+		);
+	}
+
+	const conversationHistory: CoreMessage[] = [];
+	for (let i = 0; i < messageIndex; i++) {
+		const msg = allMessages[i];
+		if (msg.role === "user" || msg.role === "assistant") {
+			conversationHistory.push({
+				role: msg.role,
+				content: msg.content,
+			});
+		}
+	}
+
+	const mode = await ctx.runQuery(api.modes.getById, {
+		id: modeId as Id<"modes">,
+	});
+	if (!mode) {
+		return new Response(JSON.stringify({ error: "Mode not found" }), {
+			status: 404,
+			headers: CORS_HEADERS,
+		});
+	}
+
+	if (mode.slug === ORCHESTRATOR_MODE_CONFIG.slug) {
+		return new Response(
+			JSON.stringify({
+				error: "Orchestrator mode is not supported for regeneration",
+			}),
+			{
+				status: 400,
+				headers: CORS_HEADERS,
+			},
+		);
+	}
+
+	const profile = await ctx.runQuery(api.profiles.get, {
+		id: mode.profileId as Id<"profiles">,
+	});
+	if (!profile) {
+		return new Response(JSON.stringify({ error: "Profile not found" }), {
+			status: 404,
+			headers: CORS_HEADERS,
+		});
+	}
+
+	const accountSettings = await ctx.runQuery(
+		api.accountSettings.getAccountSettings,
+	);
+
+	await ctx.runMutation(internal.chat.resetMessageToStreaming, {
+		messageId: messageId as Id<"messages">,
+		modeId,
+		clearProfileAndReasoning: true,
+	});
+
+	let chunkBuffer = "";
+	let lastUpdateTime = Date.now();
+	const BUFFER_SIZE = 100;
+	const BUFFER_TIME = 1000;
+
+	const flushBuffer = async () => {
+		if (chunkBuffer.length > 0) {
+			await ctx.runMutation(internal.chat.appendAssistantMessageContent, {
+				messageId: messageId as Id<"messages">,
+				chunk: chunkBuffer,
+			});
+			chunkBuffer = "";
+			lastUpdateTime = Date.now();
+		}
+	};
+
+	const result = streamText({
+		model: getChatModel(profile.model, openrouterKey),
+		system: buildSystemPrompt({
+			user_name: accountSettings.name || identity.name || "User",
+			model: profile.model,
+			mode_definition: mode.modeDefinition,
+			ai_behavior: accountSettings.behavior,
+		}),
+		messages: conversationHistory,
 		topP: profile.topP,
 		topK: profile.topK,
 		temperature: profile.temperature,
@@ -260,7 +610,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 			}
 
 			await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
-				messageId: assistantMessageId,
+				messageId: messageId as Id<"messages">,
 				finalContent,
 				finishReason: finishReason || "unknown",
 				reasoning,
@@ -269,7 +619,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		async onError(error) {
 			console.error("AI SDK streaming error:", error);
 			await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
-				messageId: assistantMessageId,
+				messageId: messageId as Id<"messages">,
 				finalContent:
 					"Sorry, I encountered an error while generating a response.",
 				finishReason: "error",

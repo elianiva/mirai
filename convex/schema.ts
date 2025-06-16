@@ -8,17 +8,21 @@ export const accountSettings = defineTable({
 });
 
 export const modes = defineTable({
+	userId: v.string(),
 	slug: v.string(),
 	icon: v.string(),
 	name: v.string(),
 	description: v.string(),
-	profileSelector: v.string(),
+	profileId: v.string(),
 	modeDefinition: v.string(),
 	whenToUse: v.string(),
 	additionalInstructions: v.string(),
-});
+})
+	.index("by_user", ["userId"])
+	.index("by_user_slug", ["userId", "slug"]);
 
 export const profiles = defineTable({
+	userId: v.string(),
 	slug: v.string(),
 	name: v.string(),
 	description: v.string(),
@@ -26,7 +30,9 @@ export const profiles = defineTable({
 	temperature: v.number(),
 	topP: v.number(),
 	topK: v.number(),
-});
+})
+	.index("by_user", ["userId"])
+	.index("by_user_slug", ["userId", "slug"]);
 
 export const threads = defineTable({
 	title: v.string(),
@@ -61,11 +67,24 @@ export const messages = defineTable({
 			finishReason: v.optional(v.string()),
 			isCondensedHistory: v.optional(v.boolean()),
 			originalThreadId: v.optional(v.id("threads")),
+			isPendingOrchestrator: v.optional(v.boolean()),
+			toolCallMetadata: v.optional(
+				v.array(
+					v.object({
+						name: v.string(),
+						status: v.string(),
+						arguments: v.any(),
+						output: v.any(),
+						// Add optional timestamps for future use
+						// startTime: v.optional(v.number()),
+						// endTime: v.optional(v.number()),
+					}),
+				),
+			),
 		}),
 	),
 	attachmentIds: v.optional(v.array(v.id("attachments"))),
-})
-	.index("by_thread", ["threadId"]);
+}).index("by_thread", ["threadId"]);
 
 const schema = defineSchema({
 	accountSettings,

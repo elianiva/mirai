@@ -1,12 +1,18 @@
 import { useForm } from "@tanstack/react-form";
 import type { Id } from "convex/_generated/dataModel";
+import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { EmojiPickerInput } from "~/components/ui/emoji-picker-input";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Textarea } from "~/components/ui/textarea";
-import { useCreateMode, useUpdateMode } from "~/lib/query/mode";
+import { ORCHESTRATOR_MODE_CONFIG } from "~/lib/defaults";
+import {
+	useCreateMode,
+	useResetOrchestrator,
+	useUpdateMode,
+} from "~/lib/query/mode";
 import { updateModeSettingsSchema } from "~/lib/query/mode";
 import { cn, slugify } from "~/lib/utils";
 import { ProfileSelector } from "./chat/profile-selector";
@@ -17,7 +23,7 @@ type ModeData = {
 	icon: string;
 	name: string;
 	description: string;
-	profileSelector: string;
+	profileId: string;
 	modeDefinition: string;
 	whenToUse: string;
 	additionalInstructions: string;
@@ -31,6 +37,9 @@ type ModeSettingsProps = {
 export function ModeSettings(props: ModeSettingsProps) {
 	const createMode = useCreateMode();
 	const updateMode = useUpdateMode();
+	const resetOrchestrator = useResetOrchestrator();
+
+	const isOrchestratorMode = props.mode?.slug === ORCHESTRATOR_MODE_CONFIG.slug;
 
 	const form = useForm({
 		defaultValues: {
@@ -38,7 +47,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 			icon: props.mode?.icon || "",
 			name: props.mode?.name || "",
 			description: props.mode?.description || "",
-			profileSelector: props.mode?.profileSelector || "",
+			profileId: props.mode?.profileId || "",
 			modeDefinition: props.mode?.modeDefinition || "",
 			whenToUse: props.mode?.whenToUse || "",
 			additionalInstructions: props.mode?.additionalInstructions || "",
@@ -73,6 +82,38 @@ export function ModeSettings(props: ModeSettingsProps) {
 		},
 	});
 
+	const handleReset = () => {
+		const resetPromise = async () => {
+			const result = await resetOrchestrator();
+			form.setFieldValue("slug", ORCHESTRATOR_MODE_CONFIG.slug);
+			form.setFieldValue("icon", ORCHESTRATOR_MODE_CONFIG.icon);
+			form.setFieldValue("name", ORCHESTRATOR_MODE_CONFIG.name);
+			form.setFieldValue("description", ORCHESTRATOR_MODE_CONFIG.description);
+			form.setFieldValue(
+				"modeDefinition",
+				ORCHESTRATOR_MODE_CONFIG.modeDefinition,
+			);
+			form.setFieldValue("whenToUse", ORCHESTRATOR_MODE_CONFIG.whenToUse);
+			form.setFieldValue(
+				"additionalInstructions",
+				ORCHESTRATOR_MODE_CONFIG.additionalInstructions,
+			);
+			if (result.data?.profileId) {
+				form.setFieldValue("profileId", result.data.profileId);
+			}
+			return true;
+		};
+
+		toast.promise(resetPromise(), {
+			loading: "Resetting orchestrator mode...",
+			success: "Orchestrator mode reset to defaults successfully!",
+			error: (err) => {
+				console.error("Failed to reset orchestrator mode:", err);
+				return "Failed to reset orchestrator mode";
+			},
+		});
+	};
+
 	return (
 		<form
 			onSubmit={(e) => {
@@ -85,9 +126,20 @@ export function ModeSettings(props: ModeSettingsProps) {
 			<div className="font-serif">
 				<h3 className="text-xl font-semibold">
 					{props.mode?.name ? props.mode.name : "New Mode"}
+					{isOrchestratorMode && (
+						<span className="ml-2 text-sm font-normal text-muted-foreground">
+							(System Mode)
+						</span>
+					)}
 				</h3>
 				<p className="text-sm text-muted-foreground">
 					Customize settings for this mode.
+					{isOrchestratorMode && (
+						<span className="block mt-1 text-xs">
+							This is a system mode that cannot be deleted. You can modify it or
+							reset it to defaults.
+						</span>
+					)}
 				</p>
 			</div>
 
@@ -136,6 +188,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 									"border-destructive": field.state.meta.errors?.length,
 								})}
 								required
+								disabled={isOrchestratorMode}
 							/>
 							{!field.state.meta.isValid ? (
 								<em className="text-xs text-destructive my-0">
@@ -147,6 +200,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 							<p className="text-xs text-muted-foreground mt-1 font-serif">
 								Unique identifier used in URLs and API calls. Should be
 								lowercase with hyphens.
+								{isOrchestratorMode && " (Read-only for system modes)"}
 							</p>
 						</>
 					)}
@@ -170,7 +224,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 									const nameValue = e.target.value;
 									field.handleChange(nameValue);
 
-									if (nameValue) {
+									if (nameValue && !isOrchestratorMode) {
 										const slugifiedName = slugify(nameValue);
 										form.setFieldValue("slug", slugifiedName);
 									}
@@ -230,7 +284,7 @@ export function ModeSettings(props: ModeSettingsProps) {
 
 			<div className="space-y-2">
 				<form.Field
-					name="profileSelector"
+					name="profileId"
 					children={(field) => (
 						<>
 							<Label htmlFor={field.name}>Profile Selector</Label>
@@ -353,7 +407,20 @@ export function ModeSettings(props: ModeSettingsProps) {
 				<Button type="button" variant="outline" onClick={props.onBack}>
 					Back
 				</Button>
-				<Button type="submit">{props.mode ? "Save" : "Create"} Mode</Button>
+				<div className="flex gap-2">
+					{isOrchestratorMode && (
+						<Button
+							type="button"
+							variant="secondary"
+							onClick={handleReset}
+							className="flex items-center gap-1"
+						>
+							<RotateCcw className="h-4 w-4" />
+							Reset to Defaults
+						</Button>
+					)}
+					<Button type="submit">{props.mode ? "Save" : "Create"} Mode</Button>
+				</div>
 			</div>
 		</form>
 	);

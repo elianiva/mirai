@@ -23,7 +23,7 @@ export const createModeSchema = z.object({
 	icon: z.string(),
 	name: z.string(),
 	description: z.string(),
-	profileSelector: z.string(),
+	profileId: z.string(),
 	modeDefinition: z.string(),
 	whenToUse: z.string(),
 	additionalInstructions: z.string(),
@@ -37,7 +37,7 @@ export const updateModeSettingsSchema = z.object({
 	icon: z.string(),
 	name: z.string(),
 	description: z.string(),
-	profileSelector: z.string(),
+	profileId: z.string(),
 	modeDefinition: z.string(),
 	whenToUse: z.string(),
 	additionalInstructions: z.string(),
@@ -73,4 +73,12 @@ export function useCreateMode() {
 
 export function useUpdateMode() {
 	return useMutation(api.modes.update);
+}
+
+export function useDeleteMode() {
+	return useMutation(api.modes.remove);
+}
+
+export function useResetOrchestrator() {
+	return useMutation(api.modes.resetOrchestrator);
 }

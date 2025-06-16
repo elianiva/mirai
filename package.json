@@ -7,7 +7,7 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"start": "node .output/server/index.mjs",
-		"format": "biome check --write",
+		"format": "biome check --write src/",
 		"db": "bunx convex",
 		"ui": "bunx shadcn@canary",
 		"seed": "bunx convex run seed:seedDatabase"

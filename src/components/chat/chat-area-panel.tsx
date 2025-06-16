@@ -25,34 +25,6 @@ import { MessageList } from "./message-list";
 // @ts-expect-error - import.meta.env is not typed
 const CHAT_API_URL = `${import.meta.env.VITE_CONVEX_HTTP_URL}/api/chat`;
 
-function getMessageStreamingStatus(
-	message: {
-		role: string;
-		content?: string;
-		parts?: Array<Record<string, unknown>>;
-	},
-	isCurrentlyStreaming: boolean,
-): { isStreamingMessageContent: boolean; isStreamingReasoning: boolean } {
-	if (!isCurrentlyStreaming || message.role !== "assistant") {
-		return { isStreamingMessageContent: false, isStreamingReasoning: false };
-	}
-
-	const reasoningPart = message.parts?.find(
-		(part) => part.type === "reasoning",
-	);
-	const hasReasoningContent =
-		reasoningPart && "reasoning" in reasoningPart && reasoningPart.reasoning;
-
-	if (reasoningPart && !hasReasoningContent) {
-		return { isStreamingMessageContent: false, isStreamingReasoning: true };
-	}
-
-	return {
-		isStreamingMessageContent: !message.content,
-		isStreamingReasoning: false,
-	};
-}
-
 type ChatAreaPanelProps = {
 	threadId: Id<"threads">;
 	onThreadClick: (threadId: Id<"threads">) => void;
@@ -76,11 +48,11 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
 
 	const isNewThread = threadId === NEW_THREAD_ID;
-	const hasAttachmentsInDB = messagesFromDB?.some(
+	const hasAttachments = messagesFromDB?.some(
 		(msg) => msg.attachmentIds?.length,
 	);
 
-	const initialMessages: Message[] = useMemo(
+	const initialMessages = useMemo(
 		() =>
 			messagesFromDB?.map((msg) => ({
 				id: msg._id,
@@ -90,45 +62,28 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		[messagesFromDB],
 	);
 
-	const chatBody = useMemo(
-		() => ({
-			modeId: selectedModeId,
-			branchId: currentBranchId,
-			parentMessageId: undefined,
-			threadId: isNewThread ? undefined : threadId,
-			openrouterKey,
-			attachmentIds,
-		}),
-		[
-			selectedModeId,
-			currentBranchId,
-			isNewThread,
-			threadId,
-			openrouterKey,
-			attachmentIds,
-		],
-	);
-
 	const { messages, input, handleInputChange, handleSubmit, status, stop } =
 		useChat({
 			api: CHAT_API_URL,
 			initialMessages,
-			body: chatBody,
+			body: {
+				modeId: selectedModeId,
+				branchId: currentBranchId,
+				parentMessageId: undefined,
+				threadId: isNewThread ? undefined : threadId,
+				openrouterKey,
+				attachmentIds,
+			},
 			headers: {
 				Authorization: `Bearer ${user?.token}`,
 			},
 			id: isNewThread ? undefined : threadId,
-			onError: (error) => {
-				console.error("AI SDK streaming error:", error);
-			},
+			onError: (error) => console.error("AI SDK streaming error:", error),
 		});
 
-	const shouldUseConvexMessages =
-		hasAttachmentsInDB || (messages.length === 0 && status !== "streaming");
-
-	const displayMessages = shouldUseConvexMessages ? messagesFromDB : messages;
-
-	const currentIsLoading = status === "streaming" && !shouldUseConvexMessages;
+	const isStreaming = status === "streaming";
+	const useDBMessages = hasAttachments || (!messages.length && !isStreaming);
+	const displayMessages = useDBMessages ? messagesFromDB : messages;
 
 	const checkOpenrouterKey = useCallback(() => {
 		if (!openrouterKey?.trim()) {
@@ -139,7 +94,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	}, [openrouterKey]);
 
 	const messagesList = useMemo(() => {
-		if (shouldUseConvexMessages) {
+		if (useDBMessages) {
 			return (
 				messagesFromDB?.map((msg) => ({
 					...msg,
@@ -155,12 +110,30 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		}
 
 		return messages.map((msg) => {
-			const isCurrentlyStreaming =
-				status === "streaming" && messages[messages.length - 1]?.id === msg.id;
-			const { isStreamingMessageContent, isStreamingReasoning } =
-				getMessageStreamingStatus(msg, isCurrentlyStreaming);
+			const isLastMessage = messages[messages.length - 1]?.id === msg.id;
+			const isCurrentlyStreaming = isStreaming && isLastMessage;
+			const msgData = msg.data as Record<string, unknown> | undefined;
+
+			const reasoningPart = msg.parts?.find(
+				(part) => part.type === "reasoning",
+			);
+			const hasReasoningContent =
+				reasoningPart &&
+				"reasoning" in reasoningPart &&
+				reasoningPart.reasoning;
+
+			const streamingStatus =
+				!isCurrentlyStreaming || msg.role !== "assistant"
+					? { isStreamingMessageContent: false, isStreamingReasoning: false }
+					: reasoningPart && !hasReasoningContent
+						? { isStreamingMessageContent: false, isStreamingReasoning: true }
+						: {
+								isStreamingMessageContent: !msg.content,
+								isStreamingReasoning: false,
+							};
 
 			return {
+				...msg,
 				_id: msg.id as Id<"messages">,
 				content: msg.content,
 				role:
@@ -169,20 +142,25 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 						: "assistant",
 				senderId: msg.role === "user" ? user?.id || "" : "assistant",
 				parts: msg.parts,
+				attachmentIds: Array.isArray(msgData?.attachmentIds)
+					? (msgData.attachmentIds as Id<"attachments">[])
+					: undefined,
 				metadata: {
+					...(msgData?.metadata && typeof msgData.metadata === "object"
+						? msgData.metadata
+						: {}),
 					isStreaming: isCurrentlyStreaming,
-					isStreamingMessageContent,
-					isStreamingReasoning,
+					...streamingStatus,
 				},
 				attachments: [],
 			};
 		});
-	}, [shouldUseConvexMessages, messagesFromDB, messages, status, user?.id]);
+	}, [useDBMessages, messagesFromDB, messages, isStreaming, user?.id]);
 
 	async function handleSendMessage() {
 		if (
 			!input.trim() ||
-			currentIsLoading ||
+			isStreaming ||
 			!selectedModeId ||
 			!checkOpenrouterKey()
 		) {
@@ -192,7 +170,11 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		setAutoScroll(true);
 		handleSubmit(undefined, {
 			body: {
-				...chatBody,
+				modeId: selectedModeId,
+				branchId: currentBranchId,
+				parentMessageId: undefined,
+				threadId: isNewThread ? undefined : threadId,
+				openrouterKey,
 				attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 			},
 		});
@@ -250,7 +232,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 						threadId={threadId}
 						currentBranchId={currentBranchId}
 						autoScroll={autoScroll}
-						isLoading={currentIsLoading}
+						isLoading={isStreaming && !useDBMessages}
 						onAutoScrollChange={setAutoScroll}
 						onRegenerate={handleRegenerate}
 						onCreateBranch={handleCreateBranch}
@@ -268,8 +250,8 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 					}
 					onSendMessage={handleSendMessage}
 					onStopStreaming={stop}
-					isLoading={currentIsLoading}
-					isStreaming={currentIsLoading}
+					isLoading={isStreaming && !useDBMessages}
+					isStreaming={isStreaming && !useDBMessages}
 					selectedModeId={selectedModeId}
 					onModeSelect={setSelectedModeId}
 					onAttachFiles={setAttachmentIds}
