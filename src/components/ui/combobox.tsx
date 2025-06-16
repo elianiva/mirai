@@ -35,6 +35,7 @@ type ComboboxProps = {
 	className?: string;
 	triggerClassName?: string;
 	size?: "sm" | "lg" | "default" | "icon" | null;
+	matchTriggerWidth?: boolean;
 };
 
 export function Combobox(props: ComboboxProps) {
@@ -91,7 +92,18 @@ export function Combobox(props: ComboboxProps) {
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent
-				className={cn("popover-content-full p-0", props.className)}
+				className={cn(
+					"p-0 border-2 border-secondary",
+					{
+						"w-full": !props.matchTriggerWidth,
+						"popover-content-full": props.matchTriggerWidth,
+					},
+					props.className,
+				)}
+				side="bottom"
+				align="start"
+				avoidCollisions={true}
+				sticky="always"
 			>
 				<Command className="w-full font-serif">
 					<CommandInput
@@ -99,7 +111,7 @@ export function Combobox(props: ComboboxProps) {
 						value={searchQuery}
 						onValueChange={setSearchQuery}
 					/>
-					<CommandList className="max-h-72 overflow-y-auto">
+					<CommandList className="max-h-[200px] overflow-y-auto">
 						<CommandEmpty>
 							{props.emptyMessage || "No options found."}
 						</CommandEmpty>
@@ -125,7 +137,7 @@ export function Combobox(props: ComboboxProps) {
 										<span>{option.label}</span>
 									</span>
 									<span className="text-xs text-muted-foreground truncate text-right">
-										{option.slug || option.value}
+										{option.slug}
 									</span>
 								</CommandItem>
 							))}

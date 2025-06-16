@@ -23,6 +23,7 @@ export function ModelSelector(props: ModelSelectorProps) {
 
 	const modelsWithIcons = models.map((model) => ({
 		...model,
+		slug: model.value,
 		icon: model.value.includes(":thinking") ? (
 			<Brain className="size-4" />
 		) : undefined,
@@ -48,6 +49,7 @@ export function ModelSelector(props: ModelSelectorProps) {
 					options={modelsWithIcons}
 					placeholder="Select a model"
 					emptyMessage="No models found"
+					matchTriggerWidth
 					className={cn(
 						"w-full",
 						props.required && !props.value && "border-destructive",
