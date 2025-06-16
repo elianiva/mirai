@@ -1,4 +1,4 @@
-import type { Id, Doc } from "convex/_generated/dataModel";
+import type { Doc, Id } from "convex/_generated/dataModel";
 
 export const NEW_THREAD_ID = "new" as const;
 

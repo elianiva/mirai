@@ -1,13 +1,13 @@
-import { Dialog, DialogContent, DialogTrigger } from "~/components/ui/dialog";
-import { Button } from "~/components/ui/button";
-import { Textarea } from "~/components/ui/textarea";
 import type { Id } from "convex/_generated/dataModel";
-import { cn } from "~/lib/utils";
-import { useState, useRef } from "react";
-import { toast } from "sonner";
-import { useUploadFiles } from "~/lib/query/attachments";
-import { ModeSelector } from "./mode-selector";
 import { ArrowUpIcon, PaperclipIcon, SquareIcon, XIcon } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "~/components/ui/dialog";
+import { Textarea } from "~/components/ui/textarea";
+import { useUploadFiles } from "~/lib/query/attachments";
+import { cn } from "~/lib/utils";
+import { ModeSelector } from "./mode-selector";
 
 type ChatInputProps = {
 	message: string;

@@ -1,6 +1,6 @@
+import type { Doc, Id } from "convex/_generated/dataModel";
 import { useState } from "react";
 import { Combobox } from "~/components/ui/combobox";
-import type { Id, Doc } from "convex/_generated/dataModel";
 import { useModes } from "~/lib/query/mode";
 
 type Mode = Doc<"modes">;

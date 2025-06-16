@@ -13,6 +13,107 @@ import {
 	query,
 } from "./_generated/server";
 
+type MessageRole = "user" | "assistant";
+
+type ConversationMessage = {
+	role: MessageRole;
+	content: string;
+};
+
+type ModeConfig = {
+	modeDefinition: string;
+	model: string;
+};
+
+type ProfileConfig = {
+	model: string;
+	topP: number;
+	topK: number;
+	temperature: number;
+};
+
+type SendMessageResult = {
+	threadId: Id<"threads">;
+	branchId?: string;
+};
+
+type SaveUserMessageResult = {
+	threadId: Id<"threads">;
+	userMessageId: Id<"messages">;
+	branchId?: string;
+};
+
+type MessageMetadata = {
+	isStreaming?: boolean;
+	modeId?: string;
+	profileId?: string;
+	reasoning?: string;
+	modelName?: string;
+	finishReason?: string;
+	isCondensedHistory?: boolean;
+	originalThreadId?: Id<"threads">;
+	originalParentMessageId?: Id<"messages">;
+};
+
+type DatabaseMessage = {
+	_id: Id<"messages">;
+	threadId: Id<"threads">;
+	senderId: string;
+	content: string;
+	role: "user" | "assistant";
+	metadata?: MessageMetadata;
+	parentMessageId?: Id<"messages">;
+	branchId?: string;
+	isActiveBranch?: boolean;
+	attachmentIds?: Id<"attachments">[];
+	_creationTime: number;
+};
+
+type BranchInfo = {
+	branchId: string;
+	parentMessageId: Id<"messages">;
+	firstMessage: DatabaseMessage;
+	messageCount: number;
+	isActive: boolean;
+};
+
+type BranchMetadata = {
+	originalThreadId: Id<"threads">;
+	originalParentMessageId: Id<"messages">;
+	originalBranchId?: string;
+};
+
+type DetachedBranchMetadata = BranchMetadata & {
+	isDetached: boolean;
+	condensedHistoryMessageId: Id<"messages">;
+};
+
+type CreateBranchResult = {
+	branchId: string;
+	threadId: Id<"threads">;
+	branchMetadata: BranchMetadata;
+};
+
+type CreateDetachedBranchResult = {
+	threadId: Id<"threads">;
+	branchMetadata: DetachedBranchMetadata;
+	condensedHistoryMessageId: Id<"messages">;
+};
+
+type StreamingStatus = {
+	isStreaming: boolean;
+	content: string;
+};
+
+type SuccessResult = {
+	success: boolean;
+};
+
+type StopStreamingResult = {
+	success: boolean;
+	reason?: string;
+};
+
 async function getActiveBranchMessages(
 	ctx: QueryCtx,
 	threadId: Id<"threads">,
@@ -79,10 +180,7 @@ export const sendMessage = mutation({
 		branchId: v.optional(v.string()),
 		openrouterKey: v.optional(v.string()),
 	},
-	handler: async (
-		ctx,
-		args,
-	): Promise<{ threadId: Id<"threads">; branchId?: string }> => {
+	handler: async (ctx, args): Promise<SendMessageResult> => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new Error("Unauthorized");
 
@@ -108,20 +206,19 @@ export const sendMessage = mutation({
 			threadId: finalThreadId,
 			userMessageId,
 			branchId: finalBranchId,
-		}: {
-			threadId: Id<"threads">;
-			userMessageId: Id<"messages">;
-			branchId?: string;
-		} = await ctx.runMutation(internal.chat.saveUserMessage, {
-			threadId,
-			userMessage: message,
-			modeId,
-			parentMessageId,
-			branchId,
-			userId: identity.subject,
-			userName: identity.name ?? "User",
-			openrouterKey,
-		});
+		}: SaveUserMessageResult = await ctx.runMutation(
+			internal.chat.saveUserMessage,
+			{
+				threadId,
+				userMessage: message,
+				modeId,
+				parentMessageId,
+				branchId,
+				userId: identity.subject,
+				userName: identity.name ?? "User",
+				openrouterKey,
+			},
+		);
 
 		const messageId = await ctx.runMutation(
 			internal.chat.createStreamingMessage,
@@ -142,20 +239,22 @@ export const sendMessage = mutation({
 		await ctx.scheduler.runAfter(0, api.chat.streamResponse, {
 			threadId: finalThreadId,
 			messageId,
-			messages: pastMessages.map((msg) => ({
-				role: msg.role as "user" | "assistant",
-				content: msg.content,
-			})),
+			messages: pastMessages.map(
+				(msg): ConversationMessage => ({
+					role: msg.role as MessageRole,
+					content: msg.content,
+				}),
+			),
 			mode: {
 				modeDefinition: mode.modeDefinition,
 				model: profile.model,
-			},
+			} as ModeConfig,
 			profile: {
 				model: profile.model,
 				topP: profile.topP,
 				topK: profile.topK,
 				temperature: profile.temperature,
-			},
+			} as ProfileConfig,
 			userName: identity.name ?? "User",
 			openrouterKey,
 		});
@@ -170,7 +269,7 @@ export const regenerateMessage = mutation({
 		modeId: v.string(),
 		openrouterKey: v.optional(v.string()),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<SuccessResult> => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new Error("Unauthorized");
 
@@ -200,9 +299,9 @@ export const regenerateMessage = mutation({
 			const msg = allMessages[i];
 			if (msg.role === "user" || msg.role === "assistant") {
 				conversationHistory.push({
-					role: msg.role,
+					role: msg.role as MessageRole,
 					content: msg.content,
-				});
+				} as ConversationMessage);
 			}
 		}
 
@@ -432,7 +531,7 @@ export const stopStreaming = mutation({
 	args: {
 		messageId: v.id("messages"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<StopStreamingResult> => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new Error("Unauthorized");
 
@@ -461,7 +560,7 @@ export const getStreamingStatus = internalQuery({
 	args: {
 		messageId: v.id("messages"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<StreamingStatus | null> => {
 		const message = await ctx.db.get(args.messageId);
 		if (!message) return null;
 
@@ -711,6 +810,7 @@ export const finalizeAssistantMessage = internalMutation({
 export const createBranch = mutation({
 	args: {
 		parentMessageId: v.id("messages"),
+		openrouterKey: v.string(),
 	},
 	handler: async (ctx, args) => {
 		const identity = await ctx.auth.getUserIdentity();
@@ -721,11 +821,6 @@ export const createBranch = mutation({
 
 		const originalThread = await ctx.db.get(parentMessage.threadId);
 		if (!originalThread) throw new Error("Original thread not found");
-
-		const newThreadId = await ctx.db.insert("threads", {
-			title: `${originalThread.title} (Branch)`,
-			parentId: parentMessage.threadId,
-		});
 
 		const branchId = `branch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
@@ -743,6 +838,26 @@ export const createBranch = mutation({
 			throw new Error("Parent message not found in active branch");
 
 		const messagesToCopy = activeBranchMessages.slice(0, parentIndex + 1);
+
+		const newThreadId = await ctx.db.insert("threads", {
+			// temporary title, will be updated by scheduled action, but keep it like this in case
+			// it fails to generate a title
+			title: `${originalThread.title} - Branch`,
+			parentId: parentMessage.threadId,
+		});
+
+		// generate dynamic title based on conversation context using the last assistant message
+		const lastAssistantMessage = messagesToCopy
+			.reverse()
+			.find((msg) => msg.role === "assistant");
+		if (lastAssistantMessage) {
+			await ctx.scheduler.runAfter(0, internal.chat.generateThreadTitle, {
+				threadId: newThreadId,
+				message: lastAssistantMessage.content,
+				openrouterKey: args.openrouterKey,
+			});
+		}
+
 		const messageIdMap = new Map<Id<"messages">, Id<"messages">>();
 
 		for (let i = 0; i < messagesToCopy.length; i++) {
@@ -795,45 +910,15 @@ export const createBranch = mutation({
 			messageIdMap.set(msg._id, newMessageId);
 		}
 
-		const branchMetadata = {
-			originalThreadId: parentMessage.threadId,
-			originalParentMessageId: args.parentMessageId,
-			originalBranchId: parentMessage.branchId,
-		};
-
 		return {
 			branchId,
 			threadId: newThreadId,
-			branchMetadata,
+			branchMetadata: {
+				originalThreadId: parentMessage.threadId,
+				originalParentMessageId: args.parentMessageId,
+				originalBranchId: parentMessage.branchId,
+			},
 		};
-	},
-});
-
-export const switchBranch = mutation({
-	args: {
-		threadId: v.id("threads"),
-		branchId: v.string(),
-	},
-	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new Error("Unauthorized");
-
-		const { threadId, branchId } = args;
-
-		const allMessages = await ctx.db
-			.query("messages")
-			.withIndex("by_thread", (q) => q.eq("threadId", threadId))
-			.collect();
-
-		for (const msg of allMessages) {
-			if (msg.branchId && msg.branchId !== branchId) {
-				await ctx.db.patch(msg._id, { isActiveBranch: false });
-			} else if (msg.branchId === branchId) {
-				await ctx.db.patch(msg._id, { isActiveBranch: true });
-			}
-		}
-
-		return { success: true };
 	},
 });
 
@@ -841,7 +926,7 @@ export const getBranches = query({
 	args: {
 		threadId: v.id("threads"),
 	},
-	handler: async (ctx, args) => {
+	handler: async (ctx, args): Promise<BranchInfo[]> => {
 		const identity = await ctx.auth.getUserIdentity();
 		if (!identity) throw new Error("Unauthorized");
 
@@ -850,16 +935,7 @@ export const getBranches = query({
 			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
 			.collect();
 
-		const branchMap = new Map<
-			string,
-			{
-				branchId: string;
-				parentMessageId: Id<"messages">;
-				firstMessage: (typeof messages)[0];
-				messageCount: number;
-				isActive: boolean;
-			}
-		>();
+		const branchMap = new Map<string, BranchInfo>();
 
 		for (const msg of messages) {
 			if (msg.branchId && !branchMap.has(msg.branchId)) {
@@ -883,5 +959,213 @@ export const getBranches = query({
 		}
 
 		return Array.from(branchMap.values());
+	},
+});
+
+export const condenseHistory = internalAction({
+	args: {
+		threadId: v.id("threads"),
+		branchId: v.optional(v.string()),
+		openrouterKey: v.string(),
+	},
+	handler: async (ctx, args): Promise<string> => {
+		try {
+			const activeBranchMessages = await ctx.runQuery(
+				internal.chat.getActiveBranchMessagesForCondensing,
+				{
+					threadId: args.threadId,
+					branchId: args.branchId,
+				},
+			);
+
+			if (activeBranchMessages.length === 0) {
+				return "No conversation history to condense.";
+			}
+
+			const conversationText = activeBranchMessages
+				.map((msg: ConversationMessage) => {
+					const role = msg.role === "user" ? "User" : "Assistant";
+					return `${role}: ${msg.content}`;
+				})
+				.join("\n\n");
+
+			const { text } = await generateText({
+				model: getChatModel(
+					"google/gemini-2.5-flash-preview",
+					args.openrouterKey,
+				),
+				system: `You are a helpful summarizer bot that creates concise summaries of chat conversations.
+				
+Your task is to condense the conversation history into a single, comprehensive summary that:
+1. Captures the key topics, questions, and decisions discussed
+2. Preserves important context that would be relevant for continuing the conversation
+3. Maintains the essential information while significantly reducing token count
+4. Uses clear, natural language that flows well as a conversation starter
+
+The summary should be written as if you're briefing someone on "what we've discussed so far" and should be suitable as context for continuing the conversation in a new thread.`,
+				prompt: `Please create a condensed summary of this conversation:
+
+${conversationText}
+
+Create a summary that captures the essential context and key points discussed, suitable for continuing this conversation in a new thread.`,
+			});
+
+			return text.trim();
+		} catch (error) {
+			console.error("Error condensing history:", error);
+			throw error;
+		}
+	},
+});
+
+export const getActiveBranchMessagesForCondensing = internalQuery({
+	args: {
+		threadId: v.id("threads"),
+		branchId: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		return await getActiveBranchMessages(ctx, args.threadId, args.branchId);
+	},
+});
+
+export const createDetachedBranch = mutation({
+	args: {
+		parentMessageId: v.id("messages"),
+		openrouterKey: v.string(),
+		useCondensedHistory: v.boolean(),
+	},
+	handler: async (
+		ctx,
+		args,
+	): Promise<CreateDetachedBranchResult | CreateBranchResult> => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error("Unauthorized");
+
+		const parentMessage = await ctx.db.get(args.parentMessageId);
+		if (!parentMessage) throw new Error("Parent message not found");
+
+		const originalThread = await ctx.db.get(parentMessage.threadId);
+		if (!originalThread) throw new Error("Original thread not found");
+
+		if (!args.useCondensedHistory) {
+			// If not using condensed history, fall back to regular branch creation
+			return await ctx.runMutation(api.chat.createBranch, {
+				parentMessageId: args.parentMessageId,
+				openrouterKey: args.openrouterKey,
+			});
+		}
+
+		// Create new detached thread
+		const newThreadId = await ctx.db.insert("threads", {
+			title: "Detached Branch", // temporary title, will be updated
+			parentId: parentMessage.threadId,
+			isDetached: true,
+			condensedFromThreadId: parentMessage.threadId,
+		});
+
+		// Create placeholder message that will be updated with condensed history
+		const contextMessageId = await ctx.db.insert("messages", {
+			threadId: newThreadId,
+			senderId: "system",
+			content: "Generating condensed history...",
+			role: "assistant",
+			metadata: {
+				isCondensedHistory: true,
+				originalThreadId: parentMessage.threadId,
+				originalParentMessageId: args.parentMessageId,
+				isStreaming: true,
+			},
+			isActiveBranch: true,
+		});
+
+		// Schedule action to generate condensed history and update the message
+		await ctx.scheduler.runAfter(
+			0,
+			internal.chat.generateAndSetCondensedHistory,
+			{
+				threadId: parentMessage.threadId,
+				branchId: parentMessage.branchId,
+				newThreadId: newThreadId,
+				contextMessageId: contextMessageId,
+				openrouterKey: args.openrouterKey,
+			},
+		);
+
+		const branchMetadata = {
+			originalThreadId: parentMessage.threadId,
+			originalParentMessageId: args.parentMessageId,
+			originalBranchId: parentMessage.branchId,
+			isDetached: true,
+			condensedHistoryMessageId: contextMessageId,
+		};
+
+		return {
+			threadId: newThreadId,
+			branchMetadata,
+			condensedHistoryMessageId: contextMessageId,
+		};
+	},
+});
+
+export const generateAndSetCondensedHistory = internalAction({
+	args: {
+		threadId: v.id("threads"),
+		branchId: v.optional(v.string()),
+		newThreadId: v.id("threads"),
+		contextMessageId: v.id("messages"),
+		openrouterKey: v.string(),
+	},
+	handler: async (ctx, args) => {
+		try {
+			// Generate condensed history
+			const condensedHistory = await ctx.runAction(
+				internal.chat.condenseHistory,
+				{
+					threadId: args.threadId,
+					branchId: args.branchId,
+					openrouterKey: args.openrouterKey,
+				},
+			);
+
+			// Update the context message with the condensed history
+			await ctx.runMutation(internal.chat.updateCondensedHistoryMessage, {
+				messageId: args.contextMessageId,
+				content: condensedHistory,
+			});
+
+			// Generate dynamic title based on condensed content
+			await ctx.runAction(internal.chat.generateThreadTitle, {
+				threadId: args.newThreadId,
+				message: condensedHistory,
+				openrouterKey: args.openrouterKey,
+			});
+		} catch (error) {
+			console.error("Error generating condensed history:", error);
+			// Update with fallback content
+			await ctx.runMutation(internal.chat.updateCondensedHistoryMessage, {
+				messageId: args.contextMessageId,
+				content:
+					"Previous conversation context has been condensed. You can continue the conversation from here.",
+			});
+		}
+	},
+});
+
+export const updateCondensedHistoryMessage = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		content: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) throw new Error("Message not found");
+
+		await ctx.db.patch(args.messageId, {
+			content: args.content,
+			metadata: {
+				...message.metadata,
+				isStreaming: false,
+			},
+		});
 	},
 });

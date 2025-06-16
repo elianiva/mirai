@@ -1,16 +1,16 @@
-import type { ProfileData } from "./profile-settings";
+import { useForm } from "@tanstack/react-form";
+import type { Id } from "convex/_generated/dataModel";
+import { toast } from "sonner";
+import { ModelSelector } from "~/components/model-selector";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { Textarea } from "~/components/ui/textarea";
 import { Slider } from "~/components/ui/slider";
-import type { Id } from "convex/_generated/dataModel";
-import { useForm } from "@tanstack/react-form";
-import { toast } from "sonner";
+import { Textarea } from "~/components/ui/textarea";
 import { useCreateProfile, useUpdateProfile } from "~/lib/query/profile";
-import { ModelSelector } from "~/components/model-selector";
-import { cn, slugify } from "~/lib/utils";
 import { profileFormSchema } from "~/lib/query/profile";
+import { cn, slugify } from "~/lib/utils";
+import type { ProfileData } from "./profile-settings";
 
 type ProfileFormProps = {
 	profile?: ProfileData;

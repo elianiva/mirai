@@ -1,25 +1,25 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { authUserFn } from "~/lib/functions/auth";
-import {
-	SidebarProvider,
-	SidebarInset,
-	SidebarTrigger,
-} from "~/components/ui/sidebar";
-import {
-	Breadcrumb,
-	BreadcrumbList,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbSeparator,
-	BreadcrumbPage,
-} from "~/components/ui/breadcrumb";
-import { ChatListPanel } from "~/components/chat/chat-list-panel";
-import { ChatAreaPanel } from "~/components/chat/chat-area-panel";
-import { userQueryOptions } from "~/lib/query/user";
-import { useThread } from "~/lib/query/threads";
-import { useMessages } from "~/lib/query/messages";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
 import { Authenticated, Unauthenticated } from "convex/react";
+import { ChatAreaPanel } from "~/components/chat/chat-area-panel";
+import { ChatListPanel } from "~/components/chat/chat-list-panel";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "~/components/ui/breadcrumb";
+import {
+	SidebarInset,
+	SidebarProvider,
+	SidebarTrigger,
+} from "~/components/ui/sidebar";
+import { authUserFn } from "~/lib/functions/auth";
+import { useMessages } from "~/lib/query/messages";
+import { useThread } from "~/lib/query/threads";
+import { userQueryOptions } from "~/lib/query/user";
 
 export const Route = createFileRoute("/$threadId")({
 	component: ThreadPage,

@@ -1,3 +1,15 @@
+import { useNavigate } from "@tanstack/react-router";
+import type { Id } from "convex/_generated/dataModel";
+import { GitFork, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "~/components/ui/popover";
 import {
 	Sidebar,
 	SidebarContent,
@@ -13,24 +25,12 @@ import {
 	SidebarMenuSkeleton,
 } from "~/components/ui/sidebar";
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "~/components/ui/popover";
-import { UserProfileSection } from "./user-profile-section";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { Trash2, Pencil, GitFork } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
-import type { Id } from "convex/_generated/dataModel";
-import {
-	useThreads,
 	useRemoveThread,
 	useRenameThread,
+	useThreads,
 } from "~/lib/query/threads";
-import { toast } from "sonner";
 import { cn } from "~/lib/utils";
-import { useState } from "react";
+import { UserProfileSection } from "./user-profile-section";
 
 type ChatListPanelProps = {
 	threadId: Id<"threads"> | undefined;

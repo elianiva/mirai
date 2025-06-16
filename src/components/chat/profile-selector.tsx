@@ -1,7 +1,7 @@
+import type { Doc, Id } from "convex/_generated/dataModel";
 import { useState } from "react";
 import { Combobox } from "~/components/ui/combobox";
 import { useProfileOptions } from "~/lib/query/profile";
-import type { Id, Doc } from "convex/_generated/dataModel";
 
 type Profile = Doc<"profiles">;
 

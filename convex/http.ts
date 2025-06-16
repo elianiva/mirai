@@ -1,8 +1,8 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { chatHandler } from "./http/chat";
-import { uploadAttachment } from "./http/files";
 import { CORS_HEADERS } from "./http/common";
+import { uploadAttachment } from "./http/files";
 
 const http = httpRouter();
 

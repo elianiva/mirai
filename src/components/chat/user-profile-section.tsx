@@ -1,10 +1,9 @@
-import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
-import { Button } from "~/components/ui/button";
+import { SignOutButton } from "@clerk/tanstack-react-start";
 import { LogOut, Settings } from "lucide-react";
 import { useState } from "react";
 import { SettingsDialog } from "~/components/settings-dialog";
-import { useUser } from "~/lib/query/user";
-import { SignOutButton } from "@clerk/tanstack-react-start";
+import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
+import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -13,6 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "~/components/ui/dialog";
+import { useUser } from "~/lib/query/user";
 
 export function UserProfileSection() {
 	const { data: user } = useUser();

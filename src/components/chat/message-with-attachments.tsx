@@ -1,8 +1,8 @@
+import type { Id } from "convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { api } from "~/../convex/_generated/api";
-import type { Id } from "convex/_generated/dataModel";
-import { MessageBubble } from "./message-bubble/message-bubble";
 import type { MessageWithMetadata } from "~/types/message";
+import { MessageBubble } from "./message-bubble/message-bubble";
 
 type MessageWithAttachmentsProps = {
 	message: MessageWithMetadata;

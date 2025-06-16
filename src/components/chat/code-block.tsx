@@ -1,18 +1,18 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import type { BlockMatch } from "@llm-ui/react";
 import {
+	codeBlockLookBack,
 	findCompleteCodeBlock,
 	findPartialCodeBlock,
-	codeBlockLookBack,
 } from "@llm-ui/code";
+import type { BlockMatch } from "@llm-ui/react";
+import { CopyIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-	createHighlighter,
-	type Highlighter,
 	type BundledLanguage,
+	type Highlighter,
 	bundledLanguages,
+	createHighlighter,
 } from "shiki";
 import { Button } from "../ui/button";
-import { CopyIcon } from "lucide-react";
 
 const ESSENTIAL_LANGS: BundledLanguage[] = [
 	"javascript",
@@ -98,7 +98,9 @@ class HighlighterManager {
 		const highlighter = await this.getHighlighter();
 
 		if (!isLanguageSupported(normalized)) {
-			console.warn(`Language not supported: ${lang} (normalized: ${normalized})`);
+			console.warn(
+				`Language not supported: ${lang} (normalized: ${normalized})`,
+			);
 			return false;
 		}
 
@@ -151,7 +153,6 @@ function isLanguageSupported(lang: string): boolean {
 	const normalized = normalizeLanguage(lang);
 	return ALL_BUNDLED_LANGS.includes(normalized as BundledLanguage);
 }
-
 
 function extractCodeFromBlock(markdownBlock: string): {
 	code: string;

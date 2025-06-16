@@ -1,16 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
-import type { Id } from "convex/_generated/dataModel";
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useMessages, useRegenerateMessage } from "~/lib/query/messages";
-import { useModes } from "~/lib/query/mode";
-import { useUser } from "~/lib/query/user";
-import { useCreateBranch } from "~/lib/query/chat";
 import { useChat } from "@ai-sdk/react";
+import { useNavigate } from "@tanstack/react-router";
 import type { Message } from "ai";
-import { ChatInput } from "./chat-input";
-import { EmptyState } from "./empty-state";
-import { MessageList } from "./message-list";
-import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
+import type { Id } from "convex/_generated/dataModel";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "~/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -19,8 +12,15 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "~/components/ui/dialog";
-import { Button } from "~/components/ui/button";
+import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
+import { useCreateBranch } from "~/lib/query/chat";
+import { useMessages, useRegenerateMessage } from "~/lib/query/messages";
+import { useModes } from "~/lib/query/mode";
+import { useUser } from "~/lib/query/user";
 import { NEW_THREAD_ID } from "~/types/message";
+import { ChatInput } from "./chat-input";
+import { EmptyState } from "./empty-state";
+import { MessageList } from "./message-list";
 
 // @ts-expect-error - import.meta.env is not typed
 const CHAT_API_URL = `${import.meta.env.VITE_CONVEX_HTTP_URL}/api/chat`;
@@ -219,7 +219,10 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 
 	async function handleCreateBranch(parentMessageId: Id<"messages">) {
 		try {
-			const result = await createBranch({ parentMessageId });
+			const result = await createBranch({
+				parentMessageId,
+				openrouterKey: openrouterKey || "",
+			});
 			if (result.threadId) {
 				navigate({ to: "/$threadId", params: { threadId: result.threadId } });
 			}

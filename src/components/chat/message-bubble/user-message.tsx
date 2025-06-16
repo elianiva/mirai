@@ -12,6 +12,8 @@ type UserMessageProps = {
 	onShowRegenerateDialog: (show: boolean) => void;
 	onRegenerate: (modeId: Id<"modes">) => void;
 	initialModeId?: Id<"modes">;
+	message?: { _id: Id<"messages"> };
+	threadId?: Id<"threads">;
 };
 
 export function UserMessage(props: UserMessageProps) {
@@ -52,6 +54,8 @@ export function UserMessage(props: UserMessageProps) {
 					onRegenerate={() => props.onShowRegenerateDialog(true)}
 					onCreateBranch={props.onCreateBranch}
 					onRemove={props.onRemove}
+					message={props.message}
+					threadId={props.threadId}
 				/>
 			)}
 

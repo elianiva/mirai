@@ -1,3 +1,8 @@
+import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
+import type { ConvexQueryClient } from "@convex-dev/react-query";
+// @ts-expect-error - this is a valid css file
+import loraCss from "@fontsource-variable/lora/index.css?url";
+import type { QueryClient } from "@tanstack/react-query";
 import {
 	HeadContent,
 	Outlet,
@@ -6,20 +11,15 @@ import {
 	useRouteContext,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import type { ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { DefaultCatchBoundary } from "~/components/DefaultCatchBoundary";
 import { NotFound } from "~/components/NotFound";
-import { seo } from "~/utils/seo";
-import type { QueryClient } from "@tanstack/react-query";
 import { Toaster } from "~/components/ui/sonner";
-import type { ConvexReactClient } from "convex/react";
-import type { ConvexQueryClient } from "@convex-dev/react-query";
 import { authStateFn } from "~/lib/functions/auth";
-import { ClerkProvider, useAuth } from "@clerk/tanstack-react-start";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 // @ts-expect-error - this is a valid css file
 import appCss from "~/styles/app.css?url";
-// @ts-expect-error - this is a valid css file
-import loraCss from "@fontsource-variable/lora/index.css?url";
+import { seo } from "~/utils/seo";
 
 export const Route = createRootRouteWithContext<{
 	queryClient: QueryClient;

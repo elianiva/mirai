@@ -1,9 +1,9 @@
-import { httpAction } from "../_generated/server";
-import { streamText, type CoreMessage } from "ai";
-import { getChatModel, buildSystemPrompt } from "../../src/lib/ai";
-import { internal, api } from "../_generated/api";
+import { type CoreMessage, streamText } from "ai";
 import { z } from "zod";
+import { buildSystemPrompt, getChatModel } from "../../src/lib/ai";
+import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
+import { httpAction } from "../_generated/server";
 import { CORS_HEADERS } from "./common";
 
 const schema = z.object({

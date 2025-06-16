@@ -1,11 +1,11 @@
+import { FileCog, Layers, User } from "lucide-react";
 import { useState } from "react";
-import { Dialog, DialogContent } from "~/components/ui/dialog";
-import { Button } from "~/components/ui/button";
-import { AccountSettings } from "./account-settings";
-import { ProfileSettings } from "./profile-settings";
-import { User, Layers, FileCog } from "lucide-react";
-import { ModesSettings } from "./modes-settings";
 import type React from "react";
+import { Button } from "~/components/ui/button";
+import { Dialog, DialogContent } from "~/components/ui/dialog";
+import { AccountSettings } from "./account-settings";
+import { ModesSettings } from "./modes-settings";
+import { ProfileSettings } from "./profile-settings";
 
 type SettingsDialogProps = {
 	isOpen: boolean;

@@ -1,9 +1,9 @@
 import type { Id } from "convex/_generated/dataModel";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRemoveMessage } from "~/lib/query/messages";
-import { UserMessage } from "./user-message";
-import { AssistantMessage } from "./assistant-message";
 import type { MessageWithMetadata } from "~/types/message";
+import { AssistantMessage } from "./assistant-message";
+import { UserMessage } from "./user-message";
 
 // only extract reasoning portion from parts, since it can contain other stuff (tool calls, etc)
 function extractReasoningFromParts(
@@ -128,6 +128,8 @@ export function MessageBubble(props: MessageBubbleProps) {
 				onShowRegenerateDialog={setShowRegenerateDialog}
 				onRegenerate={handleRegenerate}
 				initialModeId={props.message.metadata?.modeId as Id<"modes">}
+				message={props.message}
+				threadId={props.threadId}
 			/>
 		);
 	}
@@ -150,6 +152,8 @@ export function MessageBubble(props: MessageBubbleProps) {
 			onShowRegenerateDialog={setShowRegenerateDialog}
 			onRegenerate={handleRegenerate}
 			initialModeId={props.message.metadata?.modeId as Id<"modes">}
+			message={props.message}
+			threadId={props.threadId}
 		/>
 	);
 }

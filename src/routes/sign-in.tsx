@@ -1,5 +1,5 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SignInButton } from "@clerk/tanstack-react-start";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { authStateFn } from "~/lib/functions/auth";
 

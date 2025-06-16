@@ -1,16 +1,16 @@
 import { useForm } from "@tanstack/react-form";
+import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { Textarea } from "~/components/ui/textarea";
-import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
+import { Textarea } from "~/components/ui/textarea";
+import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
 import {
 	useAccountSettings,
 	useUpdateAccountSettings,
 } from "~/lib/query/account-settings";
 import { useUser } from "~/lib/query/user";
-import { toast } from "sonner";
-import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
 
 export function AccountSettings() {
 	const { data: user } = useUser();

@@ -79,4 +79,4 @@ export const DEFAULT_MODES = [
 		additionalInstructions:
 			"Specify the language and any specific style guidelines.",
 	},
-]; 
+];

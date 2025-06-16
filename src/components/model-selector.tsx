@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Brain } from "lucide-react";
+import { useState } from "react";
 import { Combobox } from "~/components/ui/combobox";
 import { Label } from "~/components/ui/label";
 import { useOpenRouterModels } from "~/lib/query/profile";

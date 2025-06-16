@@ -1,10 +1,10 @@
 import type { Id } from "convex/_generated/dataModel";
 import { useEffect, useRef } from "react";
 import { ScrollArea } from "~/components/ui/scroll-area";
+import type { MessageWithMetadata } from "~/types/message";
 import { BranchIndicator } from "./branch-indicator";
 import { MessageBubble } from "./message-bubble/message-bubble";
 import { MessageWithAttachments } from "./message-with-attachments";
-import type { MessageWithMetadata } from "~/types/message";
 
 type MessageListProps = {
 	messages: MessageWithMetadata[];

@@ -1,15 +1,15 @@
 import { useForm } from "@tanstack/react-form";
+import type { Id } from "convex/_generated/dataModel";
+import { toast } from "sonner";
+import { Button } from "~/components/ui/button";
+import { EmojiPickerInput } from "~/components/ui/emoji-picker-input";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
-import { EmojiPickerInput } from "~/components/ui/emoji-picker-input";
 import { useCreateMode, useUpdateMode } from "~/lib/query/mode";
-import { toast } from "sonner";
 import { updateModeSettingsSchema } from "~/lib/query/mode";
 import { cn, slugify } from "~/lib/utils";
 import { ProfileSelector } from "./chat/profile-selector";
-import type { Id } from "convex/_generated/dataModel";
 
 type ModeData = {
 	id: string;

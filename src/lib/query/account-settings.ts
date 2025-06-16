@@ -1,8 +1,8 @@
 import type { Doc } from "convex/_generated/dataModel";
-import { z } from "zod";
-import { api } from "~/../convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useState } from "react";
+import { z } from "zod";
+import { api } from "~/../convex/_generated/api";
 import {
 	loadFromLocalStorage,
 	saveToLocalStorage,
@@ -10,7 +10,9 @@ import {
 
 export const getAccountSettingsSchema = z.object({});
 
-export type GetAccountSettingsVariables = z.infer<typeof getAccountSettingsSchema>;
+export type GetAccountSettingsVariables = z.infer<
+	typeof getAccountSettingsSchema
+>;
 
 export const updateAccountSettingsSchema = z.object({
 	name: z.string(),
@@ -24,7 +26,9 @@ export type UpdateAccountSettingsVariables = z.infer<
 
 export function useAccountSettings() {
 	const [cachedData, setCachedData] = useState(() =>
-		loadFromLocalStorage<Doc<"accountSettings"> | { name: string; role: string; behavior: string }>("account-settings-data"),
+		loadFromLocalStorage<
+			Doc<"accountSettings"> | { name: string; role: string; behavior: string }
+		>("account-settings-data"),
 	);
 	const result = useQuery(api.accountSettings.getAccountSettings, {});
 

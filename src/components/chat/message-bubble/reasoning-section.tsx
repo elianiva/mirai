@@ -1,9 +1,9 @@
+import { ChevronRightIcon, LoaderIcon } from "lucide-react";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "~/components/ui/collapsible";
-import { ChevronRightIcon, LoaderIcon } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { MarkdownRenderer } from "../markdown-renderer";
 

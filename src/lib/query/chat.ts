@@ -1,20 +1,24 @@
 import type { Id } from "convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
 import { z } from "zod";
 import { api } from "~/../convex/_generated/api";
-import { useMutation, useQuery } from "convex/react";
 
 export const createBranchSchema = z.object({
 	parentMessageId: z.custom<Id<"messages">>(),
+	openrouterKey: z.string(),
 });
 
 export type CreateBranchVariables = z.infer<typeof createBranchSchema>;
 
-export const switchBranchSchema = z.object({
-	threadId: z.custom<Id<"threads">>(),
-	branchId: z.string(),
+export const createDetachedBranchSchema = z.object({
+	parentMessageId: z.custom<Id<"messages">>(),
+	openrouterKey: z.string(),
+	useCondensedHistory: z.boolean(),
 });
 
-export type SwitchBranchVariables = z.infer<typeof switchBranchSchema>;
+export type CreateDetachedBranchVariables = z.infer<
+	typeof createDetachedBranchSchema
+>;
 
 export const getBranchesSchema = z.object({
 	threadId: z.custom<Id<"threads">>(),
@@ -45,13 +49,20 @@ export function useCreateBranch() {
 	return useMutation(api.chat.createBranch);
 }
 
-export function useSwitchBranch() {
-	return useMutation(api.chat.switchBranch);
+export function useCreateDetachedBranch() {
+	return useMutation(api.chat.createDetachedBranch);
 }
 
 export function useBranches(threadId: Id<"threads">) {
 	return useQuery(
 		api.chat.getBranches,
 		threadId !== "new" ? { threadId } : "skip",
+	);
+}
+
+export function useThreadMetadata(threadId: Id<"threads">) {
+	return useQuery(
+		api.threads.getThreadMetadata,
+		threadId !== "new" ? { id: threadId } : "skip",
 	);
 }

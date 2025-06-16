@@ -52,7 +52,7 @@ export const getAttachmentData = query({
 					contentType: attachment.contentType,
 					size: attachment.size,
 				};
-			})
+			}),
 		);
 
 		return attachments.filter(Boolean);

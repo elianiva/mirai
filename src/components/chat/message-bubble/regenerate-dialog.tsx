@@ -43,10 +43,7 @@ export function RegenerateDialog(props: RegenerateDialogProps) {
 						onModeSelect={setSelectedModeId}
 					/>
 					<div className="flex justify-end gap-2">
-						<Button
-							variant="outline"
-							onClick={() => props.onOpenChange(false)}
-						>
+						<Button variant="outline" onClick={() => props.onOpenChange(false)}>
 							Cancel
 						</Button>
 						<Button onClick={handleRegenerate}>Regenerate</Button>

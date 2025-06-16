@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { retrieveAndDecrypt, encryptAndStore } from "~/lib/utils/crypto";
+import { encryptAndStore, retrieveAndDecrypt } from "~/lib/utils/crypto";
 
 export function useOpenrouterKey(userId: string | undefined) {
 	const [openrouterKey, setOpenrouterKey] = useState<string | null>(null);

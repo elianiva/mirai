@@ -114,3 +114,28 @@ export const remove = mutation({
 		return args.id;
 	},
 });
+
+export const getThreadMetadata = query({
+	args: {
+		id: v.id("threads"),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Not authenticated");
+		}
+
+		const thread = await ctx.db.get(args.id);
+		if (!thread) {
+			throw new Error("Thread not found");
+		}
+
+		return {
+			id: thread._id,
+			title: thread.title,
+			parentId: thread.parentId,
+			isDetached: thread.isDetached || false,
+			condensedFromThreadId: thread.condensedFromThreadId,
+		};
+	},
+});

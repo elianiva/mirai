@@ -1,3 +1,7 @@
+import type { Doc } from "convex/_generated/dataModel";
+import { ChevronRight, Plus, UserX } from "lucide-react";
+import { useState } from "react";
+import { Button } from "~/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -5,13 +9,9 @@ import {
 	CardHeader,
 	CardTitle,
 } from "~/components/ui/card";
-import { useState } from "react";
-import { ChevronRight, Plus, UserX } from "lucide-react";
-import { Button } from "~/components/ui/button";
 import { Skeleton } from "~/components/ui/skeleton";
-import { ProfileForm } from "./profile-form";
 import { useProfileOptions } from "~/lib/query/profile";
-import type { Doc } from "convex/_generated/dataModel";
+import { ProfileForm } from "./profile-form";
 
 export type ProfileData = Doc<"profiles">;
 

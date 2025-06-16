@@ -1,3 +1,7 @@
+import type { Doc } from "convex/_generated/dataModel";
+import { ChevronRight, Plus, UserX } from "lucide-react";
+import { useState } from "react";
+import { Button } from "~/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -5,16 +9,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "~/components/ui/card";
-import { useState } from "react";
-import { ChevronRight, Plus, UserX } from "lucide-react";
-import { Button } from "~/components/ui/button";
-import { Skeleton } from "~/components/ui/skeleton";
-import { ModeSettings } from "./mode-form";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { Skeleton } from "~/components/ui/skeleton";
 import { Textarea } from "~/components/ui/textarea";
-import type { Doc } from "convex/_generated/dataModel";
 import { useModes } from "~/lib/query/mode";
+import { ModeSettings } from "./mode-form";
 
 export type ModeData = Doc<"modes">;
 
