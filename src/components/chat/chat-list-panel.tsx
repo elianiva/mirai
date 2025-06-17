@@ -86,7 +86,7 @@ export function ChatListPanel(props: ChatListPanelProps) {
 		}
 
 		try {
-			await renameThread.mutateAsync({ id: threadId, title: finalTitle });
+			await renameThread({ id: threadId, title: finalTitle });
 			toast.success("Thread renamed successfully");
 		} catch (error) {
 			toast.error("Failed to rename thread");

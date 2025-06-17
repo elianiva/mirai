@@ -14,7 +14,6 @@ export const uploadAttachment = mutation({
 			throw new Error("Not authenticated");
 		}
 
-		// Create an entry in the attachments table
 		const attachmentId = await ctx.db.insert("attachments", {
 			storageId: args.storageId,
 			filename: args.filename,

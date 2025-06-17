@@ -10,11 +10,6 @@ import {
 import { type CoreMessage, streamText } from "ai";
 import { buildSystemPrompt, getChatModel } from "../src/lib/ai";
 
-type StreamingStatus = {
-	isStreaming: boolean;
-	content: string;
-};
-
 type SaveUserMessageResult = {
 	threadId: Id<"threads">;
 	userMessageId: Id<"messages">;
@@ -151,7 +146,10 @@ export const saveUserMessage = internalMutation({
 				title:
 					userMessage.slice(0, 50) + (userMessage.length > 50 ? "..." : ""),
 			});
+		}
 
+		const thread = await ctx.db.get(threadId);
+		if (thread && thread.title === "New conversation") {
 			await ctx.scheduler.runAfter(0, internal.threads.generateThreadTitle, {
 				threadId,
 				message: userMessage,
@@ -186,22 +184,10 @@ export const createAssistantMessage = internalMutation({
 	args: {
 		threadId: v.id("threads"),
 		modeId: v.string(),
-		parentMessageId: v.id("messages"),
-		userId: v.string(),
-		userName: v.string(),
-		openrouterKey: v.string(),
 		modelName: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const {
-			threadId,
-			modeId,
-			parentMessageId,
-			userId,
-			userName,
-			openrouterKey,
-			modelName,
-		} = args;
+		const { threadId, modeId, modelName } = args;
 
 		const assistantMessageId = await ctx.db.insert("messages", {
 			threadId,

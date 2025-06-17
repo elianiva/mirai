@@ -15,6 +15,7 @@ import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
 import { useCreateBranch } from "~/lib/query/chat";
 import { useMessages, useRegenerateMessage } from "~/lib/query/messages";
 import { useModes } from "~/lib/query/mode";
+import { useCreateThread } from "~/lib/query/threads";
 import { useUser } from "~/lib/query/user";
 import { NEW_THREAD_ID } from "~/types/message";
 import { ChatInput } from "./chat-input";
@@ -39,14 +40,18 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const messagesFromDB = useMessages(threadId);
 	const createBranch = useCreateBranch();
 	const regenerateMessage = useRegenerateMessage();
+	const createThread = useCreateThread();
+
+	const isNewThread = threadId === NEW_THREAD_ID;
 
 	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
 	const [currentBranchId, setCurrentBranchId] = useState<string>();
 	const [autoScroll, setAutoScroll] = useState(true);
 	const [showOpenrouterDialog, setShowOpenrouterDialog] = useState(false);
 	const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
-
-	const isNewThread = threadId === NEW_THREAD_ID;
+	const [actualThreadId, setActualThreadId] = useState(
+		isNewThread ? undefined : threadId,
+	);
 
 	const initialMessages = useMemo(
 		() =>
@@ -66,14 +71,14 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 				modeId: selectedModeId,
 				branchId: currentBranchId,
 				parentMessageId: undefined,
-				threadId: isNewThread ? undefined : threadId,
+				threadId: actualThreadId,
 				openrouterKey,
 				attachmentIds,
 			},
 			headers: {
 				Authorization: `Bearer ${user?.token}`,
 			},
-			id: isNewThread ? undefined : threadId,
+			id: actualThreadId,
 			onError: (error) => console.error("AI SDK streaming error:", error),
 		});
 
@@ -162,6 +167,19 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			return;
 		}
 
+		// If this is a new thread, create it first and navigate
+		if (isNewThread) {
+			try {
+				const newThreadId = await createThread({ title: "New conversation" });
+				setActualThreadId(newThreadId);
+				// Navigate to the new thread
+				navigate({ to: "/$threadId", params: { threadId: newThreadId } });
+			} catch (error) {
+				console.error("Failed to create thread:", error);
+				return;
+			}
+		}
+
 		setAutoScroll(true);
 		handleSubmit();
 		setAttachmentIds([]);
@@ -205,6 +223,11 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			setSelectedModeId(modes[0]._id);
 		}
 	}, [modes, selectedModeId]);
+
+	// Update actualThreadId when threadId prop changes
+	useEffect(() => {
+		setActualThreadId(isNewThread ? undefined : threadId);
+	}, [threadId, isNewThread]);
 
 	return (
 		<div className="flex flex-col h-full bg-background">

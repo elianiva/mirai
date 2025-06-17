@@ -41,6 +41,24 @@ export const list = query({
 	},
 });
 
+export const create = mutation({
+	args: {
+		title: v.optional(v.string()),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Not authenticated");
+		}
+
+		const threadId = await ctx.db.insert("threads", {
+			title: args.title || "New conversation",
+		});
+
+		return threadId;
+	},
+});
+
 export const updateTitle = mutation({
 	args: {
 		id: v.id("threads"),

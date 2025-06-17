@@ -48,7 +48,7 @@ export function ThreadPage() {
 			: (params.threadId as Id<"threads">);
 	const thread = useThread(threadId);
 	const parentThreadId = thread?.parentThreadId;
-	const parentThread = useThread(parentThreadId);
+	const parentThread = useThread(parentThreadId ?? "new");
 	const messages = useMessages(threadId);
 	const isStreaming =
 		messages?.some((msg) => msg.metadata?.isStreaming) ?? false;

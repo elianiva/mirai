@@ -17,13 +17,6 @@ export function useCreateBranch() {
 	return useMutation(api.threads.createBranchFromMessage);
 }
 
-export function useThreadMetadata(threadId: Id<"threads">) {
-	return useQuery(
-		api.threads.getById,
-		threadId !== "new" ? { id: threadId } : "skip",
-	);
-}
-
 // @ts-expect-error - import.meta.env is not typed
 const CONVEX_HTTP_URL = import.meta.env.VITE_CONVEX_HTTP_URL as string;
 

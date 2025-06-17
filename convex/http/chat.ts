@@ -345,10 +345,6 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		{
 			threadId: userMessageResult.threadId,
 			modeId: mode._id,
-			parentMessageId: userMessageResult.userMessageId,
-			userId: identity.subject,
-			userName: identity.name ?? "User",
-			openrouterKey,
 			modelName: profile.model,
 		},
 	);
