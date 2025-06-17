@@ -30,7 +30,6 @@ export const getProfileById = query({
 			return null;
 		}
 
-		// Check if user owns this profile
 		if (profile.userId !== identity.subject) {
 			throw new Error("Not authorized to access this profile");
 		}

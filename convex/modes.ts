@@ -160,11 +160,8 @@ export const getById = query({
 		}
 
 		const mode = await ctx.db.get(args.id);
-		if (!mode) {
-			return null;
-		}
+		if (!mode) return null;
 
-		// Check if user owns this mode
 		if (mode.userId !== identity.subject) {
 			throw new Error("Not authorized to access this mode");
 		}

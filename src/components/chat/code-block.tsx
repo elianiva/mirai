@@ -48,7 +48,6 @@ const LANGUAGE_ALIASES: Record<string, string> = {
 
 const ALL_BUNDLED_LANGS = Object.keys(bundledLanguages) as BundledLanguage[];
 
-// Singleton highlighter management
 class HighlighterManager {
 	private static instance: HighlighterManager | null = null;
 	private highlighter: Highlighter | null = null;

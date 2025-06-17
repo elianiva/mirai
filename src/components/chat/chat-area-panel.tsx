@@ -167,12 +167,10 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			return;
 		}
 
-		// If this is a new thread, create it first and navigate
 		if (isNewThread) {
 			try {
 				const newThreadId = await createThread({ title: "New conversation" });
 				setActualThreadId(newThreadId);
-				// Navigate to the new thread
 				navigate({ to: "/$threadId", params: { threadId: newThreadId } });
 			} catch (error) {
 				console.error("Failed to create thread:", error);
@@ -224,7 +222,6 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		}
 	}, [modes, selectedModeId]);
 
-	// Update actualThreadId when threadId prop changes
 	useEffect(() => {
 		setActualThreadId(isNewThread ? undefined : threadId);
 	}, [threadId, isNewThread]);

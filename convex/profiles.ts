@@ -25,11 +25,8 @@ export const get = query({
 		}
 
 		const profile = await ctx.db.get(args.id);
-		if (!profile) {
-			return null;
-		}
+		if (!profile) return null;
 
-		// Check if user owns this profile
 		if (profile.userId !== identity.subject) {
 			throw new Error("Not authorized to access this profile");
 		}
@@ -85,7 +82,6 @@ export const update = mutation({
 			throw new Error("Profile not found");
 		}
 
-		// Check if user owns this profile
 		if (profile.userId !== identity.subject) {
 			throw new Error("Not authorized to update this profile");
 		}

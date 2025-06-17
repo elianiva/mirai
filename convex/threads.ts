@@ -113,8 +113,6 @@ export const remove = mutation({
 	},
 });
 
-// Branching functionality - simplified thread cloning
-
 export const cloneThread = mutation({
 	args: {
 		sourceThreadId: v.id("threads"),
@@ -134,7 +132,6 @@ export const cloneThread = mutation({
 			.order("asc")
 			.collect();
 
-		// If upToMessageId is specified, only copy messages up to that point
 		let messagesToCopy = sourceMessages;
 		if (args.upToMessageId) {
 			const upToIndex = sourceMessages.findIndex(
@@ -145,13 +142,11 @@ export const cloneThread = mutation({
 			}
 		}
 
-		// Create new thread with parent reference
 		const newThreadId = await ctx.db.insert("threads", {
 			title: `${sourceThread.title} - Copy`,
 			parentThreadId: args.sourceThreadId,
 		});
 
-		// Generate dynamic title based on conversation context
 		const lastAssistantMessage = [...messagesToCopy]
 			.reverse()
 			.find((msg) => msg.role === "assistant");
@@ -163,7 +158,6 @@ export const cloneThread = mutation({
 			});
 		}
 
-		// Copy messages to new thread
 		await ctx.runMutation(internal.threads.copyMessagesToThread, {
 			messages: messagesToCopy,
 			targetThreadId: newThreadId,
@@ -186,13 +180,11 @@ export const cloneThreadWithCondensedHistory = mutation({
 		const sourceThread = await ctx.db.get(args.sourceThreadId);
 		if (!sourceThread) throw new Error("Source thread not found");
 
-		// Create new thread with parent reference
 		const newThreadId = await ctx.db.insert("threads", {
 			title: "Detached Branch",
 			parentThreadId: args.sourceThreadId,
 		});
 
-		// Create placeholder message that will be updated with condensed history
 		const contextMessageId = await ctx.db.insert("messages", {
 			threadId: newThreadId,
 			senderId: "system",
@@ -205,7 +197,6 @@ export const cloneThreadWithCondensedHistory = mutation({
 			},
 		});
 
-		// Schedule action to generate condensed history
 		await ctx.scheduler.runAfter(0, internal.threads.generateCondensedHistory, {
 			sourceThreadId: args.sourceThreadId,
 			upToMessageId: args.upToMessageId,
@@ -218,7 +209,6 @@ export const cloneThreadWithCondensedHistory = mutation({
 	},
 });
 
-// Helper function for UI to create branches from a specific message
 export const createBranchFromMessage = mutation({
 	args: {
 		messageId: v.id("messages"),
@@ -250,8 +240,6 @@ export const createBranchFromMessage = mutation({
 		});
 	},
 });
-
-// Internal helper functions
 
 export const copyMessagesToThread = internalMutation({
 	args: {
@@ -290,7 +278,6 @@ export const copyMessagesToThread = internalMutation({
 				attachmentIds: newAttachmentIds,
 			});
 
-			// Update attachment references
 			if (newAttachmentIds && newAttachmentIds.length > 0) {
 				for (const attachmentId of newAttachmentIds) {
 					await ctx.db.patch(attachmentId, {
@@ -312,7 +299,6 @@ export const generateCondensedHistory = internalAction({
 	},
 	handler: async (ctx, args) => {
 		try {
-			// Get messages from source thread
 			const sourceMessages = await ctx.runQuery(
 				internal.threads.getThreadMessages,
 				{
@@ -320,7 +306,6 @@ export const generateCondensedHistory = internalAction({
 				},
 			);
 
-			// Filter messages up to the specified point
 			let messagesToCondense = sourceMessages;
 			if (args.upToMessageId) {
 				const upToIndex = sourceMessages.findIndex(
@@ -339,7 +324,6 @@ export const generateCondensedHistory = internalAction({
 				return;
 			}
 
-			// Convert to conversation text
 			const conversationText = messagesToCondense
 				.map((msg) => {
 					const role = msg.role === "user" ? "User" : "Assistant";
@@ -347,7 +331,6 @@ export const generateCondensedHistory = internalAction({
 				})
 				.join("\n\n");
 
-			// Generate condensed summary
 			const { text } = await generateText({
 				model: getChatModel(
 					"google/gemini-2.5-flash-preview",
@@ -369,13 +352,11 @@ ${conversationText}
 Create a summary that captures the essential context and key points discussed, suitable for continuing this conversation in a new thread.`,
 			});
 
-			// Update the context message with condensed history
 			await ctx.runMutation(internal.threads.updateCondensedMessage, {
 				messageId: args.contextMessageId,
 				content: text.trim(),
 			});
 
-			// Generate dynamic title based on condensed content
 			await ctx.runAction(internal.threads.generateThreadTitle, {
 				threadId: args.newThreadId,
 				message: text.trim(),
@@ -383,7 +364,6 @@ Create a summary that captures the essential context and key points discussed, s
 			});
 		} catch (error) {
 			console.error("Error generating condensed history:", error);
-			// Update with fallback content
 			await ctx.runMutation(internal.threads.updateCondensedMessage, {
 				messageId: args.contextMessageId,
 				content:

@@ -50,9 +50,8 @@ export function buildSystemPrompt(extra: PromptExtra) {
 		prompt = prompt.replace(`@${key}`, value);
 	}
 
-	// Clean up any remaining placeholders for optional parameters
-	prompt = prompt.replace(/@chat_context\s*/g, '');
-	prompt = prompt.replace(/@available_modes\s*/g, '');
+	prompt = prompt.replace(/@chat_context\s*/g, "");
+	prompt = prompt.replace(/@available_modes\s*/g, "");
 
 	return prompt;
 }

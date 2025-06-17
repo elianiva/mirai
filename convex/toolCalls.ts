@@ -47,7 +47,7 @@ export const updateToolCallStatus = internalMutation({
 			v.literal("error"),
 		),
 		streamingArgs: v.optional(v.string()),
-		output: v.optional(v.any()), // Changed from v.string().optional() for flexibility
+		output: v.optional(v.any()),
 	},
 	handler: async (ctx, args) => {
 		const message = await ctx.db.get(args.messageId);
@@ -75,14 +75,13 @@ export const updateToolCallStatus = internalMutation({
 					...toolCall,
 					status: args.status,
 					streamingArgs: args.streamingArgs,
-					output: args.output !== undefined ? args.output : toolCall.output, // Only update if output is provided
+					output: args.output !== undefined ? args.output : toolCall.output,
 					endTime: args.status !== "streaming" ? Date.now() : toolCall.endTime,
 				};
 			}
 			return toolCall;
 		});
 
-		// Update isStreamingToolCalls based on whether any tool call is still streaming
 		const isStreamingToolCalls = updatedToolCallMetadata.some(
 			(toolCall: ToolCallType) => toolCall.status === "streaming",
 		);
@@ -91,7 +90,7 @@ export const updateToolCallStatus = internalMutation({
 			metadata: {
 				...message.metadata,
 				toolCallMetadata: updatedToolCallMetadata,
-				isStreamingToolCalls: isStreamingToolCalls || undefined, // Remove if no longer streaming
+				isStreamingToolCalls: isStreamingToolCalls || undefined,
 			},
 		});
 	},
