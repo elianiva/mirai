@@ -1,6 +1,5 @@
 import { useChat } from "@ai-sdk/react";
 import { useNavigate } from "@tanstack/react-router";
-import type { Message } from "ai";
 import type { Id } from "convex/_generated/dataModel";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -48,9 +47,6 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
 
 	const isNewThread = threadId === NEW_THREAD_ID;
-	const hasAttachments = messagesFromDB?.some(
-		(msg) => msg.attachmentIds?.length,
-	);
 
 	const initialMessages = useMemo(
 		() =>
@@ -167,16 +163,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		}
 
 		setAutoScroll(true);
-		handleSubmit(undefined, {
-			body: {
-				modeId: selectedModeId,
-				branchId: currentBranchId,
-				parentMessageId: undefined,
-				threadId: isNewThread ? undefined : threadId,
-				openrouterKey,
-				attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
-			},
-		});
+		handleSubmit();
 		setAttachmentIds([]);
 	}
 

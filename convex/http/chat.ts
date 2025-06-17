@@ -369,6 +369,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		}
 	};
 
+	// TODO: revisit later
 	const tools =
 		mode.slug === ORCHESTRATOR_MODE_CONFIG.slug
 			? {

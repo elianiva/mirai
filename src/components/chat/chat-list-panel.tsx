@@ -159,14 +159,18 @@ export function ChatListPanel(props: ChatListPanelProps) {
 						) : (
 							<SidebarMenu>
 								{threads.map((thread) => (
-									<SidebarMenuItem key={thread._id}>
+									<SidebarMenuItem
+										key={thread._id}
+										className="hover:bg-background rounded"
+									>
 										<SidebarMenuButton
 											asChild
 											isActive={props.threadId === thread._id}
+											className="cursor-pointer"
 										>
 											<Button
 												className={cn(
-													"text-left justify-start text-sm font-light",
+													"text-left justify-start text-sm font-light text-neutral-500",
 													{
 														"text-primary font-bold":
 															props.threadId === thread._id,
@@ -204,12 +208,12 @@ export function ChatListPanel(props: ChatListPanelProps) {
 												)}
 											</Button>
 										</SidebarMenuButton>
-										<div className="absolute top-1.5 right-1 flex gap-1 opacity-0 group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100 transition-opacity">
+										<div className="absolute top-1.5 right-1 flex gap-1 opacity-0 translate-x-4 group-hover/menu-item:opacity-100 group-hover/menu-item:translate-x-0 group-focus-within/menu-item:opacity-100 group-focus-within/menu-item:translate-x-0 transition-all">
 											<SidebarMenuAction
 												onClick={(e) => handleDeleteThread(thread._id, e)}
-												className="relative top-0 right-0"
+												className="relative top-0 right-0 cursor-pointer"
 											>
-												<Trash2 className="h-4 w-4 text-primary-foreground" />
+												<Trash2 className="size-4 text-primary-foreground" />
 											</SidebarMenuAction>
 										</div>
 									</SidebarMenuItem>
