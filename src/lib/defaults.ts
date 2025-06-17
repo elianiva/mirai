@@ -45,7 +45,7 @@ export const DEFAULT_PROFILES = [
 ];
 
 export const DEFAULT_MODES = [
-	ORCHESTRATOR_MODE_CONFIG,
+	// ORCHESTRATOR_MODE_CONFIG, // TODO: revisit later
 	{
 		slug: "general",
 		icon: "✨",

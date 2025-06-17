@@ -22,6 +22,10 @@ You are an LLM model called @model
 @ai_behavior
 </ai_behavior>
 
+@chat_context
+
+@available_modes
+
 <rules>
 - Prefer concise responses when possible.
 - Follow the mode definition provided.
@@ -45,6 +49,10 @@ export function buildSystemPrompt(extra: PromptExtra) {
 	for (const [key, value] of Object.entries(extra)) {
 		prompt = prompt.replace(`@${key}`, value);
 	}
+
+	// Clean up any remaining placeholders for optional parameters
+	prompt = prompt.replace(/@chat_context\s*/g, '');
+	prompt = prompt.replace(/@available_modes\s*/g, '');
 
 	return prompt;
 }

@@ -28,7 +28,9 @@ export function MessageList(props: MessageListProps) {
 		const currentMessageCount = props.messages?.length || 0;
 		const hasNewMessage = currentMessageCount > prevMessageCountRef.current;
 		const lastMessage = props.messages?.[props.messages.length - 1];
-		const isStreaming = lastMessage?.metadata?.isStreaming;
+		const isStreaming =
+			lastMessage?.metadata?.isStreaming ||
+			lastMessage?.metadata?.isStreamingToolCalls;
 
 		if (
 			(isInitialMount.current && currentMessageCount > 0) ||

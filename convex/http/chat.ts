@@ -1,4 +1,5 @@
 import { type CoreMessage, streamText, tool } from "ai";
+import type { GenericActionCtx } from "convex/server";
 import { z } from "zod";
 import { buildSystemPrompt, getChatModel } from "../../src/lib/ai";
 import { ORCHESTRATOR_MODE_CONFIG } from "../../src/lib/defaults";
@@ -6,7 +7,6 @@ import { api, internal } from "../_generated/api";
 import type { Id } from "../_generated/dataModel";
 import { httpAction } from "../_generated/server";
 import { CORS_HEADERS } from "./common";
-import type { GenericActionCtx } from "convex/server";
 
 const chatSchema = z.object({
 	messages: z.array(
@@ -56,12 +56,18 @@ const regenerateSchema = z.object({
 const getDelegateTaskTool = ({
 	ctx,
 	assistantMessageId,
-	originalUserMessageContent,
+	originalUserContent,
+	threadId,
+	previousContext,
+	openrouterKey,
 }: {
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	// biome-ignore lint/suspicious/noExplicitAny: doesn't matter if we use any
 	ctx: GenericActionCtx<any>;
 	assistantMessageId: Id<"messages">;
-	originalUserMessageContent: string;
+	originalUserContent: string;
+	threadId?: string;
+	previousContext: Array<CoreMessage>;
+	openrouterKey: string;
 }) =>
 	tool({
 		description:
@@ -70,7 +76,7 @@ const getDelegateTaskTool = ({
 			rewrittenMessage: z
 				.string()
 				.describe(
-					"The user's message rewritten or rephrased to be most effective for the selected mode. This should be directly usable by the new mode.",
+					"The user's message rewritten or rephrased to be most effective for the selected mode. This message should contain all necessary context and instructions for the specific mode to execute the task fully without further input from the orchestrator. The delegated mode is expected to process this message and complete the task described within it, then report its completion back to the orchestrator.",
 				),
 			selectedModeSlug: z
 				.string()
@@ -92,6 +98,13 @@ const getDelegateTaskTool = ({
 			selectedModeSlug: string;
 			reasoning: string;
 		}) => {
+			// sometimes the model get sooo stubborn and refuse to use the correct slug
+			// we'll just fix it here
+			selectedModeSlug = selectedModeSlug
+				.toLowerCase()
+				.replaceAll("_", "-")
+				.replaceAll(" ", "-");
+
 			const newMode = await ctx.runQuery(api.modes.getBySlug, {
 				slug: selectedModeSlug,
 			});
@@ -123,26 +136,24 @@ const getDelegateTaskTool = ({
 				throw new Error(`Profile not found for mode ${newMode.name}.`);
 			}
 
-			await ctx.runMutation(internal.chat.resetMessageToStreaming, {
-				messageId: assistantMessageId,
-				modeId: newMode._id,
-				toolCallMetadata: [
-					{
-						name: "delegate_task",
-						status: "success",
-						arguments: { rewrittenMessage, selectedModeSlug, reasoning },
-						output: {
-							selectedMode: newMode.name,
-							rewrittenMessage: rewrittenMessage,
-							reasoning: reasoning,
-							originalUserMessage: originalUserMessageContent,
-						},
-					},
-				],
-				clearPendingOrchestrator: true,
+			const identity = await ctx.auth.getUserIdentity();
+			if (!identity) {
+				throw new Error("Unauthorized");
+			}
+
+			await ctx.runMutation(internal.chat.executeDelegatedTask, {
+				assistantMessageId,
+				rewrittenMessage,
+				selectedModeSlug,
+				reasoning,
+				originalUserContent,
+				threadId: threadId as Id<"threads">,
+				openrouterKey,
+				userId: identity.subject,
+				userName: identity.name ?? "User",
 			});
 
-			return "Orchestration decision made and message updated.";
+			return "Task delegated and execution started.";
 		},
 	});
 
@@ -247,12 +258,11 @@ export const chatHandler = httpAction(async (ctx, req) => {
 			},
 		);
 	}
-	const originalUserMessageContent =
+	const originalUserContent =
 		typeof lastUserMessageInProcessed.content === "string"
 			? lastUserMessageInProcessed.content
 			: "";
 
-	// handle attachments based on the ids that we've uploaded previously
 	if (attachmentIds && attachmentIds.length > 0) {
 		try {
 			const attachmentData = await ctx.runQuery(
@@ -276,7 +286,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 
 			contentParts.push({
 				type: "text" as const,
-				text: originalUserMessageContent,
+				text: originalUserContent,
 			});
 
 			for (const attachment of attachmentData) {
@@ -320,7 +330,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		internal.chat.saveUserMessage,
 		{
 			threadId: threadId as Id<"threads">,
-			userMessage: originalUserMessageContent,
+			userMessage: originalUserContent,
 			modeId,
 			userId: identity.subject,
 			openrouterKey,
@@ -365,7 +375,10 @@ export const chatHandler = httpAction(async (ctx, req) => {
 					delegate_task: getDelegateTaskTool({
 						ctx,
 						assistantMessageId,
-						originalUserMessageContent,
+						originalUserContent,
+						threadId,
+						previousContext,
+						openrouterKey,
 					}),
 				}
 			: undefined;
@@ -383,6 +396,8 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		topK: profile.topK,
 		temperature: profile.temperature,
 		tools: tools,
+		toolCallStreaming: true,
+		maxSteps: 5,
 		async onChunk({ chunk }) {
 			if (chunk.type === "text-delta") {
 				chunkBuffer += chunk.textDelta;
@@ -394,6 +409,29 @@ export const chatHandler = httpAction(async (ctx, req) => {
 				) {
 					await flushBuffer();
 				}
+			} else if (chunk.type === "tool-call-streaming-start") {
+				await ctx.runMutation(internal.toolCalls.addToolCallStart, {
+					messageId: assistantMessageId,
+					toolCallId: chunk.toolCallId,
+					toolName: chunk.toolName,
+				});
+			} else if (chunk.type === "tool-call-delta") {
+				await ctx.runMutation(internal.toolCalls.updateToolCallStatus, {
+					messageId: assistantMessageId,
+					toolCallId: chunk.toolCallId,
+					status: "streaming",
+					streamingArgs: chunk.argsTextDelta,
+				});
+			} else if (chunk.type === "tool-call") {
+				// tool call has been fully generated but not yet executed
+				// we'll wait for tool-result to update with final status and output
+			} else if (chunk.type === "tool-result") {
+				await ctx.runMutation(internal.toolCalls.updateToolCallStatus, {
+					messageId: assistantMessageId,
+					toolCallId: chunk.toolCallId,
+					status: "success",
+					output: chunk.result,
+				});
 			}
 		},
 		async onFinish({ text, finishReason, reasoning }) {

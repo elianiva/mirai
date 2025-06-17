@@ -82,8 +82,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		});
 
 	const isStreaming = status === "streaming";
-	const useDBMessages = hasAttachments || (!messages.length && !isStreaming);
-	const displayMessages = useDBMessages ? messagesFromDB : messages;
+	const displayMessages = messages.length > 0 ? messages : messagesFromDB;
 
 	const checkOpenrouterKey = useCallback(() => {
 		if (!openrouterKey?.trim()) {
@@ -94,7 +93,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 	}, [openrouterKey]);
 
 	const messagesList = useMemo(() => {
-		if (useDBMessages) {
+		if (messages.length === 0) {
 			return (
 				messagesFromDB?.map((msg) => ({
 					...msg,
@@ -155,7 +154,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 				attachments: [],
 			};
 		});
-	}, [useDBMessages, messagesFromDB, messages, isStreaming, user?.id]);
+	}, [messagesFromDB, messages, isStreaming, user?.id]);
 
 	async function handleSendMessage() {
 		if (
@@ -232,7 +231,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 						threadId={threadId}
 						currentBranchId={currentBranchId}
 						autoScroll={autoScroll}
-						isLoading={isStreaming && !useDBMessages}
+						isLoading={isStreaming && messages.length > 0}
 						onAutoScrollChange={setAutoScroll}
 						onRegenerate={handleRegenerate}
 						onCreateBranch={handleCreateBranch}
@@ -250,8 +249,8 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 					}
 					onSendMessage={handleSendMessage}
 					onStopStreaming={stop}
-					isLoading={isStreaming && !useDBMessages}
-					isStreaming={isStreaming && !useDBMessages}
+					isLoading={isStreaming && messages.length > 0}
+					isStreaming={isStreaming && messages.length > 0}
 					selectedModeId={selectedModeId}
 					onModeSelect={setSelectedModeId}
 					onAttachFiles={setAttachmentIds}

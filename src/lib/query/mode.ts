@@ -60,6 +60,25 @@ export function useModes() {
 		}
 	}, [result]);
 
+	const data = result !== undefined ? result : cachedData;
+	
+	// Filter out orchestrator mode for now (keeping code for later)
+	return data?.filter(mode => mode.slug !== "orchestrator") || data;
+}
+
+export function useAllModes() {
+	const [cachedData, setCachedData] = useState(() =>
+		loadFromLocalStorage<Doc<"modes">[]>("modes-data"),
+	);
+	const result = useQuery(api.modes.get, {});
+
+	useEffect(() => {
+		if (result !== undefined) {
+			saveToLocalStorage("modes-data", result);
+			setCachedData(result);
+		}
+	}, [result]);
+
 	return result !== undefined ? result : cachedData;
 }
 

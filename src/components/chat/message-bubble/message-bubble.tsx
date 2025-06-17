@@ -67,6 +67,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 	const isStreamingMessageContent =
 		props.message.metadata?.isStreamingMessageContent;
 	const isStreamingReasoning = props.message.metadata?.isStreamingReasoning;
+	const isStreamingToolCalls = props.message.metadata?.isStreamingToolCalls;
 	const [showReasoning, setShowReasoning] = useState(false);
 	const [showToolCall, setShowToolCall] = useState(
 		!!props.message.metadata?.toolCallMetadata &&
@@ -94,6 +95,20 @@ export function MessageBubble(props: MessageBubbleProps) {
 			}, 500);
 			return () => clearTimeout(timer);
 		}
+		
+		if (isStreamingToolCalls) {
+			setShowToolCall(true);
+		} else if (
+			!isStreamingToolCalls &&
+			showToolCall &&
+			!userHasManuallyToggled
+		) {
+			const timer = setTimeout(() => {
+				setShowToolCall(false);
+			}, 500);
+			return () => clearTimeout(timer);
+		}
+		
 		if (
 			props.message.metadata?.toolCallMetadata &&
 			props.message.metadata.toolCallMetadata.length > 0
@@ -103,7 +118,9 @@ export function MessageBubble(props: MessageBubbleProps) {
 	}, [
 		isStreamingReasoning,
 		isStreamingMessageContent,
+		isStreamingToolCalls,
 		showReasoning,
+		showToolCall,
 		userHasManuallyToggled,
 		props.message.metadata?.toolCallMetadata,
 	]);

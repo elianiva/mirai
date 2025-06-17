@@ -26,6 +26,7 @@ import type * as profileOptions from "../profileOptions.js";
 import type * as profiles from "../profiles.js";
 import type * as seed from "../seed.js";
 import type * as threads from "../threads.js";
+import type * as toolCalls from "../toolCalls.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   profiles: typeof profiles;
   seed: typeof seed;
   threads: typeof threads;
+  toolCalls: typeof toolCalls;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

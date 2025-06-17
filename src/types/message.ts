@@ -10,9 +10,13 @@ export type MessageAttachment = {
 
 export type ToolCall = {
 	name: string;
-	status: string;
+	status: "streaming" | "success" | "error";
 	arguments: Record<string, unknown>;
 	output?: unknown;
+	toolCallId?: string;
+	startTime?: number;
+	endTime?: number;
+	streamingArgs?: string;
 };
 
 export type ToolCallMetadata = ToolCall[];
@@ -33,6 +37,7 @@ export type MessageMetadataUI = {
 	isPendingOrchestrator?: boolean;
 	isStreamingMessageContent?: boolean;
 	isStreamingReasoning?: boolean;
+	isStreamingToolCalls?: boolean;
 	modeId?: string;
 	profileId?: Id<"profiles">;
 	reasoning?: string;

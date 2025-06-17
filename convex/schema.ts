@@ -68,16 +68,30 @@ export const messages = defineTable({
 			isCondensedHistory: v.optional(v.boolean()),
 			originalThreadId: v.optional(v.id("threads")),
 			isPendingOrchestrator: v.optional(v.boolean()),
+			isStreamingToolCalls: v.optional(v.boolean()),
+			isDelegatedTask: v.optional(v.boolean()),
+			originalMessage: v.optional(v.string()),
+			delegationReasoning: v.optional(v.string()),
+			isDelegatedExecution: v.optional(v.boolean()),
+			delegationMetadata: v.optional(
+				v.object({
+					selectedMode: v.string(),
+					rewrittenMessage: v.string(),
+					reasoning: v.string(),
+					originalUserMessage: v.string(),
+				}),
+			),
 			toolCallMetadata: v.optional(
 				v.array(
 					v.object({
 						name: v.string(),
-						status: v.string(),
+						status: v.union(v.literal("streaming"), v.literal("success"), v.literal("error")),
 						arguments: v.any(),
 						output: v.any(),
-						// Add optional timestamps for future use
-						// startTime: v.optional(v.number()),
-						// endTime: v.optional(v.number()),
+						startTime: v.optional(v.number()),
+						endTime: v.optional(v.number()),
+						streamingArgs: v.optional(v.string()), // For partial arguments
+						toolCallId: v.optional(v.string()),
 					}),
 				),
 			),

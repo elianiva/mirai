@@ -104,3 +104,43 @@ export const remove = mutation({
 		return args.id;
 	},
 });
+
+export const addToolCall = mutation({
+	args: {
+		messageId: v.id("messages"),
+		toolCallId: v.string(),
+		toolName: v.string(),
+		arguments: v.any(),
+		output: v.optional(v.any()),
+		status: v.optional(v.union(v.literal("streaming"), v.literal("success"), v.literal("error"))),
+	},
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) throw new Error("Not authenticated");
+
+		const message = await ctx.db.get(args.messageId);
+		if (!message) throw new Error("Message not found");
+
+		const newToolCall = {
+			name: args.toolName,
+			toolCallId: args.toolCallId,
+			status: args.status || "streaming",
+			arguments: args.arguments,
+			output: args.output || null,
+			startTime: Date.now(),
+		};
+
+		const updatedToolCallMetadata = message.metadata?.toolCallMetadata
+			? [...message.metadata.toolCallMetadata, newToolCall]
+			: [newToolCall];
+
+		await ctx.db.patch(args.messageId, {
+			metadata: {
+				...message.metadata,
+				toolCallMetadata: updatedToolCallMetadata,
+			},
+		});
+
+		return args.messageId;
+	},
+});

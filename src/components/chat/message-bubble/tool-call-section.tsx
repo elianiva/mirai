@@ -39,15 +39,16 @@ export function ToolCallSection(props: ToolCallSectionProps) {
 				open={props.showToolCall}
 				onOpenChange={props.onShowToolCallChange}
 			>
-				<CollapsibleTrigger className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
-					<ChevronRightIcon
-						className={cn("size-3 transition-transform duration-200", {
-							"rotate-90": props.showToolCall,
-						})}
-					/>
-					<WrenchIcon className="size-3" />
+				<CollapsibleTrigger className="flex items-center gap-1 text-xs font-mono text-muted-foreground w-full">
+					<ChevronRightIcon className={cn("size-3 transition-transform duration-200", {
+						"rotate-90": props.showToolCall,
+					})} />
+					<WrenchIcon className={cn("size-3", {
+						"animate-spin": props.toolCall.status === "streaming"
+					})} />
 					<span>
 						Tool: {props.toolCall.name} ({props.toolCall.status})
+						{props.toolCall.status === "streaming" && <span className="animate-pulse">...</span>}
 					</span>
 				</CollapsibleTrigger>
 				<CollapsibleContent className="p-3 bg-muted/30 mt-1 text-xs rounded border-l-2 border-muted overflow-hidden">
@@ -55,6 +56,15 @@ export function ToolCallSection(props: ToolCallSectionProps) {
 					<pre className="whitespace-pre-wrap break-all text-pretty bg-background/50 p-2 rounded">
 						{JSON.stringify(props.toolCall.arguments, null, 2)}
 					</pre>
+
+					{props.toolCall.status === "streaming" && props.toolCall.streamingArgs && (
+						<div className="mt-2">
+							<h5 className="font-medium text-foreground mb-1">Streaming Arguments:</h5>
+							<pre className="whitespace-pre-wrap break-all text-pretty bg-background/50 p-2 rounded border-l-2 border-blue-500">
+								{props.toolCall.streamingArgs}
+							</pre>
+						</div>
+					)}
 
 					{props.toolCall.name !== "delegate_task" &&
 						props.toolCall.output !== undefined && (
