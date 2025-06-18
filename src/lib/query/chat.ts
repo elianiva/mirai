@@ -1,8 +1,12 @@
-import { useMutation as useTanStackMutation } from "@tanstack/react-query";
-import type { Id } from "convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import {
+	useMutation as useTanStackMutation,
+	useQueryClient,
+} from "@tanstack/react-query";
+import type { Doc, Id } from "convex/_generated/dataModel";
+import { useMutation } from "convex/react";
 import { z } from "zod";
 import { api } from "~/../convex/_generated/api";
+import { useUser } from "./user";
 
 export const regenerateMessageSchema = z.object({
 	messageId: z.custom<Id<"messages">>(),
@@ -24,6 +28,7 @@ export const regenerateMessageHttpSchema = z.object({
 	messageId: z.string(),
 	modeId: z.string(),
 	openrouterKey: z.string(),
+	token: z.string(),
 });
 
 export type RegenerateMessageHttpVariables = z.infer<
@@ -34,11 +39,13 @@ async function regenerateMessageHttp({
 	messageId,
 	modeId,
 	openrouterKey,
+	token,
 }: RegenerateMessageHttpVariables) {
 	const response = await fetch(`${CONVEX_HTTP_URL}/api/regenerate`, {
 		method: "POST",
 		headers: {
 			"Content-Type": "application/json",
+			Authorization: `Bearer ${token}`,
 		},
 		body: JSON.stringify({
 			messageId,
@@ -56,6 +63,9 @@ async function regenerateMessageHttp({
 }
 
 export function useRegenerateMessageHttp() {
+	const { data: user } = useUser();
+	const queryClient = useQueryClient();
+
 	return useTanStackMutation({
 		mutationFn: ({
 			messageId,
@@ -70,9 +80,13 @@ export function useRegenerateMessageHttp() {
 				messageId,
 				modeId,
 				openrouterKey,
+				token: user?.token ?? "",
 			}),
-		onError: (error: Error) => {
-			console.error("Error regenerating message:", error);
+
+		onSettled: () => {
+			void queryClient.invalidateQueries({
+				queryKey: [api.messages.list],
+			});
 		},
 	});
 }

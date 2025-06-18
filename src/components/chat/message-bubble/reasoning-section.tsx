@@ -9,7 +9,7 @@ import { MarkdownRenderer } from "../markdown-renderer";
 
 type ReasoningSectionProps = {
 	reasoning: string;
-	isStreamingReasoning?: boolean;
+	isStreaming?: boolean;
 	showReasoning: boolean;
 	onShowReasoningChange: (show: boolean) => void;
 };
@@ -22,7 +22,7 @@ export function ReasoningSection(props: ReasoningSectionProps) {
 				onOpenChange={props.onShowReasoningChange}
 			>
 				<CollapsibleTrigger className="flex items-center gap-1 text-sm font-serif font-medium">
-					{props.isStreamingReasoning ? (
+					{props.isStreaming ? (
 						<LoaderIcon className="size-4 animate-spin" />
 					) : (
 						<ChevronRightIcon
@@ -37,9 +37,9 @@ export function ReasoningSection(props: ReasoningSectionProps) {
 					{props.reasoning ? (
 						<MarkdownRenderer
 							content={props.reasoning}
-							isStreaming={props.isStreamingReasoning}
+							isStreaming={props.isStreaming}
 						/>
-					) : props.isStreamingReasoning ? (
+					) : props.isStreaming ? (
 						<div className="flex items-center gap-2 text-muted-foreground">
 							<LoaderIcon className="size-3 animate-spin" />
 							<span className="text-xs">Generating reasoning...</span>

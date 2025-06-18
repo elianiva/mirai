@@ -1,4 +1,10 @@
-import { type CoreMessage, streamText, tool } from "ai";
+import {
+	type CoreMessage,
+	streamText,
+	type StreamTextOnChunkCallback,
+	type Tool,
+	tool,
+} from "ai";
 import type { GenericActionCtx } from "convex/server";
 import { z } from "zod";
 import { buildSystemPrompt, getChatModel } from "../../src/lib/ai";
@@ -52,6 +58,143 @@ const regenerateSchema = z.object({
 	modeId: z.string(),
 	openrouterKey: z.string(),
 });
+
+const createStreamingHelpers = (messageId: Id<"messages">) => {
+	let chunkBuffer = "";
+	let reasoningChunkBuffer = "";
+	let lastUpdateTime = Date.now();
+	let lastReasoningUpdateTime = Date.now();
+	const BUFFER_SIZE = 100;
+	const BUFFER_TIME = 1000;
+
+	// biome-ignore lint/suspicious/noExplicitAny: GenericActionCtx requires any type parameter
+	const flushBuffer = async (ctx: GenericActionCtx<any>) => {
+		if (chunkBuffer.length > 0) {
+			await ctx.runMutation(internal.chat.appendAssistantMessageContent, {
+				messageId,
+				chunk: chunkBuffer,
+			});
+			chunkBuffer = "";
+			lastUpdateTime = Date.now();
+		}
+	};
+
+	// biome-ignore lint/suspicious/noExplicitAny: GenericActionCtx requires any type parameter
+	const flushReasoningBuffer = async (ctx: GenericActionCtx<any>) => {
+		if (reasoningChunkBuffer.length > 0) {
+			await ctx.runMutation(internal.chat.appendMessageReasoning, {
+				messageId,
+				chunk: reasoningChunkBuffer,
+			});
+			reasoningChunkBuffer = "";
+			lastReasoningUpdateTime = Date.now();
+		}
+	};
+
+	const handleChunk = async (
+		// biome-ignore lint/suspicious/noExplicitAny: GenericActionCtx requires any type parameter
+		ctx: GenericActionCtx<any>,
+		// biome-ignore lint/suspicious/noExplicitAny: We need to support any tools
+		chunk: Parameters<StreamTextOnChunkCallback<any>>[0]["chunk"],
+	) => {
+		if (chunk.type === "reasoning") {
+			reasoningChunkBuffer += chunk.textDelta || "";
+			const currentTime = Date.now();
+			if (
+				reasoningChunkBuffer.length >= BUFFER_SIZE ||
+				currentTime - lastReasoningUpdateTime >= BUFFER_TIME
+			) {
+				await flushReasoningBuffer(ctx);
+			}
+		}
+
+		if (chunk.type === "text-delta") {
+			chunkBuffer += chunk.textDelta || "";
+			const currentTime = Date.now();
+
+			if (
+				chunkBuffer.length >= BUFFER_SIZE ||
+				currentTime - lastUpdateTime >= BUFFER_TIME
+			) {
+				await flushBuffer(ctx);
+			}
+		} else if (chunk.type === "tool-call-streaming-start") {
+			await ctx.runMutation(internal.toolCalls.addToolCallStart, {
+				messageId,
+				toolCallId: chunk.toolCallId || "",
+				toolName: chunk.toolName || "",
+			});
+		} else if (chunk.type === "tool-call-delta") {
+			await ctx.runMutation(internal.toolCalls.updateToolCallStatus, {
+				messageId,
+				toolCallId: chunk.toolCallId || "",
+				status: "streaming",
+				streamingArgs: chunk.argsTextDelta || "",
+			});
+		} else if (chunk.type === "tool-call") {
+			// tool call has been fully generated but not yet executed
+			// we'll wait for tool-result to update with final status and output
+		} else if (chunk.type === "tool-result") {
+			await ctx.runMutation(internal.toolCalls.updateToolCallStatus, {
+				messageId,
+				toolCallId: chunk.toolCallId || "",
+				status: "success",
+				output: chunk.result || "",
+			});
+		}
+	};
+
+	const handleFinish = async (
+		// biome-ignore lint/suspicious/noExplicitAny: GenericActionCtx requires any type parameter
+		ctx: GenericActionCtx<any>,
+		{
+			text,
+			finishReason,
+			reasoning,
+		}: {
+			text: string;
+			finishReason?: string;
+			reasoning?: string;
+		},
+	) => {
+		await flushBuffer(ctx);
+		await flushReasoningBuffer(ctx);
+
+		let finalContent = text;
+		if (finishReason === "content-filter") {
+			finalContent = "Sorry, the content was filtered by the model.";
+		} else if (finishReason === "error") {
+			finalContent =
+				"Sorry, I encountered an error while generating a response.";
+		}
+
+		if (finishReason !== "tool-calls") {
+			if (!text || text.trim() === "") {
+				finalContent = "I was unable to generate a response. Please try again.";
+			}
+
+			await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
+				messageId,
+				finalContent,
+				finishReason: finishReason || "unknown",
+				reasoning,
+			});
+		}
+	};
+
+	// biome-ignore lint/suspicious/noExplicitAny: GenericActionCtx requires any type parameter
+	const handleError = async (ctx: GenericActionCtx<any>, error: unknown) => {
+		console.error("AI SDK streaming error:", error);
+		await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
+			messageId,
+			finalContent:
+				"Sorry, I encountered an error while generating a response.",
+			finishReason: "error",
+		});
+	};
+
+	return { handleChunk, handleFinish, handleError };
+};
 
 const getDelegateTaskTool = ({
 	ctx,
@@ -349,21 +492,8 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		},
 	);
 
-	let chunkBuffer = "";
-	let lastUpdateTime = Date.now();
-	const BUFFER_SIZE = 100;
-	const BUFFER_TIME = 1000;
-
-	const flushBuffer = async () => {
-		if (chunkBuffer.length > 0) {
-			await ctx.runMutation(internal.chat.appendAssistantMessageContent, {
-				messageId: assistantMessageId,
-				chunk: chunkBuffer,
-			});
-			chunkBuffer = "";
-			lastUpdateTime = Date.now();
-		}
-	};
+	const { handleChunk, handleFinish, handleError } =
+		createStreamingHelpers(assistantMessageId);
 
 	// TODO: revisit later
 	const tools =
@@ -396,69 +526,13 @@ export const chatHandler = httpAction(async (ctx, req) => {
 		toolCallStreaming: true,
 		maxSteps: 5,
 		async onChunk({ chunk }) {
-			if (chunk.type === "text-delta") {
-				chunkBuffer += chunk.textDelta;
-				const currentTime = Date.now();
-
-				if (
-					chunkBuffer.length >= BUFFER_SIZE ||
-					currentTime - lastUpdateTime >= BUFFER_TIME
-				) {
-					await flushBuffer();
-				}
-			} else if (chunk.type === "tool-call-streaming-start") {
-				await ctx.runMutation(internal.toolCalls.addToolCallStart, {
-					messageId: assistantMessageId,
-					toolCallId: chunk.toolCallId,
-					toolName: chunk.toolName,
-				});
-			} else if (chunk.type === "tool-call-delta") {
-				await ctx.runMutation(internal.toolCalls.updateToolCallStatus, {
-					messageId: assistantMessageId,
-					toolCallId: chunk.toolCallId,
-					status: "streaming",
-					streamingArgs: chunk.argsTextDelta,
-				});
-			} else if (chunk.type === "tool-call") {
-				// tool call has been fully generated but not yet executed
-				// we'll wait for tool-result to update with final status and output
-			} else if (chunk.type === "tool-result") {
-				await ctx.runMutation(internal.toolCalls.updateToolCallStatus, {
-					messageId: assistantMessageId,
-					toolCallId: chunk.toolCallId,
-					status: "success",
-					output: chunk.result,
-				});
-			}
+			await handleChunk(ctx, chunk);
 		},
 		async onFinish({ text, finishReason, reasoning }) {
-			await flushBuffer();
-
-			let finalContent = text;
-			if (finishReason === "content-filter") {
-				finalContent = "Sorry, the content was filtered by the model.";
-			} else if (finishReason === "error") {
-				finalContent =
-					"Sorry, I encountered an error while generating a response.";
-			}
-
-			if (finishReason !== "tool-calls") {
-				await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
-					messageId: assistantMessageId,
-					finalContent,
-					finishReason: finishReason || "unknown",
-					reasoning,
-				});
-			}
+			await handleFinish(ctx, { text, finishReason, reasoning });
 		},
 		async onError(error) {
-			console.error("AI SDK streaming error:", error);
-			await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
-				messageId: assistantMessageId,
-				finalContent:
-					"Sorry, I encountered an error while generating a response.",
-				finishReason: "error",
-			});
+			await handleError(ctx, error);
 		},
 	});
 
@@ -592,21 +666,27 @@ export const regenerateHandler = httpAction(async (ctx, req) => {
 		clearProfileAndReasoning: true,
 	});
 
-	let chunkBuffer = "";
-	let lastUpdateTime = Date.now();
-	const BUFFER_SIZE = 100;
-	const BUFFER_TIME = 1000;
+	const { handleChunk, handleFinish, handleError } = createStreamingHelpers(
+		messageId as Id<"messages">,
+	);
 
-	const flushBuffer = async () => {
-		if (chunkBuffer.length > 0) {
-			await ctx.runMutation(internal.chat.appendAssistantMessageContent, {
-				messageId: messageId as Id<"messages">,
-				chunk: chunkBuffer,
-			});
-			chunkBuffer = "";
-			lastUpdateTime = Date.now();
-		}
-	};
+	// TODO: revisit later - tools for regeneration
+	const tools =
+		mode.slug === ORCHESTRATOR_MODE_CONFIG.slug
+			? {
+					delegate_task: getDelegateTaskTool({
+						ctx,
+						assistantMessageId: messageId as Id<"messages">,
+						originalUserContent:
+							conversationHistory[
+								conversationHistory.length - 1
+							]?.content?.toString() || "",
+						threadId: messageToRegenerate.threadId,
+						previousContext: conversationHistory.slice(0, -1),
+						openrouterKey,
+					}),
+				}
+			: undefined;
 
 	const result = streamText({
 		model: getChatModel(profile.model, openrouterKey),
@@ -620,45 +700,17 @@ export const regenerateHandler = httpAction(async (ctx, req) => {
 		topP: profile.topP,
 		topK: profile.topK,
 		temperature: profile.temperature,
+		tools: tools,
+		toolCallStreaming: true,
+		maxSteps: 5,
 		async onChunk({ chunk }) {
-			if (chunk.type === "text-delta") {
-				chunkBuffer += chunk.textDelta;
-				const currentTime = Date.now();
-
-				if (
-					chunkBuffer.length >= BUFFER_SIZE ||
-					currentTime - lastUpdateTime >= BUFFER_TIME
-				) {
-					await flushBuffer();
-				}
-			}
+			await handleChunk(ctx, chunk);
 		},
 		async onFinish({ text, finishReason, reasoning }) {
-			await flushBuffer();
-
-			let finalContent = text;
-			if (finishReason === "content-filter") {
-				finalContent = "Sorry, the content was filtered by the model.";
-			} else if (finishReason === "error") {
-				finalContent =
-					"Sorry, I encountered an error while generating a response.";
-			}
-
-			await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
-				messageId: messageId as Id<"messages">,
-				finalContent,
-				finishReason: finishReason || "unknown",
-				reasoning,
-			});
+			await handleFinish(ctx, { text, finishReason, reasoning });
 		},
 		async onError(error) {
-			console.error("AI SDK streaming error:", error);
-			await ctx.runMutation(internal.chat.finalizeAssistantMessage, {
-				messageId: messageId as Id<"messages">,
-				finalContent:
-					"Sorry, I encountered an error while generating a response.",
-				finishReason: "error",
-			});
+			await handleError(ctx, error);
 		},
 	});
 

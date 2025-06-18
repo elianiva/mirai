@@ -9,7 +9,6 @@ type MessageWithAttachmentsProps = {
 	userId: string;
 	threadId: Id<"threads">;
 	currentBranchId?: string;
-	onRegenerate: (messageId: Id<"messages">, modeId: Id<"modes">) => void;
 	onCreateBranch: (parentMessageId: Id<"messages">) => void;
 	onBranchSwitch: (branchId: string) => void;
 };
@@ -48,7 +47,6 @@ export function MessageWithAttachments(props: MessageWithAttachmentsProps) {
 			message={messageWithAttachments}
 			userId={props.userId}
 			threadId={props.threadId}
-			onRegenerate={props.onRegenerate}
 			onCreateBranch={props.onCreateBranch}
 		/>
 	);

@@ -8,8 +8,7 @@ import { ToolCallSection } from "./tool-call-section";
 
 type AssistantMessageProps = {
 	reasoning: string;
-	isStreamingMessageContent?: boolean;
-	isStreamingReasoning?: boolean;
+	isStreaming?: boolean;
 	showReasoning: boolean;
 	onShowReasoningChange: (show: boolean) => void;
 	onRemove: () => void;
@@ -26,9 +25,8 @@ type AssistantMessageProps = {
 };
 
 export function AssistantMessage(props: AssistantMessageProps) {
-	const hasReasoning = props.reasoning || props.isStreamingReasoning;
-	const isAnyStreaming =
-		props.isStreamingMessageContent || props.isStreamingReasoning;
+	const hasReasoning = props.reasoning || props.isStreaming;
+	const isAnyStreaming = props.isStreaming;
 
 	const modeId = props.message?.metadata?.modeId;
 	const toolCallMetadata: ToolCallMetadata | undefined =
@@ -60,7 +58,7 @@ export function AssistantMessage(props: AssistantMessageProps) {
 				{hasReasoning && (
 					<ReasoningSection
 						reasoning={props.reasoning}
-						isStreamingReasoning={props.isStreamingReasoning}
+						isStreaming={props.isStreaming}
 						showReasoning={props.showReasoning}
 						onShowReasoningChange={props.onShowReasoningChange}
 					/>
@@ -68,7 +66,7 @@ export function AssistantMessage(props: AssistantMessageProps) {
 
 				<MessageContent
 					content={props.message?.content ?? ""}
-					isStreaming={props.isStreamingMessageContent}
+					isStreaming={props.isStreaming}
 					isPendingOrchestrator={isPendingOrchestrator}
 				/>
 			</div>

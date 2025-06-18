@@ -48,6 +48,9 @@ function extractReasoningFromParts(
 // this is needed because we store reasoning in the metadata field on convex
 // but when streaming it's in the parts field
 function extractReasoning(message: MessageWithMetadata): string {
+	if ("reasoning" in message && typeof message.reasoning === "string") {
+		return message.reasoning;
+	}
 	return (
 		message.metadata?.reasoning || extractReasoningFromParts(message.parts)
 	);
@@ -57,17 +60,12 @@ type MessageBubbleProps = {
 	message: MessageWithMetadata;
 	userId: string;
 	threadId: Id<"threads">;
-	onRegenerate: (messageId: Id<"messages">, modeId: Id<"modes">) => void;
 	onCreateBranch?: (parentMessageId: Id<"messages">) => void;
 };
 
 export function MessageBubble(props: MessageBubbleProps) {
 	const isUser = props.message.role === "user";
 	const isStreaming = props.message.metadata?.isStreaming;
-	const isStreamingMessageContent =
-		props.message.metadata?.isStreamingMessageContent;
-	const isStreamingReasoning = props.message.metadata?.isStreamingReasoning;
-	const isStreamingToolCalls = props.message.metadata?.isStreamingToolCalls;
 	const [showReasoning, setShowReasoning] = useState(false);
 	const [showToolCall, setShowToolCall] = useState(
 		!!props.message.metadata?.toolCallMetadata &&
@@ -82,13 +80,9 @@ export function MessageBubble(props: MessageBubbleProps) {
 
 	useEffect(() => {
 		if (!userHasManuallyToggled) {
-			if (isStreamingReasoning) {
+			if (isStreaming) {
 				setShowReasoning(true);
-			} else if (
-				!isStreamingReasoning &&
-				showReasoning &&
-				!isStreamingMessageContent
-			) {
+			} else if (!isStreaming && showReasoning) {
 				const timer = setTimeout(() => {
 					setShowReasoning(false);
 				}, 500);
@@ -96,13 +90,9 @@ export function MessageBubble(props: MessageBubbleProps) {
 			}
 		}
 
-		if (isStreamingToolCalls) {
+		if (isStreaming) {
 			setShowToolCall(true);
-		} else if (
-			!isStreamingToolCalls &&
-			showToolCall &&
-			!userHasManuallyToggled
-		) {
+		} else if (!isStreaming && showToolCall && !userHasManuallyToggled) {
 			const timer = setTimeout(() => {
 				setShowToolCall(false);
 			}, 500);
@@ -116,9 +106,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 			setShowToolCall(true);
 		}
 	}, [
-		isStreamingReasoning,
-		isStreamingMessageContent,
-		isStreamingToolCalls,
+		isStreaming,
 		showReasoning,
 		showToolCall,
 		userHasManuallyToggled,
@@ -180,8 +168,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 	return (
 		<AssistantMessage
 			reasoning={reasoning}
-			isStreamingMessageContent={isStreamingMessageContent}
-			isStreamingReasoning={isStreamingReasoning}
+			isStreaming={isStreaming}
 			showReasoning={showReasoning}
 			onShowReasoningChange={handleReasoningToggle}
 			showToolCall={showToolCall}

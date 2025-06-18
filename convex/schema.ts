@@ -57,7 +57,6 @@ export const messages = defineTable({
 	senderId: v.string(),
 	content: v.string(),
 	role: v.union(v.literal("user"), v.literal("assistant")),
-	parts: v.optional(v.array(v.any())),
 	metadata: v.optional(
 		v.object({
 			isStreaming: v.optional(v.boolean()),

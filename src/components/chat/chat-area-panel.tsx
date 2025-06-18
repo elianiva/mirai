@@ -13,7 +13,7 @@ import {
 } from "~/components/ui/dialog";
 import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
 import { useCreateBranch } from "~/lib/query/chat";
-import { useMessages, useRegenerateMessage } from "~/lib/query/messages";
+import { useMessages } from "~/lib/query/messages";
 import { useModes } from "~/lib/query/mode";
 import { useCreateThread } from "~/lib/query/threads";
 import { useUser } from "~/lib/query/user";
@@ -40,7 +40,6 @@ export const ChatAreaPanel = memo(
 		const { openrouterKey } = useOpenrouterKey(user?.id);
 		const messagesFromDB = useMessages(threadId);
 		const createBranch = useCreateBranch();
-		const regenerateMessage = useRegenerateMessage();
 		const createThread = useCreateThread();
 
 		const isNewThread = threadId === NEW_THREAD_ID;
@@ -64,7 +63,7 @@ export const ChatAreaPanel = memo(
 			[messagesFromDB],
 		);
 
-		const { messages, append, status, stop } = useChat({
+		const { messages, append, status, stop, setMessages } = useChat({
 			api: CHAT_API_URL,
 			initialMessages,
 			body: {
@@ -94,48 +93,16 @@ export const ChatAreaPanel = memo(
 		}, [openrouterKey]);
 
 		const messagesList = useMemo(() => {
-			if (messages.length === 0) {
-				return (
-					messagesFromDB?.map((msg) => ({
-						...msg,
-						attachmentIds: msg.attachmentIds || undefined,
-						metadata: msg.metadata
-							? {
-									...msg.metadata,
-									profileId: msg.metadata.profileId as
-										| Id<"profiles">
-										| undefined,
-								}
-							: undefined,
-					})) ?? []
-				);
-			}
+			// use messages from db if we don't have any messages from the ai sdk
+			if (messages.length === 0) return messagesFromDB;
 
 			return messages.map((msg) => {
 				const isLastMessage = messages[messages.length - 1]?.id === msg.id;
 				const isCurrentlyStreaming = isStreaming && isLastMessage;
+				console.log({ isStreaming, isLastMessage, isCurrentlyStreaming });
 				const msgData = msg.data as Record<string, unknown> | undefined;
 
-				// Find corresponding DB message to get stored reasoning
 				const dbMessage = messagesFromDB?.find((dbMsg) => dbMsg._id === msg.id);
-
-				const reasoningPart = msg.parts?.find(
-					(part) => part.type === "reasoning",
-				);
-				const hasReasoningContent =
-					reasoningPart &&
-					"reasoning" in reasoningPart &&
-					reasoningPart.reasoning;
-
-				const streamingStatus =
-					!isCurrentlyStreaming || msg.role !== "assistant"
-						? { isStreamingMessageContent: false, isStreamingReasoning: false }
-						: reasoningPart && !hasReasoningContent
-							? { isStreamingMessageContent: false, isStreamingReasoning: true }
-							: {
-									isStreamingMessageContent: !msg.content,
-									isStreamingReasoning: false,
-								};
 
 				return {
 					...msg,
@@ -154,7 +121,6 @@ export const ChatAreaPanel = memo(
 						...(msgData?.metadata && typeof msgData.metadata === "object"
 							? msgData.metadata
 							: {}),
-						// Preserve reasoning from database if available
 						reasoning:
 							dbMessage?.metadata?.reasoning ||
 							(msgData?.metadata &&
@@ -164,7 +130,6 @@ export const ChatAreaPanel = memo(
 								? msgData.metadata.reasoning
 								: undefined),
 						isStreaming: isCurrentlyStreaming,
-						...streamingStatus,
 					},
 					attachments: [],
 				};
@@ -200,24 +165,6 @@ export const ChatAreaPanel = memo(
 			setAttachmentIds([]);
 		}
 
-		async function handleRegenerate(
-			messageId: Id<"messages">,
-			modeId: Id<"modes">,
-		) {
-			if (isNewThread || !checkOpenrouterKey()) return;
-
-			try {
-				setAutoScroll(true);
-				await regenerateMessage({
-					messageId,
-					modeId,
-					openrouterKey: openrouterKey || undefined,
-				});
-			} catch (error) {
-				console.error("Failed to regenerate message:", error);
-			}
-		}
-
 		async function handleCreateBranch(messageId: Id<"messages">) {
 			try {
 				const result = await createBranch({
@@ -243,6 +190,18 @@ export const ChatAreaPanel = memo(
 			setActualThreadId(isNewThread ? undefined : threadId);
 		}, [threadId, isNewThread]);
 
+		useEffect(() => {
+			if (messages.length === 0 && messagesFromDB.length > 0) {
+				setMessages(
+					messagesFromDB.map((msg) => ({
+						id: msg._id,
+						role: msg.role,
+						content: msg.content,
+					})),
+				);
+			}
+		}, [messages, messagesFromDB, setMessages]);
+
 		return (
 			<div className="flex flex-col h-full bg-background">
 				<div className="flex-1 min-h-0">
@@ -257,7 +216,6 @@ export const ChatAreaPanel = memo(
 							autoScroll={autoScroll}
 							isLoading={isStreaming && messages.length > 0}
 							onAutoScrollChange={setAutoScroll}
-							onRegenerate={handleRegenerate}
 							onCreateBranch={handleCreateBranch}
 							onBranchSwitch={setCurrentBranchId}
 						/>

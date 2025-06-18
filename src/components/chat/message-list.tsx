@@ -13,7 +13,6 @@ type MessageListProps = {
 	autoScroll: boolean;
 	isLoading: boolean;
 	onAutoScrollChange: (autoScroll: boolean) => void;
-	onRegenerate: (messageId: Id<"messages">, modeId: Id<"modes">) => void;
 	onCreateBranch: (parentMessageId: Id<"messages">) => void;
 	onBranchSwitch: (branchId: string) => void;
 };
@@ -86,7 +85,6 @@ export const MessageList = memo(
 										userId={props.userId}
 										threadId={props.threadId}
 										currentBranchId={props.currentBranchId}
-										onRegenerate={props.onRegenerate}
 										onCreateBranch={props.onCreateBranch}
 										onBranchSwitch={props.onBranchSwitch}
 									/>
@@ -95,7 +93,6 @@ export const MessageList = memo(
 										message={msg}
 										userId={props.userId}
 										threadId={props.threadId}
-										onRegenerate={props.onRegenerate}
 										onCreateBranch={props.onCreateBranch}
 									/>
 								)}

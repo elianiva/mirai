@@ -5,96 +5,14 @@ import {
 	internalAction,
 	internalMutation,
 	internalQuery,
-	mutation,
 } from "./_generated/server";
 import { type CoreMessage, streamText } from "ai";
 import { buildSystemPrompt, getChatModel } from "../src/lib/ai";
-
-function extractReasoningFromParts(
-	parts?: Array<Record<string, unknown>>,
-): string {
-	if (!parts) return "";
-
-	const reasoningPart = parts.find((part) => part.type === "reasoning");
-	if (!reasoningPart) return "";
-
-	if (
-		"reasoning" in reasoningPart &&
-		typeof reasoningPart.reasoning === "string"
-	) {
-		return reasoningPart.reasoning;
-	}
-
-	if ("details" in reasoningPart && Array.isArray(reasoningPart.details)) {
-		return reasoningPart.details
-			.map((detail: unknown) => {
-				if (
-					typeof detail === "object" &&
-					detail !== null &&
-					"type" in detail &&
-					"text" in detail
-				) {
-					const detailObj = detail as Record<string, unknown>;
-					return detailObj.type === "text"
-						? String(detailObj.text)
-						: "<redacted>";
-				}
-				return "<redacted>";
-			})
-			.join("");
-	}
-
-	return "";
-}
 
 type SaveUserMessageResult = {
 	threadId: Id<"threads">;
 	userMessageId: Id<"messages">;
 };
-
-export const regenerateMessage = mutation({
-	args: {
-		messageId: v.id("messages"),
-		modeId: v.string(),
-		openrouterKey: v.optional(v.string()),
-	},
-	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new Error("Unauthorized");
-
-		const { messageId, modeId, openrouterKey } = args;
-
-		const messageToRegenerate = await ctx.db.get(messageId);
-		if (!messageToRegenerate || messageToRegenerate.role !== "assistant") {
-			throw new Error("Invalid message to regenerate");
-		}
-
-		const thread = await ctx.db.get(messageToRegenerate.threadId);
-		if (!thread) throw new Error("Thread not found");
-
-		const selectedMode = await ctx.db.get(modeId as Id<"modes">);
-		if (!selectedMode) throw new Error("Selected mode not found");
-
-		const selectedProfile = await ctx.db.get(
-			selectedMode.profileId as Id<"profiles">,
-		);
-		if (!selectedProfile)
-			throw new Error("Profile not found for selected mode");
-
-		await ctx.db.patch(messageId, {
-			content: "",
-			metadata: {
-				modeId: selectedMode._id,
-				isStreaming: true,
-				profileId: undefined,
-				reasoning: undefined,
-				toolCallMetadata: undefined,
-			},
-		});
-
-		return { success: true };
-	},
-});
 
 export const getMessageById = internalQuery({
 	args: {
@@ -257,6 +175,53 @@ export const appendAssistantMessageContent = internalMutation({
 
 		await ctx.db.patch(messageId, {
 			content: message.content + chunk,
+			metadata: {
+				...message.metadata,
+				isStreaming: true,
+			},
+		});
+	},
+});
+
+export const updateMessageReasoning = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		reasoning: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) {
+			throw new Error("Message not found");
+		}
+
+		await ctx.db.patch(args.messageId, {
+			metadata: {
+				...message.metadata,
+				reasoning: args.reasoning,
+				isStreaming: true,
+			},
+		});
+	},
+});
+
+export const appendMessageReasoning = internalMutation({
+	args: {
+		messageId: v.id("messages"),
+		chunk: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const message = await ctx.db.get(args.messageId);
+		if (!message) {
+			throw new Error("Message not found");
+		}
+
+		const currentReasoning = message.metadata?.reasoning ?? "";
+		await ctx.db.patch(args.messageId, {
+			metadata: {
+				...message.metadata,
+				isStreaming: true,
+				reasoning: currentReasoning + args.chunk,
+			},
 		});
 	},
 });
@@ -276,16 +241,13 @@ export const finalizeAssistantMessage = internalMutation({
 			throw new Error("Message not found");
 		}
 
-		const finalReasoning =
-			reasoning || extractReasoningFromParts(message.parts);
-
 		await ctx.db.patch(messageId, {
 			content: finalContent,
 			metadata: {
 				...message.metadata,
 				isStreaming: false,
 				finishReason,
-				reasoning: finalReasoning,
+				reasoning: reasoning ?? message.metadata?.reasoning,
 			},
 		});
 	},
