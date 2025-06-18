@@ -63,7 +63,10 @@ export const seedDatabase = mutation({
 			.query("profiles")
 			.withIndex("by_user", (q) => q.eq("userId", userId))
 			.collect();
-		const defaultProfileId = profiles.length > 0 ? profiles[0]._id : "";
+		if (profiles.length === 0) {
+			throw new Error("No profiles found");
+		}
+		const defaultProfileId = profiles[0]._id;
 
 		for (const mode of DEFAULT_MODES) {
 			const existingMode = await ctx.db
