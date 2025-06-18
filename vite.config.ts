@@ -7,7 +7,9 @@ export default defineConfig({
 		tsConfigPaths({
 			projects: ["./tsconfig.json"],
 		}),
-		tanstackStart(),
+		tanstackStart({
+			target: "cloudflare-module",
+		}),
 	],
 	ssr: {
 		noExternal: ["@clerk/tanstack-react-start"],
