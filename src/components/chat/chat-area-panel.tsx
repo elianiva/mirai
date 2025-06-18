@@ -17,7 +17,11 @@ import { useMessages } from "~/lib/query/messages";
 import { useModes } from "~/lib/query/mode";
 import { useCreateThread } from "~/lib/query/threads";
 import { useUser } from "~/lib/query/user";
-import { type MessageMetadataUI, NEW_THREAD_ID } from "~/types/message";
+import {
+	type MessageMetadataUI,
+	type Message,
+	NEW_THREAD_ID,
+} from "~/types/message";
 import { ChatInput } from "./chat-input";
 import { EmptyState } from "./empty-state";
 import { MessageList } from "./message-list";
@@ -48,7 +52,7 @@ export const ChatAreaPanel = memo(
 		const [currentBranchId, setCurrentBranchId] = useState<string>();
 		const [autoScroll, setAutoScroll] = useState(true);
 		const [showOpenrouterDialog, setShowOpenrouterDialog] = useState(false);
-		const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
+		const [attachmentIds, setAttachmentIds] = useState<Id<"attachments">[]>([]);
 		const [actualThreadId, setActualThreadId] = useState(
 			isNewThread ? undefined : threadId,
 		);
@@ -79,6 +83,10 @@ export const ChatAreaPanel = memo(
 			},
 			id: actualThreadId,
 			onError: (error) => console.error("AI SDK streaming error:", error),
+			onFinish: () => {
+				// reset attachment ids after the chat is finished
+				setAttachmentIds([]);
+			},
 		});
 
 		const isSdkStreaming = status === "streaming";
@@ -99,6 +107,7 @@ export const ChatAreaPanel = memo(
 				return (
 					messagesFromDB?.map((dbMsg) => ({
 						...dbMsg,
+						_id: dbMsg._id as Id<"messages">,
 						metadata: dbMsg.metadata
 							? {
 									...dbMsg.metadata,
@@ -142,11 +151,13 @@ export const ChatAreaPanel = memo(
 							: "assistant",
 					senderId: msg.role === "user" ? user?.id || "" : "assistant",
 					parts: msg.parts,
-					attachmentIds: Array.isArray(msgData?.attachmentIds)
-						? (msgData.attachmentIds as Id<"attachments">[])
-						: undefined,
+					attachmentIds:
+						dbMessage?.attachmentIds ||
+						(Array.isArray(msgData?.attachmentIds)
+							? (msgData.attachmentIds as Id<"attachments">[])
+							: undefined),
 					metadata,
-					attachments: [],
+					attachments: (dbMessage as Message)?.attachments || [],
 				};
 			});
 		}, [messagesFromDB, messages, isSdkStreaming, user?.id]);
@@ -173,11 +184,7 @@ export const ChatAreaPanel = memo(
 			}
 
 			setAutoScroll(true);
-			append({
-				role: "user",
-				content: message,
-			});
-			setAttachmentIds([]);
+			append({ role: "user", content: message }, { body: { attachmentIds } });
 		}
 
 		async function handleCreateBranch(messageId: Id<"messages">) {

@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { useUser } from "./user";
+import type { Id } from "convex/_generated/dataModel";
 
 // @ts-expect-error - import.meta.env is not typed
 const CONVEX_HTTP_URL = import.meta.env.VITE_CONVEX_HTTP_URL as string;
@@ -12,15 +13,11 @@ export const uploadFilesSchema = z.object({
 
 export type UploadFilesVariables = z.infer<typeof uploadFilesSchema>;
 
-type UploadFilesResult = {
-	attachmentIds: string[];
-};
-
 async function uploadFiles({
 	files,
 	token,
-}: UploadFilesVariables): Promise<UploadFilesResult> {
-	const attachmentIds: string[] = [];
+}: UploadFilesVariables): Promise<Id<"attachments">[]> {
+	const attachmentIds: Id<"attachments">[] = [];
 
 	for (const file of files) {
 		const formData = new FormData();
@@ -41,10 +38,10 @@ async function uploadFiles({
 		}
 
 		const result = await uploadResponse.json();
-		attachmentIds.push(result.attachmentId);
+		attachmentIds.push(result.attachmentId as Id<"attachments">);
 	}
 
-	return { attachmentIds };
+	return attachmentIds;
 }
 
 export function useUploadFiles() {

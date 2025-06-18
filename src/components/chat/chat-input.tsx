@@ -16,7 +16,7 @@ type ChatInputProps = {
 	isStreaming: boolean;
 	selectedModeId?: Id<"modes">;
 	onModeSelect?: (modeId: Id<"modes">) => void;
-	onAttachFiles: (attachmentIds: string[]) => void;
+	onAttachFiles: (attachmentIds: Id<"attachments">[]) => void;
 };
 
 export function ChatInput(props: ChatInputProps) {
@@ -110,19 +110,17 @@ export function ChatInput(props: ChatInputProps) {
 			return;
 		}
 
-		let attachmentIds: string[] = [];
-
 		if (selectedFiles.length > 0) {
 			try {
-				const result = await uploadFilesAsync(selectedFiles);
-				attachmentIds = result.attachmentIds;
+				const attachmentIds = await uploadFilesAsync(selectedFiles);
+				console.log("attachmentIds", attachmentIds);
+				props.onAttachFiles(attachmentIds);
 			} catch {
 				toast.error("Error uploading files. Please try again.");
 				return;
 			}
 		}
 
-		props.onAttachFiles(attachmentIds);
 		props.onSendMessage(messageToSend);
 		if (messageTextareaRef.current) {
 			messageTextareaRef.current.value = "";

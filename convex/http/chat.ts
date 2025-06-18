@@ -406,6 +406,7 @@ export const chatHandler = httpAction(async (ctx, req) => {
 			? lastUserMessageInProcessed.content
 			: "";
 
+	console.log("attachmentIds", attachmentIds);
 	if (attachmentIds && attachmentIds.length > 0) {
 		try {
 			const attachmentData = await ctx.runQuery(

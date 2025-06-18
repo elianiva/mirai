@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 
 export const create = mutation({
 	args: {
@@ -40,23 +41,33 @@ export const create = mutation({
 });
 
 export const list = query({
-	args: {
-		threadId: v.id("threads"),
-	},
+	args: { threadId: v.id("threads") },
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) throw new Error("Not authenticated");
-
-		const thread = await ctx.db.get(args.threadId);
-		if (!thread) throw new Error("Thread not found");
-
 		const messages = await ctx.db
 			.query("messages")
 			.withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
 			.order("asc")
 			.collect();
 
-		return messages;
+		const messagesWithAttachments = await Promise.all(
+			messages.map(async (message) => {
+				let attachments: (Doc<"attachments"> & { url: string | null })[] = [];
+				if (message.attachmentIds && message.attachmentIds.length > 0) {
+					const attachmentDocs = await Promise.all(
+						message.attachmentIds.map((id) => ctx.db.get(id))
+					);
+					const validAttachments = attachmentDocs.filter(Boolean) as Doc<"attachments">[];
+					attachments = await Promise.all(
+						validAttachments.map(async (attachment) => {
+							const url = await ctx.storage.getUrl(attachment.storageId);
+							return { ...attachment, url };
+						})
+					);
+				}
+				return { ...message, attachments };
+			})
+		);
+		return messagesWithAttachments;
 	},
 });
 

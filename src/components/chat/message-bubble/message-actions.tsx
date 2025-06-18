@@ -8,6 +8,11 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "~/components/ui/tooltip";
 import { useOpenrouterKey } from "~/hooks/use-openrouter-key";
 import { ORCHESTRATOR_MODE_CONFIG } from "~/lib/defaults";
 import { useCreateBranch } from "~/lib/query/chat";
@@ -74,15 +79,22 @@ export function MessageActions(props: MessageActionsProps) {
 				<>
 					{props.onRegenerate && (
 						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-7 px-2 text-xs"
-								>
-									<RefreshCw className="size-3" />
-								</Button>
-							</DropdownMenuTrigger>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-7 px-2 text-xs"
+										>
+											<RefreshCw className="size-3" />
+										</Button>
+									</DropdownMenuTrigger>
+								</TooltipTrigger>
+								<TooltipContent side="bottom" align="center">
+									<p>Regenerate with different mode</p>
+								</TooltipContent>
+							</Tooltip>
 							<DropdownMenuContent
 								align="start"
 								className="border-2 border-secondary shadow-none font-serif"
@@ -102,15 +114,22 @@ export function MessageActions(props: MessageActionsProps) {
 					)}
 					{props.onCreateBranch && (
 						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="h-7 px-2 text-xs"
-								>
-									<GitBranch className="size-3" />
-								</Button>
-							</DropdownMenuTrigger>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<DropdownMenuTrigger asChild>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-7 px-2 text-xs"
+										>
+											<GitBranch className="size-3" />
+										</Button>
+									</DropdownMenuTrigger>
+								</TooltipTrigger>
+								<TooltipContent side="bottom" align="center">
+									<p>Create branch from this message</p>
+								</TooltipContent>
+							</Tooltip>
 							<DropdownMenuContent
 								align="start"
 								className="border-2 border-secondary shadow-none font-serif"
@@ -134,14 +153,21 @@ export function MessageActions(props: MessageActionsProps) {
 					)}
 				</>
 			)}
-			<Button
-				variant="ghost"
-				size="icon"
-				className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-				onClick={props.onRemove}
-			>
-				<Trash2 className="size-3" />
-			</Button>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+						onClick={props.onRemove}
+					>
+						<Trash2 className="size-3" />
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" align="center">
+					<p>Delete message</p>
+				</TooltipContent>
+			</Tooltip>
 		</div>
 	);
 }
