@@ -56,7 +56,8 @@ export const DEFAULT_MODES = [
 			"A versatile AI assistant capable of handling a wide range of tasks and providing information on various topics.",
 		whenToUse:
 			"Use this mode when your task doesn't fit into a specific category or for general questions.",
-		additionalInstructions: "",
+		additionalInstructions:
+			"Make sure to answer the question in a way that is helpful and informative. If you don't know the answer, say so.",
 	},
 	{
 		slug: "research",
@@ -68,7 +69,8 @@ export const DEFAULT_MODES = [
 			"An AI specializing in information retrieval and synthesis. Capable of searching for information and providing comprehensive summaries.",
 		whenToUse:
 			"Use this mode when you need to research a topic, find data, or get summaries of documents.",
-		additionalInstructions: "Specify the sources to prioritize if any.",
+		additionalInstructions:
+			"Specify the sources to prioritize if any. Make sure to answer the question in a way that is helpful and informative. If you don't know the answer, say so.",
 	},
 	{
 		slug: "summarizer",
@@ -80,8 +82,7 @@ export const DEFAULT_MODES = [
 			"An AI skilled at summarizing text. Extracts key information and presents it concisely with clarity and accuracy.",
 		whenToUse:
 			"Use this mode when you have a long piece of text (document, article, conversation) that you need summarized.",
-		additionalInstructions:
-			"Specify the desired length or level of detail for the summary.",
+		additionalInstructions: "Make sure not to lose any information.",
 	},
 	{
 		slug: "grammar-checker",
@@ -94,6 +95,6 @@ export const DEFAULT_MODES = [
 		whenToUse:
 			"Use this mode when you need to proofread written content for errors.",
 		additionalInstructions:
-			"Specify the language and any specific style guidelines.",
+			"Provide a detailed explanation of the changes you made and why you made them.",
 	},
 ];

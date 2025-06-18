@@ -66,6 +66,7 @@ export const seedDatabase = mutation({
 		if (profiles.length === 0) {
 			throw new Error("No profiles found");
 		}
+		console.log(profiles.map((p) => p._id));
 		const defaultProfileId = profiles[0]._id;
 
 		for (const mode of DEFAULT_MODES) {
