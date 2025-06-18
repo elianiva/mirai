@@ -108,6 +108,7 @@ export const remove = mutation({
 		}
 
 		await ctx.db.delete(args.id);
+		await ctx.runMutation(internal.shared.removeThread, { threadId: args.id });
 
 		return args.id;
 	},

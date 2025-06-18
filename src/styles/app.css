@@ -114,31 +114,6 @@
 	--sidebar-accent-foreground: var(--color-text);
 	--sidebar-border: var(--color-rose-pine-overlay);
 	--sidebar-ring: var(--color-text);
-
-	--animate-collapsible-down: animate-down 0.2s ease-in-out;
-	--animate-collapsible-up: animate-up 0.2s ease-in-out;
-
-	@keyframes animate-down {
-		from {
-			height: 0;
-			opacity: 0;
-		}
-		to {
-			height: var(--radix-collapsible-content-height);
-			opacity: 1;
-		}
-	}
-
-	@keyframes animate-up {
-		from {
-			height: var(--radix-collapsible-content-height);
-			opacity: 1;
-		}
-		to {
-			opacity: 0;
-			height: 0;
-		}
-	}
 }
 
 @layer base {

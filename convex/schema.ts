@@ -85,7 +85,11 @@ export const messages = defineTable({
 				v.array(
 					v.object({
 						name: v.string(),
-						status: v.union(v.literal("streaming"), v.literal("success"), v.literal("error")),
+						status: v.union(
+							v.literal("streaming"),
+							v.literal("success"),
+							v.literal("error"),
+						),
 						arguments: v.any(),
 						output: v.any(),
 						startTime: v.optional(v.number()),
@@ -107,6 +111,10 @@ const schema = defineSchema({
 	threads,
 	attachments,
 	messages,
+	sharedChats: defineTable({
+		threadId: v.id("threads"),
+		chatSnapshot: v.string(),
+	}).index("by_threadId", ["threadId"]),
 });
 
 export default schema;

@@ -25,8 +25,7 @@ type AssistantMessageProps = {
 };
 
 export function AssistantMessage(props: AssistantMessageProps) {
-	const hasReasoning = props.reasoning || props.isStreaming;
-	const isAnyStreaming = props.isStreaming;
+	const hasReasoning = props.reasoning && props.reasoning.length > 0;
 
 	const modeId = props.message?.metadata?.modeId;
 	const toolCallMetadata: ToolCallMetadata | undefined =
@@ -71,7 +70,7 @@ export function AssistantMessage(props: AssistantMessageProps) {
 				)}
 			</div>
 
-			{!isAnyStreaming && (
+			{!props.isStreaming && (
 				<MessageActions
 					isUser={false}
 					onRegenerate={props.onRegenerate}

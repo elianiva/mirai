@@ -38,7 +38,7 @@ export type MessageMetadataUI = {
 	isStreamingMessageContent?: boolean;
 	isStreamingReasoning?: boolean;
 	isStreamingToolCalls?: boolean;
-	modeId?: string;
+	modeId?: Id<"modes"> | undefined;
 	profileId?: Id<"profiles">;
 	reasoning?: string;
 	modelName?: string;

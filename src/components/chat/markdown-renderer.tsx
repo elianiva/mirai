@@ -31,7 +31,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(
 			component: MarkdownComponent,
 			lookBack: markdownLookBack(),
 		},
-		isStreamFinished: !props.isStreaming,
+		isStreamFinished: true,
 		throttle,
 	});
 

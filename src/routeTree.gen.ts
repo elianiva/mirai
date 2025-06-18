@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ThreadIdRouteImport } from './routes/$threadId'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShareSharedChatIdRouteImport } from './routes/share.$sharedChatId'
 
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
@@ -28,35 +29,44 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShareSharedChatIdRoute = ShareSharedChatIdRouteImport.update({
+  id: '/share/$sharedChatId',
+  path: '/share/$sharedChatId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$threadId': typeof ThreadIdRoute
   '/sign-in': typeof SignInRoute
+  '/share/$sharedChatId': typeof ShareSharedChatIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$threadId': typeof ThreadIdRoute
   '/sign-in': typeof SignInRoute
+  '/share/$sharedChatId': typeof ShareSharedChatIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$threadId': typeof ThreadIdRoute
   '/sign-in': typeof SignInRoute
+  '/share/$sharedChatId': typeof ShareSharedChatIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$threadId' | '/sign-in'
+  fullPaths: '/' | '/$threadId' | '/sign-in' | '/share/$sharedChatId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$threadId' | '/sign-in'
-  id: '__root__' | '/' | '/$threadId' | '/sign-in'
+  to: '/' | '/$threadId' | '/sign-in' | '/share/$sharedChatId'
+  id: '__root__' | '/' | '/$threadId' | '/sign-in' | '/share/$sharedChatId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ThreadIdRoute: typeof ThreadIdRoute
   SignInRoute: typeof SignInRoute
+  ShareSharedChatIdRoute: typeof ShareSharedChatIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +92,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/share/$sharedChatId': {
+      id: '/share/$sharedChatId'
+      path: '/share/$sharedChatId'
+      fullPath: '/share/$sharedChatId'
+      preLoaderRoute: typeof ShareSharedChatIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +106,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ThreadIdRoute: ThreadIdRoute,
   SignInRoute: SignInRoute,
+  ShareSharedChatIdRoute: ShareSharedChatIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

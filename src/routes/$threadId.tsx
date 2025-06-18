@@ -22,6 +22,9 @@ import { useMessages } from "~/lib/query/messages";
 import { useThread } from "~/lib/query/threads";
 import { userQueryOptions } from "~/lib/query/user";
 import { useCallback } from "react"; // Add this import
+import { Button } from "~/components/ui/button";
+import { ShareChatDialog } from "~/components/chat/share-chat-dialog";
+import { ShareIcon } from "lucide-react";
 
 export const Route = createFileRoute("/$threadId")({
 	component: ThreadPage,
@@ -133,6 +136,16 @@ export function ThreadPage() {
 									)}
 								</BreadcrumbList>
 							</Breadcrumb>
+							<div className="ml-auto">
+								{threadId !== "new" && (
+									<ShareChatDialog threadId={threadId}>
+										<Button variant="ghost">
+											Share
+											<ShareIcon className="w-4 h-4" />
+										</Button>
+									</ShareChatDialog>
+								)}
+							</div>
 						</header>
 						<div className="flex flex-1 flex-col min-h-0 mt-14">
 							<ChatAreaPanel

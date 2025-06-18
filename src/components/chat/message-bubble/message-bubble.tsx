@@ -80,7 +80,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 
 	useEffect(() => {
 		if (!userHasManuallyToggled) {
-			if (isStreaming) {
+			if (isStreaming && reasoning) {
 				setShowReasoning(true);
 			} else if (!isStreaming && showReasoning) {
 				const timer = setTimeout(() => {
@@ -108,6 +108,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 	}, [
 		isStreaming,
 		showReasoning,
+		reasoning,
 		showToolCall,
 		userHasManuallyToggled,
 		props.message.metadata?.toolCallMetadata,

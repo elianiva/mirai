@@ -95,7 +95,22 @@ export const ChatAreaPanel = memo(
 
 		const messagesList = useMemo(() => {
 			// use messages from db if we don't have any messages from the ai sdk
-			if (messages.length === 0) return messagesFromDB;
+			if (messages.length === 0) {
+				return (
+					messagesFromDB?.map((dbMsg) => ({
+						...dbMsg,
+						metadata: dbMsg.metadata
+							? {
+									...dbMsg.metadata,
+									profileId: dbMsg.metadata.profileId as
+										| Id<"profiles">
+										| undefined,
+									modeId: dbMsg.metadata.modeId as Id<"modes"> | undefined,
+								}
+							: undefined,
+					})) || []
+				);
+			}
 
 			return messages.map((msg) => {
 				const isLastMessage = messages[messages.length - 1]?.id === msg.id;
@@ -113,6 +128,7 @@ export const ChatAreaPanel = memo(
 				const metadata: MessageMetadataUI = {
 					...combinedMetadata,
 					profileId: combinedMetadata.profileId as Id<"profiles"> | undefined,
+					modeId: combinedMetadata.modeId as Id<"modes"> | undefined,
 					isStreaming: isMessageStreaming,
 				};
 
