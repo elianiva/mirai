@@ -36,12 +36,6 @@ export function AssistantMessage(props: AssistantMessageProps) {
 	return (
 		<div className="group flex flex-col items-start w-full">
 			<div className="w-full">
-				{modeId && (
-					<div className="mb-2">
-						<ModeIndicator modeId={modeId} />
-					</div>
-				)}
-
 				{toolCallMetadata && toolCallMetadata.length > 0 && (
 					<div>
 						{toolCallMetadata.map((toolCall, index) => (
@@ -69,6 +63,12 @@ export function AssistantMessage(props: AssistantMessageProps) {
 					isStreaming={props.isStreaming}
 					isPendingOrchestrator={isPendingOrchestrator}
 				/>
+
+				{modeId && (
+					<div className="mt-2">
+						<ModeIndicator modeId={modeId} />
+					</div>
+				)}
 			</div>
 
 			{!isAnyStreaming && (

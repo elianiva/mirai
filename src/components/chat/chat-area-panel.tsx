@@ -17,7 +17,7 @@ import { useMessages } from "~/lib/query/messages";
 import { useModes } from "~/lib/query/mode";
 import { useCreateThread } from "~/lib/query/threads";
 import { useUser } from "~/lib/query/user";
-import { NEW_THREAD_ID } from "~/types/message";
+import { type MessageMetadataUI, NEW_THREAD_ID } from "~/types/message";
 import { ChatInput } from "./chat-input";
 import { EmptyState } from "./empty-state";
 import { MessageList } from "./message-list";
@@ -81,7 +81,8 @@ export const ChatAreaPanel = memo(
 			onError: (error) => console.error("AI SDK streaming error:", error),
 		});
 
-		const isStreaming = status === "streaming";
+		const isSdkStreaming = status === "streaming";
+		const isEffectivelyStreaming = isSdkStreaming || !!props.isStreaming;
 		const displayMessages = messages.length > 0 ? messages : messagesFromDB;
 
 		const checkOpenrouterKey = useCallback(() => {
@@ -98,11 +99,22 @@ export const ChatAreaPanel = memo(
 
 			return messages.map((msg) => {
 				const isLastMessage = messages[messages.length - 1]?.id === msg.id;
-				const isCurrentlyStreaming = isStreaming && isLastMessage;
-				console.log({ isStreaming, isLastMessage, isCurrentlyStreaming });
+				const isCurrentlySdkStreaming = isSdkStreaming && isLastMessage;
+				const dbMessage = messagesFromDB?.find((dbMsg) => dbMsg._id === msg.id);
+				const isMessageStreaming =
+					isCurrentlySdkStreaming || !!dbMessage?.metadata?.isStreaming;
 				const msgData = msg.data as Record<string, unknown> | undefined;
 
-				const dbMessage = messagesFromDB?.find((dbMsg) => dbMsg._id === msg.id);
+				const combinedMetadata = {
+					...(dbMessage?.metadata || {}),
+					...((msgData?.metadata as object) || {}),
+				};
+
+				const metadata: MessageMetadataUI = {
+					...combinedMetadata,
+					profileId: combinedMetadata.profileId as Id<"profiles"> | undefined,
+					isStreaming: isMessageStreaming,
+				};
 
 				return {
 					...msg,
@@ -117,29 +129,16 @@ export const ChatAreaPanel = memo(
 					attachmentIds: Array.isArray(msgData?.attachmentIds)
 						? (msgData.attachmentIds as Id<"attachments">[])
 						: undefined,
-					metadata: {
-						...(msgData?.metadata && typeof msgData.metadata === "object"
-							? msgData.metadata
-							: {}),
-						reasoning:
-							dbMessage?.metadata?.reasoning ||
-							(msgData?.metadata &&
-							typeof msgData.metadata === "object" &&
-							"reasoning" in msgData.metadata &&
-							typeof msgData.metadata.reasoning === "string"
-								? msgData.metadata.reasoning
-								: undefined),
-						isStreaming: isCurrentlyStreaming,
-					},
+					metadata,
 					attachments: [],
 				};
 			});
-		}, [messagesFromDB, messages, isStreaming, user?.id]);
+		}, [messagesFromDB, messages, isSdkStreaming, user?.id]);
 
 		async function handleSendMessage(message: string) {
 			if (
 				!message.trim() ||
-				isStreaming ||
+				isEffectivelyStreaming ||
 				!selectedModeId ||
 				!checkOpenrouterKey()
 			) {
@@ -214,7 +213,7 @@ export const ChatAreaPanel = memo(
 							threadId={threadId}
 							currentBranchId={currentBranchId}
 							autoScroll={autoScroll}
-							isLoading={isStreaming && messages.length > 0}
+							isLoading={isEffectivelyStreaming && messages.length > 0}
 							onAutoScrollChange={setAutoScroll}
 							onCreateBranch={handleCreateBranch}
 							onBranchSwitch={setCurrentBranchId}
@@ -225,8 +224,8 @@ export const ChatAreaPanel = memo(
 					<ChatInput
 						onSendMessage={handleSendMessage}
 						onStopStreaming={stop}
-						isLoading={isStreaming && messages.length > 0}
-						isStreaming={isStreaming && messages.length > 0}
+						isLoading={isEffectivelyStreaming}
+						isStreaming={isEffectivelyStreaming}
 						selectedModeId={selectedModeId}
 						onModeSelect={setSelectedModeId}
 						onAttachFiles={setAttachmentIds}

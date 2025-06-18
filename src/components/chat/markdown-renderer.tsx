@@ -128,14 +128,16 @@ function MarkdownComponent({ blockMatch }: { blockMatch: BlockMatch }) {
 				),
 				table: ({ children }) => (
 					<div className="overflow-x-auto my-3">
-						<table className="min-w-full divide-y divide-border">
+						<table className="min-w-full divide-y divide-secondary">
 							{children}
 						</table>
 					</div>
 				),
-				thead: ({ children }) => <thead className="bg-muted">{children}</thead>,
+				thead: ({ children }) => (
+					<thead className="bg-secondary">{children}</thead>
+				),
 				tbody: ({ children }) => (
-					<tbody className="divide-y divide-border">{children}</tbody>
+					<tbody className="divide-y divide-secondary">{children}</tbody>
 				),
 				tr: ({ children }) => <tr>{children}</tr>,
 				th: ({ children }) => (

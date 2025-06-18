@@ -16,17 +16,17 @@ type ReasoningSectionProps = {
 
 export function ReasoningSection(props: ReasoningSectionProps) {
 	return (
-		<div className="mb-4">
+		<div className="mb-1">
 			<Collapsible
 				open={props.showReasoning}
 				onOpenChange={props.onShowReasoningChange}
 			>
-				<CollapsibleTrigger className="flex items-center gap-1 text-sm font-serif font-medium">
+				<CollapsibleTrigger className="flex items-center gap-1 text-xs font-serif font-medium bg-sidebar py-1 px-2 rounded cursor-pointer">
 					{props.isStreaming ? (
-						<LoaderIcon className="size-4 animate-spin" />
+						<LoaderIcon className="size-3 animate-spin" />
 					) : (
 						<ChevronRightIcon
-							className={cn("size-4 transition-transform duration-200", {
+							className={cn("size-3 transition-transform duration-200", {
 								"rotate-90": props.showReasoning,
 							})}
 						/>
