@@ -74,18 +74,13 @@ export const seedDatabase = mutation({
 				.first();
 
 			if (!existingMode) {
-				const profileId =
-					mode.slug === ORCHESTRATOR_MODE_CONFIG.slug
-						? defaultProfileId
-						: mode.profileId;
-
 				await ctx.db.insert("modes", {
 					userId,
 					slug: mode.slug,
 					icon: mode.icon,
 					name: mode.name,
 					description: mode.description,
-					profileId: profileId,
+					profileId: defaultProfileId,
 					modeDefinition: mode.modeDefinition,
 					whenToUse: mode.whenToUse,
 					additionalInstructions: mode.additionalInstructions,
@@ -93,16 +88,11 @@ export const seedDatabase = mutation({
 				console.log(`Inserted mode: ${mode.name}`);
 				modesSeeded++;
 			} else {
-				const profileId =
-					mode.slug === ORCHESTRATOR_MODE_CONFIG.slug
-						? defaultProfileId
-						: mode.profileId;
-
 				await ctx.db.patch(existingMode._id, {
 					icon: mode.icon,
 					name: mode.name,
 					description: mode.description,
-					profileId: profileId,
+					profileId: defaultProfileId,
 					modeDefinition: mode.modeDefinition,
 					whenToUse: mode.whenToUse,
 					additionalInstructions: mode.additionalInstructions,
