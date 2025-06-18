@@ -9,6 +9,7 @@ type UserMessageProps = {
 	onRegenerate: (modeId: Id<"modes">) => void;
 	message?: { _id: Id<"messages">; content: string };
 	threadId?: Id<"threads">;
+	isImmutable?: boolean;
 };
 
 export function UserMessage(props: UserMessageProps) {
@@ -43,7 +44,7 @@ export function UserMessage(props: UserMessageProps) {
 				{props.message?.content}
 			</div>
 
-			{!props.isStreaming && (
+			{!props.isStreaming && !props.isImmutable && (
 				<MessageActions
 					isUser={true}
 					onRegenerate={props.onRegenerate}

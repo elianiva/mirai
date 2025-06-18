@@ -1,29 +1,44 @@
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { encryptAndStore, retrieveAndDecrypt } from "~/lib/utils/crypto";
 
+const openRouterKeyQueryKey = (userId: string | undefined) => [
+	"openrouterKey",
+	userId,
+];
+
 export function useOpenrouterKey(userId: string | undefined) {
-	const [openrouterKey, setOpenrouterKey] = useState<string | null>(null);
+	const queryClient = useQueryClient();
 
-	useEffect(() => {
-		async function loadOpenrouterKey() {
-			if (!userId) return;
-
-			try {
-				const decryptedKey = await retrieveAndDecrypt(userId);
-				setOpenrouterKey(decryptedKey);
-			} catch (error) {
-				console.debug("No OpenRouter key found or failed to decrypt");
-				setOpenrouterKey(null);
+	const { data: openrouterKey, isLoading } = useQuery({
+		queryKey: openRouterKeyQueryKey(userId),
+		queryFn: async () => {
+			if (!userId) {
+				return null;
 			}
+			try {
+				const key = await retrieveAndDecrypt(userId);
+				return key;
+			} catch (error) {
+				console.debug("No OpenRouter key found or failed to decrypt", error);
+				return null;
+			}
+		},
+		enabled: !!userId,
+		staleTime: Number.POSITIVE_INFINITY,
+		gcTime: Number.POSITIVE_INFINITY,
+	});
+
+	async function setOpenrouterKey(newKey: string) {
+		if (!userId) {
+			return;
 		}
-
-		loadOpenrouterKey();
-	}, [userId]);
-
-	async function setOpenrouterKeyEncrypted(newKey: string) {
-		await encryptAndStore(userId || "", newKey);
-		setOpenrouterKey(newKey);
+		await encryptAndStore(userId, newKey);
+		queryClient.setQueryData(openRouterKeyQueryKey(userId), newKey);
 	}
 
-	return { openrouterKey, setOpenrouterKey: setOpenrouterKeyEncrypted };
+	return {
+		openrouterKey: openrouterKey ?? null,
+		setOpenrouterKey,
+		isLoading,
+	};
 }

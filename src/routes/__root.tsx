@@ -118,12 +118,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" className="h-full w-full">
 			<head>
-				{import.meta.env.DEV && (
+				{/* {import.meta.env.DEV && (
 					<script
 						crossOrigin="anonymous"
 						src="//unpkg.com/react-scan/dist/auto.global.js"
 					/>
-				)}
+				)} */}
 				<HeadContent />
 			</head>
 			<body className="h-full w-full">

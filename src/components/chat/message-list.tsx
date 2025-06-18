@@ -12,6 +12,7 @@ type MessageListProps = {
 	currentBranchId?: string;
 	autoScroll: boolean;
 	isLoading: boolean;
+	isImmutable?: boolean;
 	onAutoScrollChange: (autoScroll: boolean) => void;
 	onCreateBranch: (parentMessageId: Id<"messages">) => void;
 	onBranchSwitch: (branchId: string) => void;
@@ -94,6 +95,7 @@ export const MessageList = memo(
 										userId={props.userId}
 										threadId={props.threadId}
 										onCreateBranch={props.onCreateBranch}
+										isImmutable={props.isImmutable}
 									/>
 								)}
 							</div>
@@ -111,7 +113,8 @@ export const MessageList = memo(
 			prevProps.threadId === nextProps.threadId &&
 			prevProps.currentBranchId === nextProps.currentBranchId &&
 			prevProps.autoScroll === nextProps.autoScroll &&
-			prevProps.isLoading === nextProps.isLoading
+			prevProps.isLoading === nextProps.isLoading &&
+			prevProps.isImmutable === nextProps.isImmutable
 		);
 	},
 );

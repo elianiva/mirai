@@ -122,12 +122,17 @@ export const ChatAreaPanel = memo(
 			}
 
 			return messages.map((msg) => {
+				const msgData = msg.data as Record<string, unknown> | undefined;
+				const definitiveId =
+					(msgData?._id as Id<"messages">) || (msg.id as Id<"messages">);
+
 				const isLastMessage = messages[messages.length - 1]?.id === msg.id;
 				const isCurrentlySdkStreaming = isSdkStreaming && isLastMessage;
-				const dbMessage = messagesFromDB?.find((dbMsg) => dbMsg._id === msg.id);
+				const dbMessage = messagesFromDB?.find(
+					(dbMsg) => dbMsg._id === definitiveId,
+				);
 				const isMessageStreaming =
 					isCurrentlySdkStreaming || !!dbMessage?.metadata?.isStreaming;
-				const msgData = msg.data as Record<string, unknown> | undefined;
 
 				const combinedMetadata = {
 					...(dbMessage?.metadata || {}),
@@ -143,7 +148,8 @@ export const ChatAreaPanel = memo(
 
 				return {
 					...msg,
-					_id: msg.id as Id<"messages">,
+					id: definitiveId,
+					_id: definitiveId,
 					content: msg.content,
 					role:
 						msg.role === "user" || msg.role === "assistant"
@@ -259,7 +265,7 @@ export const ChatAreaPanel = memo(
 					open={showOpenrouterDialog}
 					onOpenChange={setShowOpenrouterDialog}
 				>
-					<DialogContent>
+					<DialogContent className="font-serif">
 						<DialogHeader>
 							<DialogTitle>OpenRouter API Key Required</DialogTitle>
 							<DialogDescription>

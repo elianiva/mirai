@@ -1,4 +1,5 @@
 import { useForm } from "@tanstack/react-form";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -16,7 +17,7 @@ export function AccountSettings() {
 	const { data: user } = useUser();
 	const accountSettings = useAccountSettings();
 	const updateAccountSettings = useUpdateAccountSettings();
-	const { openrouterKey, setOpenrouterKey } = useOpenrouterKey(user?.id);
+	const { openrouterKey, setOpenrouterKey, isLoading } = useOpenrouterKey(user?.id);
 
 	const form = useForm({
 		defaultValues: {
@@ -48,7 +49,14 @@ export function AccountSettings() {
 		},
 	});
 
-	if (accountSettings === undefined) {
+	// Sync form field when openrouterKey changes from React Query
+	useEffect(() => {
+		if (openrouterKey !== null) {
+			form.setFieldValue("openrouterKey", openrouterKey);
+		}
+	}, [openrouterKey, form]);
+
+	if (accountSettings === undefined || isLoading) {
 		return (
 			<div className="space-y-4 font-serif">
 				<div>
