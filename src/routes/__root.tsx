@@ -118,16 +118,20 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" className="h-full w-full">
 			<head>
-				<script
-					crossOrigin="anonymous"
-					src="//unpkg.com/react-scan/dist/auto.global.js"
-				/>
+				{import.meta.env.DEV && (
+					<script
+						crossOrigin="anonymous"
+						src="//unpkg.com/react-scan/dist/auto.global.js"
+					/>
+				)}
 				<HeadContent />
 			</head>
 			<body className="h-full w-full">
 				{children}
 				<Toaster position="top-right" />
-				<TanStackRouterDevtools position="bottom-right" />
+				{import.meta.env.DEV && (
+					<TanStackRouterDevtools position="bottom-right" />
+				)}
 				<Scripts />
 			</body>
 		</html>
