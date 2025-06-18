@@ -141,3 +141,7 @@ export function useCreateProfile() {
 export function useUpdateProfile() {
 	return useMutation(api.profiles.update);
 }
+
+export function useDeleteProfile() {
+	return useMutation(api.profiles.deleteProfile);
+}

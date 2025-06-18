@@ -95,7 +95,7 @@ export function useUpdateMode() {
 }
 
 export function useDeleteMode() {
-	return useMutation(api.modes.remove);
+	return useMutation(api.modes.deleteMode);
 }
 
 export function useResetOrchestrator() {

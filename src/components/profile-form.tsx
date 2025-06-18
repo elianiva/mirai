@@ -7,7 +7,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Slider } from "~/components/ui/slider";
 import { Textarea } from "~/components/ui/textarea";
-import { useCreateProfile, useUpdateProfile } from "~/lib/query/profile";
+import { useCreateProfile, useUpdateProfile, useDeleteProfile } from "~/lib/query/profile";
 import { profileFormSchema } from "~/lib/query/profile";
 import { cn, slugify } from "~/lib/utils";
 import type { ProfileData } from "./profile-settings";
@@ -20,6 +20,7 @@ type ProfileFormProps = {
 export function ProfileForm(props: ProfileFormProps) {
 	const createProfile = useCreateProfile();
 	const updateProfile = useUpdateProfile();
+	const deleteProfile = useDeleteProfile();
 
 	const form = useForm({
 		defaultValues: {
@@ -60,6 +61,26 @@ export function ProfileForm(props: ProfileFormProps) {
 			});
 		},
 	});
+
+	const handleDelete = async () => {
+		if (!props.profile?._id) return;
+
+		const deletePromise = async () => {
+			if (!props.profile?._id) return;
+			await deleteProfile({ id: props.profile._id });
+			props.onBack();
+			return true;
+		};
+
+		toast.promise(deletePromise(), {
+			loading: "Deleting profile...",
+			success: "Profile deleted successfully!",
+			error: (err) => {
+				console.error("Failed to delete profile:", err);
+				return "Failed to delete profile";
+			},
+		});
+	};
 
 	return (
 		<form
@@ -303,9 +324,16 @@ export function ProfileForm(props: ProfileFormProps) {
 				/>
 			</div>
 			<div className="flex justify-between">
-				<Button type="button" variant="outline" onClick={props.onBack}>
-					Back
-				</Button>
+				<div className="flex gap-2">
+					<Button type="button" variant="outline" onClick={props.onBack}>
+						Back
+					</Button>
+					{props.profile && (
+						<Button type="button" variant="destructive" onClick={handleDelete}>
+							Delete
+						</Button>
+					)}
+				</div>
 				<Button type="submit">
 					{props.profile ? "Save" : "Create"} Profile
 				</Button>

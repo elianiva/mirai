@@ -10,6 +10,7 @@ import { Textarea } from "~/components/ui/textarea";
 import { ORCHESTRATOR_MODE_CONFIG } from "~/lib/defaults";
 import {
 	useCreateMode,
+	useDeleteMode,
 	useResetOrchestrator,
 	useUpdateMode,
 } from "~/lib/query/mode";
@@ -37,6 +38,7 @@ type ModeSettingsProps = {
 export function ModeSettings(props: ModeSettingsProps) {
 	const createMode = useCreateMode();
 	const updateMode = useUpdateMode();
+	const deleteMode = useDeleteMode();
 	const resetOrchestrator = useResetOrchestrator();
 
 	const isOrchestratorMode = props.mode?.slug === ORCHESTRATOR_MODE_CONFIG.slug;
@@ -110,6 +112,26 @@ export function ModeSettings(props: ModeSettingsProps) {
 			error: (err) => {
 				console.error("Failed to reset orchestrator mode:", err);
 				return "Failed to reset orchestrator mode";
+			},
+		});
+	};
+
+	const handleDelete = async () => {
+		if (!props.mode?.id) return;
+
+		const deletePromise = async () => {
+			if (!props.mode?.id) return;
+			await deleteMode({ id: props.mode.id as Id<"modes"> });
+			props.onBack();
+			return true;
+		};
+
+		toast.promise(deletePromise(), {
+			loading: "Deleting mode...",
+			success: "Mode deleted successfully!",
+			error: (err) => {
+				console.error("Failed to delete mode:", err);
+				return "Failed to delete mode";
 			},
 		});
 	};
@@ -408,6 +430,11 @@ export function ModeSettings(props: ModeSettingsProps) {
 					Back
 				</Button>
 				<div className="flex gap-2">
+					{props.mode && !isOrchestratorMode && (
+						<Button type="button" variant="destructive" onClick={handleDelete}>
+							Delete
+						</Button>
+					)}
 					{isOrchestratorMode && (
 						<Button
 							type="button"

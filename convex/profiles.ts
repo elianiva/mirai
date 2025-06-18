@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
 export const list = query({
@@ -87,5 +87,38 @@ export const update = mutation({
 		}
 
 		return await ctx.db.patch(id, rest);
+	},
+});
+
+export const deleteProfile = mutation({
+	args: { id: v.id("profiles") },
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Not authenticated");
+		}
+
+		const profile = await ctx.db.get(args.id);
+		if (!profile) {
+			throw new Error("Profile not found");
+		}
+
+		if (profile.userId !== identity.subject) {
+			throw new Error("Not authorized to delete this profile");
+		}
+
+		// Check if any modes are using this profile
+		const modesUsingProfile = await ctx.db
+			.query("modes")
+			.withIndex("by_user", (q) => q.eq("userId", identity.subject))
+			.filter((q) => q.eq(q.field("profileId"), args.id))
+			.collect();
+
+		if (modesUsingProfile.length > 0) {
+			throw new ConvexError("This profile is currently in use by one or more modes and cannot be deleted.");
+		}
+
+		await ctx.db.delete(args.id);
+		return args.id;
 	},
 });

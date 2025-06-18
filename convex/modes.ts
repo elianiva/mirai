@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { ORCHESTRATOR_MODE_CONFIG } from "../src/lib/defaults";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query } from "./_generated/server";
@@ -200,6 +200,32 @@ export const getBySlug = query({
 				q.eq("userId", identity.subject).eq("slug", args.slug),
 			)
 			.first();
+	},
+});
+
+export const deleteMode = mutation({
+	args: { id: v.id("modes") },
+	handler: async (ctx, args) => {
+		const identity = await ctx.auth.getUserIdentity();
+		if (!identity) {
+			throw new Error("Not authenticated");
+		}
+
+		const mode = await ctx.db.get(args.id);
+		if (!mode) {
+			throw new Error("Mode not found");
+		}
+
+		if (mode.userId !== identity.subject) {
+			throw new Error("Not authorized to delete this mode");
+		}
+
+		if (mode.slug === ORCHESTRATOR_MODE_CONFIG.slug) {
+			throw new ConvexError("System modes cannot be deleted.");
+		}
+
+		await ctx.db.delete(args.id);
+		return args.id;
 	},
 });
 
