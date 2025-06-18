@@ -24,3 +24,4 @@ yarn.lock
 .env.local
 .tanstack
 .nitro
+/dist/

@@ -8,10 +8,10 @@ export default defineConfig({
 			projects: ["./tsconfig.json"],
 		}),
 		tanstackStart({
-			target: "cloudflare-module",
+			target: "vercel",
 		}),
 	],
 	ssr: {
-		noExternal: ["@clerk/tanstack-react-start"],
+		noExternal: ["@clerk/tanstack-react-start", "@clerk/backend"],
 	},
 });
