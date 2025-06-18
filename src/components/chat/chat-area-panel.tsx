@@ -102,54 +102,46 @@ export const ChatAreaPanel = memo(
 		}, [openrouterKey]);
 
 		const messagesList = useMemo(() => {
-			// use messages from db if we don't have any messages from the ai sdk
-			if (messages.length === 0) {
-				return (
-					messagesFromDB?.map((dbMsg) => ({
-						...dbMsg,
-						_id: dbMsg._id as Id<"messages">,
-						metadata: dbMsg.metadata
-							? {
-									...dbMsg.metadata,
-									profileId: dbMsg.metadata.profileId as
-										| Id<"profiles">
-										| undefined,
-									modeId: dbMsg.metadata.modeId as Id<"modes"> | undefined,
-								}
-							: undefined,
-					})) || []
-				);
-			}
+			const baseMessages =
+				messagesFromDB?.map((dbMsg) => ({
+					...dbMsg,
+					_id: dbMsg._id as Id<"messages">,
+					metadata: dbMsg.metadata
+						? {
+								...dbMsg.metadata,
+								profileId: dbMsg.metadata.profileId as
+									| Id<"profiles">
+									| undefined,
+								modeId: dbMsg.metadata.modeId as Id<"modes"> | undefined,
+							}
+						: undefined,
+				})) || [];
 
-			return messages.map((msg) => {
-				const msgData = msg.data as Record<string, unknown> | undefined;
-				const definitiveId =
-					(msgData?._id as Id<"messages">) || (msg.id as Id<"messages">);
+			if (!isSdkStreaming) return baseMessages;
 
+			// remove all streaming messages from the db
+			const dbMessages = baseMessages.filter(
+				(msg) => !msg.metadata?.isStreaming,
+			);
+
+			// just compare the length, new messages are the ones that are not in the db
+			// so we can just slice them based on the length of the db messages
+			const newMessages = messages.slice(dbMessages.length);
+
+			const formattedNewMessages = newMessages.map((msg) => {
 				const isLastMessage = messages[messages.length - 1]?.id === msg.id;
 				const isCurrentlySdkStreaming = isSdkStreaming && isLastMessage;
-				const dbMessage = messagesFromDB?.find(
-					(dbMsg) => dbMsg._id === definitiveId,
-				);
-				const isMessageStreaming =
-					isCurrentlySdkStreaming || !!dbMessage?.metadata?.isStreaming;
-
-				const combinedMetadata = {
-					...(dbMessage?.metadata || {}),
-					...((msgData?.metadata as object) || {}),
-				};
 
 				const metadata: MessageMetadataUI = {
-					...combinedMetadata,
-					profileId: combinedMetadata.profileId as Id<"profiles"> | undefined,
-					modeId: combinedMetadata.modeId as Id<"modes"> | undefined,
-					isStreaming: isMessageStreaming,
+					profileId: undefined,
+					modeId: selectedModeId,
+					isStreaming: isCurrentlySdkStreaming,
 				};
 
 				return {
 					...msg,
-					id: definitiveId,
-					_id: definitiveId,
+					id: msg.id,
+					_id: msg.id,
 					content: msg.content,
 					role:
 						msg.role === "user" || msg.role === "assistant"
@@ -157,16 +149,14 @@ export const ChatAreaPanel = memo(
 							: "assistant",
 					senderId: msg.role === "user" ? user?.id || "" : "assistant",
 					parts: msg.parts,
-					attachmentIds:
-						dbMessage?.attachmentIds ||
-						(Array.isArray(msgData?.attachmentIds)
-							? (msgData.attachmentIds as Id<"attachments">[])
-							: undefined),
+					attachmentIds: [],
 					metadata,
-					attachments: (dbMessage as Message)?.attachments || [],
+					attachments: [],
 				};
 			});
-		}, [messagesFromDB, messages, isSdkStreaming, user?.id]);
+
+			return [...baseMessages, ...formattedNewMessages];
+		}, [messages, isSdkStreaming, selectedModeId, user?.id, messagesFromDB]);
 
 		async function handleSendMessage(message: string) {
 			if (
@@ -220,6 +210,7 @@ export const ChatAreaPanel = memo(
 
 		useEffect(() => {
 			if (messages.length === 0 && messagesFromDB.length > 0) {
+				// set the messages from the db to the sdk
 				setMessages(
 					messagesFromDB.map((msg) => ({
 						id: msg._id,
