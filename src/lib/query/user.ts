@@ -9,7 +9,7 @@ export const USER_QUERY_KEYS = {
 
 export const userQueryOptions = queryOptions({
 	queryKey: [USER_QUERY_KEYS.user],
-	queryFn: async () => authUserFn(),
+	queryFn: async () => authUserFn({ data: { shouldRedirect: false } }),
 	staleTime: 5 * 60 * 1000,
 	gcTime: 10 * 60 * 1000,
 	retry: 1,

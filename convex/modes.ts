@@ -154,18 +154,8 @@ export const getById = query({
 		id: v.id("modes"),
 	},
 	handler: async (ctx, args) => {
-		const identity = await ctx.auth.getUserIdentity();
-		if (!identity) {
-			throw new Error("Not authenticated");
-		}
-
 		const mode = await ctx.db.get(args.id);
 		if (!mode) return null;
-
-		if (mode.userId !== identity.subject) {
-			throw new Error("Not authorized to access this mode");
-		}
-
 		return mode;
 	},
 });

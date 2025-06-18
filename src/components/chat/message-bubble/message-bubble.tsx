@@ -61,7 +61,7 @@ type MessageBubbleProps = {
 	userId: string;
 	threadId: Id<"threads">;
 	onCreateBranch?: (parentMessageId: Id<"messages">) => void;
-	isImmutable?: boolean;
+	isPublic?: boolean;
 };
 
 export function MessageBubble(props: MessageBubbleProps) {
@@ -163,7 +163,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 				onRegenerate={handleRegenerate}
 				message={props.message}
 				threadId={props.threadId}
-				isImmutable={props.isImmutable}
+				isPublic={props.isPublic}
 			/>
 		);
 	}
@@ -185,7 +185,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 			onRegenerate={handleRegenerate}
 			message={props.message}
 			threadId={props.threadId}
-			isImmutable={props.isImmutable}
+			isPublic={props.isPublic}
 		/>
 	);
 }

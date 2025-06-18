@@ -3,6 +3,7 @@ import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getWebRequest } from "@tanstack/react-start/server";
 import { clerkClient } from "../auth";
+import { z } from "zod";
 
 type UserData = {
 	id: string;
@@ -28,11 +29,22 @@ export const authStateFn = createServerFn({ method: "GET" }).handler(
 	},
 );
 
-export const authUserFn = createServerFn({ method: "GET" }).handler(
-	async () => {
+export const authUserFn = createServerFn({ method: "GET" })
+	.validator(
+		z
+			.object({
+				shouldRedirect: z.boolean(),
+			})
+			.optional(),
+	)
+	.handler(async ({ data }) => {
+		const shouldRedirect = data?.shouldRedirect ?? true;
 		const auth = await authStateFn();
 		if (!auth.userId) {
-			throw redirect({ to: "/sign-in" });
+			if (shouldRedirect) {
+				throw redirect({ to: "/sign-in" });
+			}
+			return null;
 		}
 
 		const cached = userCache.get(auth.userId);
@@ -59,8 +71,7 @@ export const authUserFn = createServerFn({ method: "GET" }).handler(
 		});
 
 		return userData;
-	},
-);
+	});
 
 export const clearUserCache = (userId?: string) => {
 	if (userId) {

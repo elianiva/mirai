@@ -1,4 +1,5 @@
-import { useModes } from "~/lib/query/mode";
+import type { Id } from "convex/_generated/dataModel";
+import { useModeById } from "~/lib/query/mode";
 import { cn } from "~/lib/utils";
 
 type ModeIndicatorProps = {
@@ -7,12 +8,7 @@ type ModeIndicatorProps = {
 };
 
 export function ModeIndicator(props: ModeIndicatorProps) {
-	const modes = useModes();
-	if (!props.modeId) return null;
-
-	const mode = modes?.find((m) => m._id === props.modeId);
-
-	if (!mode) return null;
+	const mode = useModeById(props.modeId as Id<"modes">);
 
 	return (
 		<div
@@ -21,9 +17,9 @@ export function ModeIndicator(props: ModeIndicatorProps) {
 				props.className,
 			)}
 		>
-			<span className="text-sm">{mode.icon}</span>
+			<span className="text-sm">{mode?.icon}</span>
 			<span>
-				Generated with <strong>{mode.name}</strong> Mode
+				Generated with <strong>{mode?.name}</strong> Mode
 			</span>
 		</div>
 	);

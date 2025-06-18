@@ -33,6 +33,74 @@ Thankfully, it's super easy to do!
 
 [Cloudflare deploy button when I get to that]
 
+## Setup
+
+### Prerequisites
+
+- Node.js 18+ or Bun
+- A Convex account ([convex.dev](https://convex.dev))
+- A Clerk account ([clerk.com](https://clerk.com))
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <your-fork-url>
+   cd mirai
+   ```
+
+2. **Install dependencies**
+   ```bash
+   # Using bun (recommended)
+   bun install
+   
+   # Or using npm
+   npm install
+   ```
+
+3. **Set up Convex**
+   ```bash
+   # Install Convex CLI globally
+   npm install -g convex
+   
+   # Login to Convex
+   npx convex login
+   
+   # Initialize Convex in your project
+   npx convex dev
+   ```
+   Follow the prompts to create a new Convex project or link to an existing one.
+
+4. **Set up Clerk**
+   - Create a new application in your [Clerk Dashboard](https://dashboard.clerk.com)
+   - Copy the publishable key and secret key
+   - Configure the allowed redirect URLs for your local development (typically `http://localhost:3000`)
+
+5. **Environment variables**
+   Create a `.env.local` file in the root directory:
+   ```env
+   VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+   CLERK_SECRET_KEY=sk_test_...
+   CONVEX_DEPLOYMENT=your-convex-deployment-url
+   ```
+
+6. **Run the development server**
+   ```bash
+   # Using bun
+   bun dev
+   
+   # Or using npm
+   npm run dev
+   ```
+
+7. **Access the application**
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Additional Setup
+
+- **API Keys**: You'll need to add your AI provider API keys (OpenAI, Anthropic, etc.) in the app settings after signing in.
+- **Convex Functions**: The database schema and functions will be automatically deployed when you run `npx convex dev`.
+
 ## Tech
 
 - Tanstack Start / Tanstack Router

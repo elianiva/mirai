@@ -82,7 +82,7 @@ function SharedChatPage() {
 			</header>
 			<div className="flex-1 min-h-0">
 				<MessageList
-					isImmutable
+					isPublic={true}
 					messages={messagesList}
 					userId=""
 					threadId={sharedChat.threadId}

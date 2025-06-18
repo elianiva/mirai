@@ -11,6 +11,7 @@ type MessageWithAttachmentsProps = {
 	currentBranchId?: string;
 	onCreateBranch: (parentMessageId: Id<"messages">) => void;
 	onBranchSwitch: (branchId: string) => void;
+	isPublic?: boolean;
 };
 
 type Attachment = {
@@ -48,6 +49,7 @@ export function MessageWithAttachments(props: MessageWithAttachmentsProps) {
 			userId={props.userId}
 			threadId={props.threadId}
 			onCreateBranch={props.onCreateBranch}
+			isPublic={props.isPublic}
 		/>
 	);
 }

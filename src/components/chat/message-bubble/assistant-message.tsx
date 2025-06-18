@@ -22,7 +22,7 @@ type AssistantMessageProps = {
 	threadId?: Id<"threads">;
 	showToolCall?: boolean;
 	onShowToolCallChange?: (show: boolean) => void;
-	isImmutable?: boolean;
+	isPublic?: boolean;
 };
 
 export function AssistantMessage(props: AssistantMessageProps) {
@@ -71,7 +71,7 @@ export function AssistantMessage(props: AssistantMessageProps) {
 				)}
 			</div>
 
-			{!props.isStreaming && !props.isImmutable && (
+			{!props.isStreaming && !props.isPublic && (
 				<MessageActions
 					isUser={false}
 					onRegenerate={props.onRegenerate}

@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
 import { Authenticated, Unauthenticated } from "convex/react";
 import { ChatAreaPanel } from "~/components/chat/chat-area-panel";
@@ -17,7 +17,6 @@ import {
 	SidebarTrigger,
 } from "~/components/ui/sidebar";
 import { useAutoSeed } from "~/hooks/use-auto-seed";
-import { authUserFn } from "~/lib/functions/auth";
 import { useMessages } from "~/lib/query/messages";
 import { useThread } from "~/lib/query/threads";
 import { userQueryOptions } from "~/lib/query/user";
@@ -32,8 +31,10 @@ export const Route = createFileRoute("/$threadId")({
 		const cachedUser = context.queryClient.getQueryData(
 			userQueryOptions.queryKey,
 		);
-		if (cachedUser) return cachedUser;
-		return authUserFn();
+		if (!cachedUser) {
+			throw redirect({ to: "/sign-in" });
+		}
+		return cachedUser;
 	},
 	loader: async ({ context }) => {
 		const userData = context;

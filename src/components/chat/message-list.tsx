@@ -12,7 +12,7 @@ type MessageListProps = {
 	currentBranchId?: string;
 	autoScroll: boolean;
 	isLoading: boolean;
-	isImmutable?: boolean;
+	isPublic?: boolean;
 	onAutoScrollChange: (autoScroll: boolean) => void;
 	onCreateBranch: (parentMessageId: Id<"messages">) => void;
 	onBranchSwitch: (branchId: string) => void;
@@ -88,6 +88,7 @@ export const MessageList = memo(
 										currentBranchId={props.currentBranchId}
 										onCreateBranch={props.onCreateBranch}
 										onBranchSwitch={props.onBranchSwitch}
+										isPublic={props.isPublic}
 									/>
 								) : (
 									<MessageBubble
@@ -95,7 +96,7 @@ export const MessageList = memo(
 										userId={props.userId}
 										threadId={props.threadId}
 										onCreateBranch={props.onCreateBranch}
-										isImmutable={props.isImmutable}
+										isPublic={props.isPublic}
 									/>
 								)}
 							</div>
@@ -114,7 +115,7 @@ export const MessageList = memo(
 			prevProps.currentBranchId === nextProps.currentBranchId &&
 			prevProps.autoScroll === nextProps.autoScroll &&
 			prevProps.isLoading === nextProps.isLoading &&
-			prevProps.isImmutable === nextProps.isImmutable
+			prevProps.isPublic === nextProps.isPublic
 		);
 	},
 );

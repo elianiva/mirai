@@ -83,7 +83,14 @@ export const Route = createRootRouteWithContext<{
 			{ rel: "icon", href: "/favicon.ico" },
 		],
 	}),
-	beforeLoad: async ({ context }) => {
+	beforeLoad: async ({ context, location }) => {
+		// allow public access to share pages
+		// TODO: we should probably wrap the app in /app and have auth there instead of
+		//       doing authStateFn in the root route
+		if (location.pathname.startsWith("/share")) {
+			return {};
+		}
+		console.log("called: ", location.pathname);
 		const auth = await authStateFn();
 		if (auth.token) {
 			context.convexQueryClient.serverHttpClient?.setAuth(auth.token);
