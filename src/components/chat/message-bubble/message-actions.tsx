@@ -20,7 +20,7 @@ type MessageActionsProps = {
 	onRegenerate?: (modeId: Id<"modes">) => void;
 	onCreateBranch?: () => void;
 	onRemove: () => void;
-	message?: { _id: Id<"messages"> };
+	messageId?: Id<"messages">;
 	threadId?: Id<"threads">;
 };
 
@@ -28,7 +28,7 @@ export function MessageActions(props: MessageActionsProps) {
 	const navigate = useNavigate();
 	const { data: user } = useUser();
 	const { openrouterKey } = useOpenrouterKey(user?.id);
-	const mutateCreateDetachedBranch = useCreateBranch();
+	const createBranch = useCreateBranch();
 	const modes = useModes();
 
 	const availableModes = modes?.filter(
@@ -36,14 +36,14 @@ export function MessageActions(props: MessageActionsProps) {
 	);
 
 	async function handleCreateDetachedBranch() {
-		if (!props.message?._id || !openrouterKey) {
+		if (!props.messageId || !openrouterKey) {
 			console.error("Missing required data for detached branch creation");
 			return;
 		}
 
 		try {
-			const result = await mutateCreateDetachedBranch({
-				messageId: props.message._id,
+			const result = await createBranch({
+				messageId: props.messageId,
 				openrouterKey,
 				useCondensedHistory: true,
 			});

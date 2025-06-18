@@ -21,6 +21,7 @@ import { authUserFn } from "~/lib/functions/auth";
 import { useMessages } from "~/lib/query/messages";
 import { useThread } from "~/lib/query/threads";
 import { userQueryOptions } from "~/lib/query/user";
+import { useCallback } from "react"; // Add this import
 
 export const Route = createFileRoute("/$threadId")({
 	component: ThreadPage,
@@ -55,6 +56,13 @@ export function ThreadPage() {
 
 	useAutoSeed();
 
+	const handleThreadClick = useCallback(
+		(threadId: Id<"threads">) => {
+			navigate({ to: "/$threadId", params: { threadId } });
+		},
+		[navigate],
+	);
+
 	return (
 		<>
 			<Unauthenticated>
@@ -73,9 +81,7 @@ export function ThreadPage() {
 				<SidebarProvider className="h-full">
 					<ChatListPanel
 						threadId={threadId}
-						onThreadClick={(threadId) => {
-							navigate({ to: "/$threadId", params: { threadId } });
-						}}
+						onThreadClick={handleThreadClick}
 					/>
 					<SidebarInset className="relative flex flex-col h-full">
 						<header className="z-10 absolute top-0 left-0 right-0 flex h-14 shrink-0 items-center gap-2 px-4 bg-background">
@@ -132,9 +138,7 @@ export function ThreadPage() {
 							<ChatAreaPanel
 								threadId={threadId}
 								isStreaming={isStreaming}
-								onThreadClick={(threadId) => {
-									navigate({ to: "/$threadId", params: { threadId } });
-								}}
+								onThreadClick={handleThreadClick}
 							/>
 						</div>
 					</SidebarInset>

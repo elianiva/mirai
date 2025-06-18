@@ -1,7 +1,7 @@
 import { useChat } from "@ai-sdk/react";
 import { useNavigate } from "@tanstack/react-router";
 import type { Id } from "convex/_generated/dataModel";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { Button } from "~/components/ui/button";
 import {
 	Dialog,
@@ -31,7 +31,9 @@ type ChatAreaPanelProps = {
 	isStreaming?: boolean;
 };
 
-export function ChatAreaPanel(props: ChatAreaPanelProps) {
+export const ChatAreaPanel = memo(function ChatAreaPanel(
+	props: ChatAreaPanelProps,
+) {
 	const { threadId } = props;
 	const navigate = useNavigate();
 	const modes = useModes();
@@ -230,7 +232,7 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 		<div className="flex flex-col h-full bg-background">
 			<div className="flex-1 min-h-0">
 				{!displayMessages?.length ? (
-					<EmptyState userName={user?.firstName ?? undefined} />
+					<EmptyState userName={user?.firstName ?? "User"} />
 				) : (
 					<MessageList
 						messages={messagesList}
@@ -283,4 +285,4 @@ export function ChatAreaPanel(props: ChatAreaPanelProps) {
 			</Dialog>
 		</div>
 	);
-}
+});

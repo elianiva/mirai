@@ -1,5 +1,5 @@
 import { markdownLookBack } from "@llm-ui/markdown";
-import { type BlockMatch, useLLMOutput } from "@llm-ui/react";
+import { type BlockMatch, useLLMOutput, throttleBasic } from "@llm-ui/react";
 import katex from "katex";
 import { CopyIcon } from "lucide-react";
 import { memo } from "react";
@@ -15,6 +15,12 @@ type MarkdownRendererProps = {
 	isStreaming?: boolean;
 };
 
+const throttle = throttleBasic({
+	adjustPercentage: 0.35,
+	readAheadChars: 10,
+	targetBufferChars: 9,
+});
+
 export const MarkdownRenderer = memo(function MarkdownRenderer(
 	props: MarkdownRendererProps,
 ) {
@@ -26,6 +32,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(
 			lookBack: markdownLookBack(),
 		},
 		isStreamFinished: !props.isStreaming,
+		throttle,
 	});
 
 	return (

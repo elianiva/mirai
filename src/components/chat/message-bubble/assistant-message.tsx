@@ -79,7 +79,7 @@ export function AssistantMessage(props: AssistantMessageProps) {
 					onRegenerate={props.onRegenerate}
 					onCreateBranch={props.onCreateBranch}
 					onRemove={props.onRemove}
-					message={props.message}
+					messageId={props.message?._id}
 					threadId={props.threadId}
 				/>
 			)}
