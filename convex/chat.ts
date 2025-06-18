@@ -10,6 +10,43 @@ import {
 import { type CoreMessage, streamText } from "ai";
 import { buildSystemPrompt, getChatModel } from "../src/lib/ai";
 
+function extractReasoningFromParts(
+	parts?: Array<Record<string, unknown>>,
+): string {
+	if (!parts) return "";
+
+	const reasoningPart = parts.find((part) => part.type === "reasoning");
+	if (!reasoningPart) return "";
+
+	if (
+		"reasoning" in reasoningPart &&
+		typeof reasoningPart.reasoning === "string"
+	) {
+		return reasoningPart.reasoning;
+	}
+
+	if ("details" in reasoningPart && Array.isArray(reasoningPart.details)) {
+		return reasoningPart.details
+			.map((detail: unknown) => {
+				if (
+					typeof detail === "object" &&
+					detail !== null &&
+					"type" in detail &&
+					"text" in detail
+				) {
+					const detailObj = detail as Record<string, unknown>;
+					return detailObj.type === "text"
+						? String(detailObj.text)
+						: "<redacted>";
+				}
+				return "<redacted>";
+			})
+			.join("");
+	}
+
+	return "";
+}
+
 type SaveUserMessageResult = {
 	threadId: Id<"threads">;
 	userMessageId: Id<"messages">;
@@ -239,13 +276,16 @@ export const finalizeAssistantMessage = internalMutation({
 			throw new Error("Message not found");
 		}
 
+		const finalReasoning =
+			reasoning || extractReasoningFromParts(message.parts);
+
 		await ctx.db.patch(messageId, {
 			content: finalContent,
 			metadata: {
 				...message.metadata,
 				isStreaming: false,
 				finishReason,
-				reasoning,
+				reasoning: finalReasoning,
 			},
 		});
 	},

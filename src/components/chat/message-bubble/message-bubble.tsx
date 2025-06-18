@@ -81,21 +81,21 @@ export function MessageBubble(props: MessageBubbleProps) {
 	const reasoning = extractReasoning(props.message);
 
 	useEffect(() => {
-		if (isStreamingReasoning) {
-			setShowReasoning(true);
-			setUserHasManuallyToggled(false);
-		} else if (
-			!isStreamingReasoning &&
-			showReasoning &&
-			!isStreamingMessageContent &&
-			!userHasManuallyToggled
-		) {
-			const timer = setTimeout(() => {
-				setShowReasoning(false);
-			}, 500);
-			return () => clearTimeout(timer);
+		if (!userHasManuallyToggled) {
+			if (isStreamingReasoning) {
+				setShowReasoning(true);
+			} else if (
+				!isStreamingReasoning &&
+				showReasoning &&
+				!isStreamingMessageContent
+			) {
+				const timer = setTimeout(() => {
+					setShowReasoning(false);
+				}, 500);
+				return () => clearTimeout(timer);
+			}
 		}
-		
+
 		if (isStreamingToolCalls) {
 			setShowToolCall(true);
 		} else if (
@@ -108,7 +108,7 @@ export function MessageBubble(props: MessageBubbleProps) {
 			}, 500);
 			return () => clearTimeout(timer);
 		}
-		
+
 		if (
 			props.message.metadata?.toolCallMetadata &&
 			props.message.metadata.toolCallMetadata.length > 0

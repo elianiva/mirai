@@ -4,15 +4,13 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "~/components/ui/dialog";
-import { Textarea } from "~/components/ui/textarea";
 import { useUploadFiles } from "~/lib/query/attachments";
 import { cn } from "~/lib/utils";
 import { ModeSelector } from "./mode-selector";
+import { Textarea } from "../ui/textarea";
 
 type ChatInputProps = {
-	message: string;
-	onMessageChange: (message: string) => void;
-	onSendMessage: () => void;
+	onSendMessage: (message: string) => void;
 	onStopStreaming: () => void;
 	isLoading: boolean;
 	isStreaming: boolean;
@@ -28,6 +26,7 @@ export function ChatInput(props: ChatInputProps) {
 	>([]);
 	const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const messageTextareaRef = useRef<HTMLTextAreaElement>(null);
 	const { mutateAsync: uploadFilesAsync, isPending: isUploadingFiles } =
 		useUploadFiles();
 
@@ -39,7 +38,7 @@ export function ChatInput(props: ChatInputProps) {
 		for (const file of files) {
 			const maxSize = 5 * 1024 * 1024;
 			if (file.size > maxSize) {
-				alert(
+				toast.error(
 					`File "${file.name}" is too large. File size must be less than 5MB.`,
 				);
 				continue;
@@ -105,6 +104,12 @@ export function ChatInput(props: ChatInputProps) {
 	}
 
 	async function handleSendMessage() {
+		const messageToSend = messageTextareaRef.current?.value || "";
+
+		if (!messageToSend.trim()) {
+			return;
+		}
+
 		let attachmentIds: string[] = [];
 
 		if (selectedFiles.length > 0) {
@@ -118,13 +123,16 @@ export function ChatInput(props: ChatInputProps) {
 		}
 
 		props.onAttachFiles(attachmentIds);
-		props.onSendMessage();
+		props.onSendMessage(messageToSend);
+		if (messageTextareaRef.current) {
+			messageTextareaRef.current.value = "";
+		}
 
 		clearAttachments();
 	}
 
 	const canSend =
-		props.message.trim() &&
+		(messageTextareaRef.current?.value.trim() || "") &&
 		!props.isLoading &&
 		!isUploadingFiles &&
 		props.selectedModeId;
@@ -179,10 +187,9 @@ export function ChatInput(props: ChatInputProps) {
 				</div>
 			)}
 			<Textarea
-				value={props.message}
-				onChange={(e) => props.onMessageChange(e.target.value)}
+				ref={messageTextareaRef}
 				placeholder="Type your message here..."
-				className="font-serif placeholder:text-neutral-400 resize-none border-0 bg-transparent p-4 text-sm shadow-none focus-visible:ring-0"
+				className="font-serif placeholder:text-neutral-400 resize-none border-0 bg-transparent p-4 text-sm shadow-none focus-visible:ring-0 w-full"
 				onKeyDown={handleKeyDown}
 				rows={2}
 			/>

@@ -31,42 +31,40 @@ type ChatAreaPanelProps = {
 	isStreaming?: boolean;
 };
 
-export const ChatAreaPanel = memo(function ChatAreaPanel(
-	props: ChatAreaPanelProps,
-) {
-	const { threadId } = props;
-	const navigate = useNavigate();
-	const modes = useModes();
-	const { data: user } = useUser();
-	const { openrouterKey } = useOpenrouterKey(user?.id);
-	const messagesFromDB = useMessages(threadId);
-	const createBranch = useCreateBranch();
-	const regenerateMessage = useRegenerateMessage();
-	const createThread = useCreateThread();
+export const ChatAreaPanel = memo(
+	function ChatAreaPanel(props: ChatAreaPanelProps) {
+		const { threadId } = props;
+		const navigate = useNavigate();
+		const modes = useModes();
+		const { data: user } = useUser();
+		const { openrouterKey } = useOpenrouterKey(user?.id);
+		const messagesFromDB = useMessages(threadId);
+		const createBranch = useCreateBranch();
+		const regenerateMessage = useRegenerateMessage();
+		const createThread = useCreateThread();
 
-	const isNewThread = threadId === NEW_THREAD_ID;
+		const isNewThread = threadId === NEW_THREAD_ID;
 
-	const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
-	const [currentBranchId, setCurrentBranchId] = useState<string>();
-	const [autoScroll, setAutoScroll] = useState(true);
-	const [showOpenrouterDialog, setShowOpenrouterDialog] = useState(false);
-	const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
-	const [actualThreadId, setActualThreadId] = useState(
-		isNewThread ? undefined : threadId,
-	);
+		const [selectedModeId, setSelectedModeId] = useState<Id<"modes">>();
+		const [currentBranchId, setCurrentBranchId] = useState<string>();
+		const [autoScroll, setAutoScroll] = useState(true);
+		const [showOpenrouterDialog, setShowOpenrouterDialog] = useState(false);
+		const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
+		const [actualThreadId, setActualThreadId] = useState(
+			isNewThread ? undefined : threadId,
+		);
 
-	const initialMessages = useMemo(
-		() =>
-			messagesFromDB?.map((msg) => ({
-				id: msg._id,
-				role: msg.role,
-				content: msg.content,
-			})) || [],
-		[messagesFromDB],
-	);
+		const initialMessages = useMemo(
+			() =>
+				messagesFromDB?.map((msg) => ({
+					id: msg._id,
+					role: msg.role,
+					content: msg.content,
+				})) || [],
+			[messagesFromDB],
+		);
 
-	const { messages, input, handleInputChange, handleSubmit, status, stop } =
-		useChat({
+		const { messages, append, status, stop } = useChat({
 			api: CHAT_API_URL,
 			initialMessages,
 			body: {
@@ -84,205 +82,223 @@ export const ChatAreaPanel = memo(function ChatAreaPanel(
 			onError: (error) => console.error("AI SDK streaming error:", error),
 		});
 
-	const isStreaming = status === "streaming";
-	const displayMessages = messages.length > 0 ? messages : messagesFromDB;
+		const isStreaming = status === "streaming";
+		const displayMessages = messages.length > 0 ? messages : messagesFromDB;
 
-	const checkOpenrouterKey = useCallback(() => {
-		if (!openrouterKey?.trim()) {
-			setShowOpenrouterDialog(true);
-			return false;
-		}
-		return true;
-	}, [openrouterKey]);
+		const checkOpenrouterKey = useCallback(() => {
+			if (!openrouterKey?.trim()) {
+				setShowOpenrouterDialog(true);
+				return false;
+			}
+			return true;
+		}, [openrouterKey]);
 
-	const messagesList = useMemo(() => {
-		if (messages.length === 0) {
-			return (
-				messagesFromDB?.map((msg) => ({
+		const messagesList = useMemo(() => {
+			if (messages.length === 0) {
+				return (
+					messagesFromDB?.map((msg) => ({
+						...msg,
+						attachmentIds: msg.attachmentIds || undefined,
+						metadata: msg.metadata
+							? {
+									...msg.metadata,
+									profileId: msg.metadata.profileId as
+										| Id<"profiles">
+										| undefined,
+								}
+							: undefined,
+					})) ?? []
+				);
+			}
+
+			return messages.map((msg) => {
+				const isLastMessage = messages[messages.length - 1]?.id === msg.id;
+				const isCurrentlyStreaming = isStreaming && isLastMessage;
+				const msgData = msg.data as Record<string, unknown> | undefined;
+
+				// Find corresponding DB message to get stored reasoning
+				const dbMessage = messagesFromDB?.find((dbMsg) => dbMsg._id === msg.id);
+
+				const reasoningPart = msg.parts?.find(
+					(part) => part.type === "reasoning",
+				);
+				const hasReasoningContent =
+					reasoningPart &&
+					"reasoning" in reasoningPart &&
+					reasoningPart.reasoning;
+
+				const streamingStatus =
+					!isCurrentlyStreaming || msg.role !== "assistant"
+						? { isStreamingMessageContent: false, isStreamingReasoning: false }
+						: reasoningPart && !hasReasoningContent
+							? { isStreamingMessageContent: false, isStreamingReasoning: true }
+							: {
+									isStreamingMessageContent: !msg.content,
+									isStreamingReasoning: false,
+								};
+
+				return {
 					...msg,
-					attachmentIds: msg.attachmentIds || undefined,
-					metadata: msg.metadata
-						? {
-								...msg.metadata,
-								profileId: msg.metadata.profileId as Id<"profiles"> | undefined,
-							}
+					_id: msg.id as Id<"messages">,
+					content: msg.content,
+					role:
+						msg.role === "user" || msg.role === "assistant"
+							? msg.role
+							: "assistant",
+					senderId: msg.role === "user" ? user?.id || "" : "assistant",
+					parts: msg.parts,
+					attachmentIds: Array.isArray(msgData?.attachmentIds)
+						? (msgData.attachmentIds as Id<"attachments">[])
 						: undefined,
-				})) ?? []
-			);
-		}
+					metadata: {
+						...(msgData?.metadata && typeof msgData.metadata === "object"
+							? msgData.metadata
+							: {}),
+						// Preserve reasoning from database if available
+						reasoning:
+							dbMessage?.metadata?.reasoning ||
+							(msgData?.metadata &&
+							typeof msgData.metadata === "object" &&
+							"reasoning" in msgData.metadata &&
+							typeof msgData.metadata.reasoning === "string"
+								? msgData.metadata.reasoning
+								: undefined),
+						isStreaming: isCurrentlyStreaming,
+						...streamingStatus,
+					},
+					attachments: [],
+				};
+			});
+		}, [messagesFromDB, messages, isStreaming, user?.id]);
 
-		return messages.map((msg) => {
-			const isLastMessage = messages[messages.length - 1]?.id === msg.id;
-			const isCurrentlyStreaming = isStreaming && isLastMessage;
-			const msgData = msg.data as Record<string, unknown> | undefined;
-
-			const reasoningPart = msg.parts?.find(
-				(part) => part.type === "reasoning",
-			);
-			const hasReasoningContent =
-				reasoningPart &&
-				"reasoning" in reasoningPart &&
-				reasoningPart.reasoning;
-
-			const streamingStatus =
-				!isCurrentlyStreaming || msg.role !== "assistant"
-					? { isStreamingMessageContent: false, isStreamingReasoning: false }
-					: reasoningPart && !hasReasoningContent
-						? { isStreamingMessageContent: false, isStreamingReasoning: true }
-						: {
-								isStreamingMessageContent: !msg.content,
-								isStreamingReasoning: false,
-							};
-
-			return {
-				...msg,
-				_id: msg.id as Id<"messages">,
-				content: msg.content,
-				role:
-					msg.role === "user" || msg.role === "assistant"
-						? msg.role
-						: "assistant",
-				senderId: msg.role === "user" ? user?.id || "" : "assistant",
-				parts: msg.parts,
-				attachmentIds: Array.isArray(msgData?.attachmentIds)
-					? (msgData.attachmentIds as Id<"attachments">[])
-					: undefined,
-				metadata: {
-					...(msgData?.metadata && typeof msgData.metadata === "object"
-						? msgData.metadata
-						: {}),
-					isStreaming: isCurrentlyStreaming,
-					...streamingStatus,
-				},
-				attachments: [],
-			};
-		});
-	}, [messagesFromDB, messages, isStreaming, user?.id]);
-
-	async function handleSendMessage() {
-		if (
-			!input.trim() ||
-			isStreaming ||
-			!selectedModeId ||
-			!checkOpenrouterKey()
-		) {
-			return;
-		}
-
-		if (isNewThread) {
-			try {
-				const newThreadId = await createThread({ title: "New conversation" });
-				setActualThreadId(newThreadId);
-				navigate({ to: "/$threadId", params: { threadId: newThreadId } });
-			} catch (error) {
-				console.error("Failed to create thread:", error);
+		async function handleSendMessage(message: string) {
+			if (
+				!message.trim() ||
+				isStreaming ||
+				!selectedModeId ||
+				!checkOpenrouterKey()
+			) {
 				return;
 			}
-		}
 
-		setAutoScroll(true);
-		handleSubmit();
-		setAttachmentIds([]);
-	}
-
-	async function handleRegenerate(
-		messageId: Id<"messages">,
-		modeId: Id<"modes">,
-	) {
-		if (isNewThread || !checkOpenrouterKey()) return;
-
-		try {
-			setAutoScroll(true);
-			await regenerateMessage({
-				messageId,
-				modeId,
-				openrouterKey: openrouterKey || undefined,
-			});
-		} catch (error) {
-			console.error("Failed to regenerate message:", error);
-		}
-	}
-
-	async function handleCreateBranch(messageId: Id<"messages">) {
-		try {
-			const result = await createBranch({
-				messageId,
-				useCondensedHistory: false,
-				openrouterKey: openrouterKey || "",
-			});
-			if (result.threadId) {
-				navigate({ to: "/$threadId", params: { threadId: result.threadId } });
+			if (isNewThread) {
+				try {
+					const newThreadId = await createThread({ title: "New conversation" });
+					setActualThreadId(newThreadId);
+					navigate({ to: "/$threadId", params: { threadId: newThreadId } });
+				} catch (error) {
+					console.error("Failed to create thread:", error);
+					return;
+				}
 			}
-		} catch (error) {
-			console.error("Failed to create branch:", error);
+
+			setAutoScroll(true);
+			append({
+				role: "user",
+				content: message,
+			});
+			setAttachmentIds([]);
 		}
-	}
 
-	useEffect(() => {
-		if (!selectedModeId && modes?.[0]?._id) {
-			setSelectedModeId(modes[0]._id);
+		async function handleRegenerate(
+			messageId: Id<"messages">,
+			modeId: Id<"modes">,
+		) {
+			if (isNewThread || !checkOpenrouterKey()) return;
+
+			try {
+				setAutoScroll(true);
+				await regenerateMessage({
+					messageId,
+					modeId,
+					openrouterKey: openrouterKey || undefined,
+				});
+			} catch (error) {
+				console.error("Failed to regenerate message:", error);
+			}
 		}
-	}, [modes, selectedModeId]);
 
-	useEffect(() => {
-		setActualThreadId(isNewThread ? undefined : threadId);
-	}, [threadId, isNewThread]);
+		async function handleCreateBranch(messageId: Id<"messages">) {
+			try {
+				const result = await createBranch({
+					messageId,
+					useCondensedHistory: false,
+					openrouterKey: openrouterKey || "",
+				});
+				if (result.threadId) {
+					navigate({ to: "/$threadId", params: { threadId: result.threadId } });
+				}
+			} catch (error) {
+				console.error("Failed to create branch:", error);
+			}
+		}
 
-	return (
-		<div className="flex flex-col h-full bg-background">
-			<div className="flex-1 min-h-0">
-				{!displayMessages?.length ? (
-					<EmptyState userName={user?.firstName ?? "User"} />
-				) : (
-					<MessageList
-						messages={messagesList}
-						userId={user?.id || ""}
-						threadId={threadId}
-						currentBranchId={currentBranchId}
-						autoScroll={autoScroll}
+		useEffect(() => {
+			if (!selectedModeId && modes?.[0]?._id) {
+				setSelectedModeId(modes[0]._id);
+			}
+		}, [modes, selectedModeId]);
+
+		useEffect(() => {
+			setActualThreadId(isNewThread ? undefined : threadId);
+		}, [threadId, isNewThread]);
+
+		return (
+			<div className="flex flex-col h-full bg-background">
+				<div className="flex-1 min-h-0">
+					{!displayMessages?.length ? (
+						<EmptyState userName={user?.firstName ?? "User"} />
+					) : (
+						<MessageList
+							messages={messagesList}
+							userId={user?.id || ""}
+							threadId={threadId}
+							currentBranchId={currentBranchId}
+							autoScroll={autoScroll}
+							isLoading={isStreaming && messages.length > 0}
+							onAutoScrollChange={setAutoScroll}
+							onRegenerate={handleRegenerate}
+							onCreateBranch={handleCreateBranch}
+							onBranchSwitch={setCurrentBranchId}
+						/>
+					)}
+				</div>
+				<div className="flex-shrink-0">
+					<ChatInput
+						onSendMessage={handleSendMessage}
+						onStopStreaming={stop}
 						isLoading={isStreaming && messages.length > 0}
-						onAutoScrollChange={setAutoScroll}
-						onRegenerate={handleRegenerate}
-						onCreateBranch={handleCreateBranch}
-						onBranchSwitch={setCurrentBranchId}
+						isStreaming={isStreaming && messages.length > 0}
+						selectedModeId={selectedModeId}
+						onModeSelect={setSelectedModeId}
+						onAttachFiles={setAttachmentIds}
 					/>
-				)}
-			</div>
-			<div className="flex-shrink-0">
-				<ChatInput
-					message={input}
-					onMessageChange={(message) =>
-						handleInputChange({
-							target: { value: message },
-						} as React.ChangeEvent<HTMLInputElement>)
-					}
-					onSendMessage={handleSendMessage}
-					onStopStreaming={stop}
-					isLoading={isStreaming && messages.length > 0}
-					isStreaming={isStreaming && messages.length > 0}
-					selectedModeId={selectedModeId}
-					onModeSelect={setSelectedModeId}
-					onAttachFiles={setAttachmentIds}
-				/>
-			</div>
+				</div>
 
-			<Dialog
-				open={showOpenrouterDialog}
-				onOpenChange={setShowOpenrouterDialog}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>OpenRouter API Key Required</DialogTitle>
-						<DialogDescription>
-							OpenRouter API key is required to use OpenRouter models. Please
-							add your API key in the account settings.
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button onClick={() => setShowOpenrouterDialog(false)}>OK</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</div>
-	);
-});
+				<Dialog
+					open={showOpenrouterDialog}
+					onOpenChange={setShowOpenrouterDialog}
+				>
+					<DialogContent>
+						<DialogHeader>
+							<DialogTitle>OpenRouter API Key Required</DialogTitle>
+							<DialogDescription>
+								OpenRouter API key is required to use OpenRouter models. Please
+								add your API key in the account settings.
+							</DialogDescription>
+						</DialogHeader>
+						<DialogFooter>
+							<Button onClick={() => setShowOpenrouterDialog(false)}>OK</Button>
+						</DialogFooter>
+					</DialogContent>
+				</Dialog>
+			</div>
+		);
+	},
+	function areEqual(prevProps, nextProps) {
+		return (
+			prevProps.threadId === nextProps.threadId &&
+			prevProps.isStreaming === nextProps.isStreaming
+		);
+	},
+);
