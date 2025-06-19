@@ -2,17 +2,12 @@ import { SignInButton } from "@clerk/tanstack-react-start";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { authStateFn } from "~/lib/functions/auth";
-import { userQueryOptions } from "~/lib/query/user";
 
 export const Route = createFileRoute("/sign-in")({
 	component: SignInPage,
-	beforeLoad: async ({ context }) => {
+	beforeLoad: async () => {
 		const auth = await authStateFn();
 		if (auth.userId) {
-			context.queryClient.setQueryData(userQueryOptions.queryKey, {
-				id: auth.userId,
-				token: auth.token,
-			});
 			throw redirect({ to: "/$threadId", params: { threadId: "new" } });
 		}
 	},
