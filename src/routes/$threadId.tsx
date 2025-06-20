@@ -24,24 +24,16 @@ import { useCallback } from "react"; // Add this import
 import { Button } from "~/components/ui/button";
 import { ShareChatDialog } from "~/components/chat/share-chat-dialog";
 import { ShareIcon } from "lucide-react";
-import type { authUserFn } from "~/lib/functions/auth";
+import { authUserFn } from "~/lib/functions/auth";
 
 export const Route = createFileRoute("/$threadId")({
 	component: ThreadPage,
 	beforeLoad: async ({ context }) => {
-		const cachedUser = context.queryClient.getQueryData(
-			userQueryOptions.queryKey,
-		);
-		return cachedUser;
-	},
-	loader: async ({ context }) => {
-		const userData = context as unknown as Awaited<
-			ReturnType<typeof authUserFn>
-		>;
+		const userData = await authUserFn();
 		if (!userData?.id) {
 			throw redirect({ to: "/sign-in" });
 		}
-		context.queryClient.setQueryData?.(userQueryOptions.queryKey, {
+		context.queryClient.setQueryData(userQueryOptions.queryKey, {
 			id: userData.id,
 			email: userData.email,
 			firstName: userData.firstName,
