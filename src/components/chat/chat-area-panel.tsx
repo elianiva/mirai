@@ -103,19 +103,21 @@ export const ChatAreaPanel = memo(
 
 		const messagesList = useMemo(() => {
 			const baseMessages =
-				messagesFromDB?.map((dbMsg) => ({
-					...dbMsg,
-					_id: dbMsg._id as Id<"messages">,
-					metadata: dbMsg.metadata
-						? {
-								...dbMsg.metadata,
-								profileId: dbMsg.metadata.profileId as
-									| Id<"profiles">
-									| undefined,
-								modeId: dbMsg.metadata.modeId as Id<"modes"> | undefined,
-							}
-						: undefined,
-				})) || [];
+				messagesFromDB
+					?.filter((msg) => !msg.metadata?.isStreaming)
+					.map((dbMsg) => ({
+						...dbMsg,
+						_id: dbMsg._id as Id<"messages">,
+						metadata: dbMsg.metadata
+							? {
+									...dbMsg.metadata,
+									profileId: dbMsg.metadata.profileId as
+										| Id<"profiles">
+										| undefined,
+									modeId: dbMsg.metadata.modeId as Id<"modes"> | undefined,
+								}
+							: undefined,
+					})) || [];
 
 			if (!isSdkStreaming) return baseMessages;
 
