@@ -2,7 +2,7 @@ import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as Alchemy from 'alchemy'
 import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
-import { API_PREFIX } from '@template/rpc'
+import { API_PREFIX } from '@mirai/rpc'
 
 const compatibility = { date: '2026-10-08' }
 
@@ -25,7 +25,7 @@ const state = Layer.unwrap(
 )
 
 export default Alchemy.Stack(
-  'effect-foldkit-template',
+  'mirai',
   { providers: Cloudflare.providers(), state },
   Effect.gen(function* () {
     const stage = yield* Alchemy.Stack.use((stack) => Effect.succeed(stack.stage))

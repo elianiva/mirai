@@ -4,7 +4,7 @@ import { AsyncData, Update } from 'foldkit'
 import type { Document, HtmlBuilder } from 'foldkit/html'
 import { Query } from 'foldkit/experimental'
 import { defineMessageUnion } from 'foldkit/message'
-import { ApiError, SystemStatus } from '@template/rpc'
+import { ApiError, SystemStatus } from '@mirai/rpc'
 import { ApiRpc } from './platform/rpc.ts'
 
 export const statusQuery = Query.define({

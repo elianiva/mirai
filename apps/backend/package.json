@@ -1,5 +1,5 @@
 {
-  "name": "@template/backend",
+  "name": "@mirai/backend",
   "private": true,
   "type": "module",
   "scripts": {
@@ -7,7 +7,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@template/rpc": "workspace:*",
+    "@mirai/rpc": "workspace:*",
     "effect": "4.1.4"
   }
 }

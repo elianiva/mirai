@@ -1,5 +1,5 @@
 {
-  "name": "@template/rpc",
+  "name": "@mirai/rpc",
   "private": true,
   "type": "module",
   "exports": {

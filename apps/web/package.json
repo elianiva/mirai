@@ -1,5 +1,5 @@
 {
-  "name": "@template/web",
+  "name": "@mirai/web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
   "dependencies": {
     "@effect/platform-browser": "4.1.4",
     "@foldkit/vite-plugin": "0.29.0",
-    "@template/rpc": "workspace:*",
+    "@mirai/rpc": "workspace:*",
     "effect": "4.1.4",
     "foldkit": "0.170.0",
     "vite": "8.3.8"

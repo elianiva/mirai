@@ -119,7 +119,7 @@ importers:
       '@cloudflare/workers-types':
         specifier: 5.20261116.1
         version: 5.20261116.1
-      '@template/rpc':
+      '@mirai/rpc':
         specifier: workspace:*
         version: link:packages/rpc
       '@types/node':
@@ -152,7 +152,7 @@ importers:
 
   apps/backend:
     dependencies:
-      '@template/rpc':
+      '@mirai/rpc':
         specifier: workspace:*
         version: link:../../packages/rpc
       effect:
@@ -167,7 +167,7 @@ importers:
       '@foldkit/vite-plugin':
         specifier: 0.29.0
         version: 0.29.0(effect@4.1.4)(foldkit@0.170.0(@effect/platform-browser@4.1.4(effect@4.1.4))(effect@4.1.4))(redis@6.3.0)(vite@8.3.8(@types/node@26.6.6)(yaml@2.9.1))
-      '@template/rpc':
+      '@mirai/rpc':
         specifier: workspace:*
         version: link:../../packages/rpc
       effect:
@@ -188,7 +188,7 @@ importers:
       '@foldkit/vite-plugin':
         specifier: 0.29.0
         version: 0.29.0(effect@4.1.4)(foldkit@0.170.0(@effect/platform-browser@4.1.4(effect@4.1.4))(effect@4.1.4))(redis@6.3.0)(vite@8.3.8(@types/node@26.6.6)(yaml@2.9.1))
-      '@template/rpc':
+      '@mirai/rpc':
         specifier: workspace:*
         version: link:../../packages/rpc
       effect:

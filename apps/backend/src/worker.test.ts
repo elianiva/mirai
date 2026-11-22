@@ -4,7 +4,7 @@ import * as Scope from 'effect/Scope'
 import { FetchHttpClient } from 'effect/http'
 import { RpcClient, RpcSerialization } from 'effect/rpc'
 import { expect, test } from 'vitest'
-import { Api, RPC_PATH } from '@template/rpc'
+import { Api, RPC_PATH } from '@mirai/rpc'
 import worker from './worker.ts'
 
 const url = `http://api.test${RPC_PATH}`

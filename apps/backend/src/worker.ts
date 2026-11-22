@@ -1,7 +1,7 @@
 import * as HttpRouter from 'effect/http/HttpRouter'
 import * as Layer from 'effect/Layer'
 import { RpcSerialization, RpcServer } from 'effect/rpc'
-import { Api, RPC_PATH } from '@template/rpc'
+import { Api, RPC_PATH } from '@mirai/rpc'
 import { SystemHandlers } from './contexts/system/handlers.ts'
 
 const routes = RpcServer.layerHttp({
