@@ -1,8 +1,10 @@
 import * as Cloudflare from '@alchemy.run/cloudflare'
 import * as Alchemy from 'alchemy'
+import * as Config from 'effect/Config'
 import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
 import { API_PREFIX } from '@mirai/rpc'
+import type { Hub } from './apps/backend/src/platform/hub.ts'
 
 const compatibility = { date: '2026-10-08' }
 
@@ -33,6 +35,12 @@ export default Alchemy.Stack(
       main: './apps/backend/src/worker.ts',
       compatibility,
       observability,
+      env: {
+        // The thread list. Each ChatAgent gets its own object by name.
+        Hub: Cloudflare.DurableObject<Hub>('Hub'),
+        OPENROUTER_API_KEY: Config.Redacted('OPENROUTER_API_KEY'),
+        MODEL: Config.String('MODEL').pipe(Config.withDefault('deepseek/deepseek-v4-flash-latest')),
+      },
       // The website reaches the API through its service binding only. Remove
       // this when the API needs its own public URL or custom domain.
       workersDev: false,

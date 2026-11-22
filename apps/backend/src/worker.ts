@@ -1,15 +1,12 @@
-import * as HttpRouter from 'effect/http/HttpRouter'
-import * as Layer from 'effect/Layer'
-import { RpcSerialization, RpcServer } from 'effect/rpc'
-import { Api, RPC_PATH } from '@mirai/rpc'
-import { SystemHandlers } from './contexts/system/handlers.ts'
+import { handlerFor } from './handler.ts'
+import { ThreadsPlatform } from './platform/threads.ts'
+import type { Env } from './env.ts'
 
-const routes = RpcServer.layerHttp({
-  group: Api,
-  path: RPC_PATH,
-  protocol: 'http',
-}).pipe(Layer.provide(SystemHandlers), Layer.provideMerge(RpcSerialization.layerJson))
+export type { Env } from './env.ts'
+export { Hub } from './platform/hub.ts'
 
-const handler = HttpRouter.toWebHandler(routes)
-
-export default { fetch: handler.handler }
+export default {
+  fetch(request: Request, env: Env): Promise<Response> {
+    return handlerFor(ThreadsPlatform(env.Hub)).handler(request)
+  },
+}
