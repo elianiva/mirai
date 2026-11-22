@@ -58,6 +58,6 @@ This is the basic chat. Generative UI blocks, web search, fact checking, and the
 
 ## Deploy
 
-`pnpm deploy` deploys the default stack to Cloudflare with the `prod` stage. Configure your Alchemy credentials and stack state first, then set `OPENROUTER_API_KEY` as a secret for the API Worker.
+`pnpm run deploy` deploys the default stack to Cloudflare with the `prod` stage. Use `pnpm run`, because plain `pnpm deploy` is pnpm's own workspace deploy command. Configure your Alchemy credentials and stack state first, then set `OPENROUTER_API_KEY` as a secret for the API Worker.
 
 The API Worker has no `workers.dev` URL. The website reaches it through its service binding, so the RPC endpoint has one public origin.

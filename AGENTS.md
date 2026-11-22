@@ -34,7 +34,7 @@ This repository is a pnpm monorepo for an Effect + Foldkit application deployed 
 - `pnpm dev:reference` runs the reference stack.
 - `pnpm check` runs Vite+ formatting, lint, and configured checks.
 - `pnpm typecheck`, `pnpm test`, and `pnpm build` run through Turbo.
-- `pnpm deploy` changes Cloudflare infrastructure. Do not run it without explicit approval.
+- `pnpm run deploy` changes Cloudflare infrastructure. Do not run it without explicit approval.
 
 See `docs/architecture.md` and `docs/tooling.md` before changing workspace boundaries or tool ownership. `docs/guardrails.md` lists the rules this repository enforces and the check behind each one.
 
