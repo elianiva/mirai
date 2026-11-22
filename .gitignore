@@ -10,3 +10,5 @@ coverage/
 .amp/portals/*
 .DS_Store
 apps/web/styled-system/
+
+.amp/in/

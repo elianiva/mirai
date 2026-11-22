@@ -20,6 +20,14 @@ This repository is a pnpm monorepo for an Effect + Foldkit application deployed 
 - Add a workspace package only for a real reusable or independently owned boundary.
 - Keep Cloudflare services out of the starter unless a concrete feature needs them.
 
+## Chat
+
+- One `ChatAgent` Durable Object per thread lives in `apps/backend/src/platform/chat-agent.ts`; the `Hub` object holds the thread list.
+- `packages/rpc/src/chat.ts` owns the thread RPC group and every socket frame.
+- The client is a pure Foldkit app in `apps/web/src/app/chat/`. Panda tokens and recipes are in `apps/web/panda.config.ts` and `view.ts`.
+- `MODEL` selects the OpenRouter model. The default is pinned in `alchemy.run.ts`; a thread re-applies it on open.
+- The local Website Worker cannot forward a POST body through its service binding. Use the preview proxy in `apps/web/vite.config.ts` for local UI work; production uses the binding.
+
 ## Commands
 
 - `pnpm dev` runs the default Alchemy stack.
