@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Effect Foldkit template">
+  <rect width="64" height="64" rx="14" fill="#172033" />
+  <path
+    d="M20 41 32 19l12 22"
+    fill="none"
+    stroke="#f8fafc"
+    stroke-width="6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="32" cy="46" r="3.5" fill="#f8fafc" />
+</svg>

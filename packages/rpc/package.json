@@ -1,0 +1,16 @@
+{
+  "name": "@template/rpc",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./system": "./src/system.ts"
+  },
+  "scripts": {
+    "typecheck": "tsrs --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "effect": "4.1.4"
+  }
+}

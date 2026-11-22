@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.turbo/
+.alchemy/
+.wrangler/
+coverage/
+.env
+.env.*
+!.env.example
+.amp/portals/*
+.DS_Store

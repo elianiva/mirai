@@ -1,0 +1,108 @@
+:root {
+  color: #172033;
+  background: #f8fafc;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.page {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  width: min(100% - 3rem, 48rem);
+  margin-inline: auto;
+  padding-block: 4rem;
+}
+
+.eyebrow {
+  color: #52617a;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+}
+
+h1 {
+  max-width: 14ch;
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+
+.description {
+  max-width: 42rem;
+  color: #52617a;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.card {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  border: 1px solid #dbe2ec;
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 1rem 2.5rem rgb(23 32 51 / 6%);
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+.card p {
+  margin-bottom: 0;
+  color: #52617a;
+  line-height: 1.6;
+}
+
+.action {
+  margin-top: 1.25rem;
+  padding: 0.65rem 1.1rem;
+  border: 1px solid #172033;
+  border-radius: 0.6rem;
+  background: #172033;
+  color: #f8fafc;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.action:hover {
+  background: #2b3a55;
+  border-color: #2b3a55;
+}
+
+.action:active {
+  transform: translateY(1px);
+}
+
+.action:focus-visible {
+  outline: 2px solid #172033;
+  outline-offset: 2px;
+}
+
+.card .status {
+  margin-top: 1rem;
+  padding-left: 0.9rem;
+  border-left: 2px solid #172033;
+  color: #172033;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}

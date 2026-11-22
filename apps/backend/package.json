@@ -1,0 +1,13 @@
+{
+  "name": "@template/backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsrs --noEmit -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@template/rpc": "workspace:*",
+    "effect": "4.1.4"
+  }
+}

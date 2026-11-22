@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+step() {
+  printf '\n==> %s\n' "$1"
+}
+
+started_at="$(date +%s)"
+node_major="$(cut -d. -f1 .node-version 2>/dev/null || echo 26)"
+node_major="${node_major:-26}"
+node_major="${node_major#v}"
+
+if sudo -n true 2>/dev/null; then
+  root=(sudo -n)
+else
+  root=()
+fi
+
+step "Check Node.js $node_major"
+current_major="$(node --version 2>/dev/null | sed 's/^v//' | cut -d. -f1 || true)"
+if [[ "$current_major" != "$node_major" ]]; then
+  case "$(uname -m)" in
+    x86_64 | amd64) node_arch=linux-x64 ;;
+    aarch64 | arm64) node_arch=linux-arm64 ;;
+    *)
+      echo "Unsupported architecture: $(uname -m)" >&2
+      exit 1
+      ;;
+  esac
+
+  command -v curl >/dev/null || {
+    echo 'curl is required to install Node.js.' >&2
+    exit 1
+  }
+  command -v jq >/dev/null || {
+    echo 'jq is required to resolve the Node.js release.' >&2
+    exit 1
+  }
+  if [[ ${#root[@]} -eq 0 && (! -w /usr/local/bin || ! -w /usr/local/lib) ]]; then
+    echo 'Installing Node.js needs a writable /usr/local or passwordless sudo.' >&2
+    exit 1
+  fi
+
+  version="$(curl -fsSL https://nodejs.org/dist/index.json |
+    jq -r --arg prefix "v$node_major." 'map(select(.version | startswith($prefix)))[0].version')"
+  version="${version#v}"
+  if [[ -z "$version" || "$version" == 'null' ]]; then
+    echo "No Node.js $node_major release found." >&2
+    exit 1
+  fi
+
+  install_dir="/usr/local/lib/nodejs-$version-$node_arch"
+  if [[ ! -x "$install_dir/bin/node" ]]; then
+    tmp="$(mktemp -d)"
+    trap 'rm -rf "${tmp:-}"' EXIT
+    curl -fsSL "https://nodejs.org/dist/v$version/node-v$version-$node_arch.tar.gz" \
+      -o "$tmp/node.tar.gz"
+    "${root[@]}" rm -rf "/usr/local/lib/node-v$version-$node_arch"
+    "${root[@]}" tar -xzf "$tmp/node.tar.gz" -C /usr/local/lib
+    "${root[@]}" mv "/usr/local/lib/node-v$version-$node_arch" "$install_dir"
+    rm -rf "$tmp"
+    trap - EXIT
+  fi
+
+  "${root[@]}" ln -sfn "$install_dir/bin/node" /usr/local/bin/node
+  "${root[@]}" ln -sfn "$install_dir/bin/npm" /usr/local/bin/npm
+  "${root[@]}" ln -sfn "$install_dir/bin/npx" /usr/local/bin/npx
+  hash -r
+fi
+
+node --version
+
+step 'Ensure pnpm 12.0.0'
+current_pnpm="$(pnpm --version 2>/dev/null || true)"
+if [[ "$current_pnpm" != '12.0.0' ]]; then
+  npm_flags=(install --global --prefix /usr/local)
+  npm_help="$(npm install --help 2>/dev/null || true)"
+  if [[ "$npm_help" == *'--allow-scripts'* ]]; then
+    npm_flags+=(--allow-scripts=pnpm)
+  fi
+  "${root[@]}" npm "${npm_flags[@]}" pnpm@12.0.0
+  hash -r
+fi
+pnpm --version
+
+step 'Install workspace dependencies'
+pnpm install --frozen-lockfile --prefer-offline
+
+step 'Verify the workspace tooling'
+test -x node_modules/.bin/tsrs
+pnpm exec lefthook install >/dev/null
+
+printf '\nSetup finished in %ss.\n' "$(( $(date +%s) - started_at ))"
