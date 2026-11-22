@@ -1,30 +1,115 @@
 name: CI
 
+# A push to a branch with an open pull request would run every job twice, once per event.
+# So `push` covers master, where the deploy runs, and `pull_request` covers every other branch.
 on:
   push:
+    branches: [master]
   pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Never cancel a production deploy halfway through.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 permissions:
   contents: read
 
+# Each check is its own job, so the four start together and the run ends when the slowest one does
+# instead of adding them up. `typecheck`, `test`, and `build` keep Turbo's cache between runs: a
+# package whose inputs did not change replays its last result instead of doing the work again.
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 12.0.0
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      # Same cache as the other jobs, kept apart so no job evicts another's entries.
+      - uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-typecheck-${{ hashFiles('apps/**', 'packages/**', 'examples/**', 'pnpm-lock.yaml', 'turbo.json', 'tsconfig*.json', 'vite.config.ts') }}
+          restore-keys: |
+            turbo-${{ runner.os }}-typecheck-
+      - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      # Turbo keeps each task's outputs and logs under .turbo/cache, keyed by the task's inputs.
+      # The key hashes the sources, so an unchanged checkout restores the exact cache; a near miss
+      # restores the last run, and Turbo still checks every task's own hash before it reuses it.
+      - uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-test-${{ hashFiles('apps/**', 'packages/**', 'examples/**', 'pnpm-lock.yaml', 'turbo.json', 'tsconfig*.json', 'vite.config.ts') }}
+          restore-keys: |
+            turbo-${{ runner.os }}-test-
+      - run: pnpm install --frozen-lockfile
       - run: pnpm test
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      # Same cache as the other jobs, kept apart so no job evicts another's entries.
+      - uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-build-${{ hashFiles('apps/**', 'packages/**', 'examples/**', 'pnpm-lock.yaml', 'turbo.json', 'tsconfig*.json', 'vite.config.ts') }}
+          restore-keys: |
+            turbo-${{ runner.os }}-build-
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
+
+  # Alchemy builds the website, creates the Workers and both Durable Object namespaces, and binds
+  # the API to the website's service binding. Only a push to master deploys, and only once every
+  # check above has passed.
+  deploy:
+    needs: [check, typecheck, test, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      # Alchemy binds this to the API Worker, so the deploy fails without it.
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec alchemy deploy --stage prod --yes
