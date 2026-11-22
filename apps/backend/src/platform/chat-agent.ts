@@ -1,3 +1,4 @@
+import { DurableObject } from 'cloudflare:workers'
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context'
 import {
   createRegistry,
@@ -16,7 +17,7 @@ import { ChatSubmit, type ChatFrame, type ChatMessage } from '@mirai/rpc'
 import type { Env } from '../env.ts'
 
 const PROVIDER = 'openrouter'
-const DEFAULT_MODEL = 'deepseek/deepseek-v4-flash-latest'
+const DEFAULT_MODEL = 'deepseek/deepseek-v4.1-flash-1017'
 const TITLE_LENGTH = 80
 
 type SocketState = {
@@ -76,7 +77,7 @@ const runFailure = (view: ConversationView): string | null => {
  * One thread. pi-durable owns the conversation, its durable run state, and the
  * SQLite tables; this object adds the socket fan-out and the Hub row.
  */
-export class ChatAgent {
+export class ChatAgent extends DurableObject<Env> {
   private harness: Harness | undefined
   private conversation: Conversation | undefined
   private view: ConversationView | undefined
@@ -84,10 +85,8 @@ export class ChatAgent {
   private readonly sockets = new Map<WebSocket, SocketState>()
   private readonly threadId: string
 
-  constructor(
-    private readonly ctx: DurableObjectState,
-    private readonly env: Env,
-  ) {
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env)
     this.threadId = ctx.id.name ?? 'main'
     void ctx.blockConcurrencyWhile(async () => {
       try {
@@ -138,6 +137,10 @@ export class ChatAgent {
     this.conversation = await this.harness.root(BACKGROUND_CONTEXT, {
       agent: { model: { provider: PROVIDER, modelId }, thinkingLevel: 'medium' },
     })
+    await this.conversation.configure(
+      { model: { provider: PROVIDER, modelId }, thinkingLevel: 'medium' },
+      BACKGROUND_CONTEXT,
+    )
 
     const watch = await this.conversation.watch(BACKGROUND_CONTEXT, { min: 20, max: 40 })
     this.view = watch.value

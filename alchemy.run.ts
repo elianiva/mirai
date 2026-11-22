@@ -42,7 +42,7 @@ export default Alchemy.Stack(
         Hub: Cloudflare.DurableObject<Hub>('Hub'),
         ChatAgent: Cloudflare.DurableObject<ChatAgent>('ChatAgent'),
         OPENROUTER_API_KEY: Config.Redacted('OPENROUTER_API_KEY'),
-        MODEL: Config.String('MODEL').pipe(Config.withDefault('deepseek/deepseek-v4-flash-latest')),
+        MODEL: Config.String('MODEL').pipe(Config.withDefault('deepseek/deepseek-v4.1-flash-1017')),
       },
       // The website reaches the API through its service binding only. Remove
       // this when the API needs its own public URL or custom domain.
@@ -51,6 +51,7 @@ export default Alchemy.Stack(
     const Website = Cloudflare.Website.Foldkit('Website', {
       rootDir: stage === 'reference' ? 'examples/reference' : 'apps/web',
       main: 'src/worker.ts',
+      dev: { port: 5173 },
       env: { API: ApiWorker },
       assets: { runWorkerFirst: [`${API_PREFIX}/*`] },
       compatibility,
