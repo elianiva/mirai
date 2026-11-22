@@ -1,4 +1,3 @@
-import { DurableObject } from 'cloudflare:workers'
 import type { ThreadSummary } from '@mirai/rpc'
 
 interface Row {
@@ -17,9 +16,11 @@ const DEFAULT_TITLE = 'New chat'
  * only keeps the row the sidebar reads, so opening the app never wakes every
  * conversation.
  */
-export class Hub extends DurableObject<Record<string, never>> {
-  constructor(ctx: DurableObjectState, env: Record<string, never>) {
-    super(ctx, env)
+export class Hub {
+  constructor(
+    private readonly ctx: DurableObjectState,
+    _env: unknown,
+  ) {
     void ctx.blockConcurrencyWhile(async () => {
       ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS threads (

@@ -2,13 +2,13 @@ import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
 import { ApiError, type ThreadSummary } from '@mirai/rpc'
 import { Threads } from '../contexts/threads/threads.ts'
-import type { Hub } from './hub.ts'
+import type { HubBinding } from '../env.ts'
 
 const toApiError = (cause: unknown) =>
   new ApiError({ message: cause instanceof Error ? cause.message : String(cause) })
 
 /** The thread list, backed by the one Hub Durable Object. */
-export const ThreadsPlatform = (hub: DurableObjectNamespace<Hub>) =>
+export const ThreadsPlatform = (hub: HubBinding) =>
   Layer.succeed(
     Threads,
     Threads.of({

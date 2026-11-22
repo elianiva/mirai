@@ -4,9 +4,11 @@ import * as Config from 'effect/Config'
 import * as Effect from 'effect/Effect'
 import * as Layer from 'effect/Layer'
 import { API_PREFIX } from '@mirai/rpc'
+import type { ChatAgent } from './apps/backend/src/platform/chat-agent.ts'
 import type { Hub } from './apps/backend/src/platform/hub.ts'
 
 const compatibility = { date: '2026-10-08' }
+const apiCompatibility = { ...compatibility, flags: ['nodejs_compat'] }
 
 /**
  * Cloudflare Workers Observability, configured on the host resources only.
@@ -33,11 +35,12 @@ export default Alchemy.Stack(
     const stage = yield* Alchemy.Stack.use((stack) => Effect.succeed(stack.stage))
     const ApiWorker = Cloudflare.Worker('Api', {
       main: './apps/backend/src/worker.ts',
-      compatibility,
+      compatibility: apiCompatibility,
       observability,
       env: {
         // The thread list. Each ChatAgent gets its own object by name.
         Hub: Cloudflare.DurableObject<Hub>('Hub'),
+        ChatAgent: Cloudflare.DurableObject<ChatAgent>('ChatAgent'),
         OPENROUTER_API_KEY: Config.Redacted('OPENROUTER_API_KEY'),
         MODEL: Config.String('MODEL').pipe(Config.withDefault('deepseek/deepseek-v4-flash-latest')),
       },

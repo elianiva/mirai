@@ -7,6 +7,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@earendil-works/chord": "1.6.0",
+    "@earendil-works/pi-ai": "1.6.0",
+    "@earendil-works/pi-durable": "1.6.0",
     "@mirai/rpc": "workspace:*",
     "effect": "4.1.4"
   }

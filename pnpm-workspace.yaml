@@ -3,7 +3,9 @@ packages:
   - packages/*
   - examples/*
 allowBuilds:
+  '@google/genai': false
   lefthook: true
+  protobufjs: false
   workerd: true
 overrides:
   effect: 4.1.4
