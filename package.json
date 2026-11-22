@@ -4,16 +4,17 @@
   "type": "module",
   "scripts": {
     "prepare": "lefthook install",
-    "dev": "alchemy dev",
+    "dev": "pnpm codegen && alchemy dev",
     "dev:reference": "alchemy dev --stage reference",
     "build": "turbo run build",
-    "check": "vp check",
+    "check": "pnpm codegen && vp check",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check",
     "lint": "vp lint",
     "typecheck": "tsrs --noEmit -p tsconfig.json && turbo run typecheck",
     "test": "turbo run test",
-    "deploy": "alchemy deploy --stage prod"
+    "deploy": "alchemy deploy --stage prod",
+    "codegen": "pnpm --filter @mirai/web codegen"
   },
   "devDependencies": {
     "@alchemy.run/cloudflare": "2.0.0-beta.87",

@@ -4,6 +4,7 @@ packages:
   - examples/*
 allowBuilds:
   '@google/genai': false
+  '@parcel/watcher': false
   lefthook: true
   protobufjs: false
   workerd: true

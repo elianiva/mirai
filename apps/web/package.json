@@ -3,9 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "typecheck": "tsrs --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "build": "panda codegen && vite build",
+    "codegen": "panda codegen",
+    "typecheck": "panda codegen && tsrs --noEmit -p tsconfig.json",
+    "test": "panda codegen && vitest run",
+    "dev": "panda codegen && vite --port 5174",
+    "preview": "vite preview --port 4173"
   },
   "dependencies": {
     "@effect/platform-browser": "4.1.4",
@@ -14,5 +17,9 @@
     "effect": "4.1.4",
     "foldkit": "0.170.0",
     "vite": "8.3.8"
+  },
+  "devDependencies": {
+    "@pandacss/dev": "2.5.0",
+    "postcss": "8.5.33"
   }
 }

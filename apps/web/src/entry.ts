@@ -1,5 +1,6 @@
 import { Runtime } from 'foldkit'
-import { init, Message, Model, update, view } from './app/main.ts'
+import { ApiRpc } from './app/chat/rpc.ts'
+import { init, Message, Model, subscriptions, update, view } from './app/main.ts'
 import './styles.css'
 
 const application = Runtime.makeApplication({
@@ -7,7 +8,9 @@ const application = Runtime.makeApplication({
   init,
   update,
   view,
+  subscriptions,
   container: document.getElementById('root'),
+  resources: ApiRpc.layer,
   devTools: { Message },
 })
 

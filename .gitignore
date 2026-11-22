@@ -9,3 +9,4 @@ coverage/
 !.env.example
 .amp/portals/*
 .DS_Store
+apps/web/styled-system/
